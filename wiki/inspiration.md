@@ -1,0 +1,147 @@
+# Inspiration & credits
+
+lingo stands on a lot of shoulders. This ledger records every library we
+learned from, what we took, and its license — kept current as we borrow, so we can
+give proper props in the README and release notes. Ideas and API shapes carry no
+license obligation; we do not copy code without noting it here explicitly.
+
+## Founding inspirations
+
+| library | license | what we took |
+|---------|---------|--------------|
+| [libphonenumber-js](https://gitlab.com/catamphetamine/libphonenumber-js) | MIT | The existence proof: parse/format/validate for one messy human domain behind a tiny API. Metadata-driven size tiers; AsYouType's feed-text→rich-result incremental shape; its restraint (ignore junk, don't punish). |
+| [date-fns](https://github.com/date-fns/date-fns) | MIT | Pure functions, tree-shakeable modules, locale packs as additive data (our i18n plan), formatDistance threshold discipline. |
+| [Humanizer (C#)](https://github.com/Humanizr/Humanizer) | MIT | The two-way ethos: humanize ⇄ dehumanize as paired APIs; number-to-words as core competency. |
+| [inclusive-dates](https://github.com/fymmot/inclusive-dates) | MIT | Accessible natural-language date input as a product pattern: type "next friday", get an accessible confirmation; aria-live parse feedback; a11y-first component design. Our DOM layer is its spiritual generalization beyond dates. |
+
+## Units & conversion domain
+
+| library | license | what we took |
+|---------|---------|--------------|
+| [convert-units](https://github.com/convert-units/convert-units) | MIT | `toBest()` best-fit unit selection concept; measure/system organization of unit data. |
+| [js-quantities](https://github.com/gentooboontoo/js-quantities) | MIT | Temperature absolute-vs-delta separation (tempC vs degC) — our `convert`/`convertDelta` split. |
+| [unitmath](https://github.com/ericman314/UnitMath) | Apache-2.0 | Formatting options design; custom unit definition ergonomics. |
+| mathjs unit system | Apache-2.0 | Prefix handling and parsing grammar cautionary study (powerful but heavyweight — we deliberately stay non-algebraic). |
+| ECMA-402 / Intl.NumberFormat unit style | spec | Sanctioned unit identifier list; free locale-aware formatting we lean on instead of shipping CLDR. |
+
+## Dates domain
+
+| library | license | what we took |
+|---------|---------|--------------|
+| [chrono-node](https://github.com/wanasit/chrono) | MIT | Known-vs-implied component certainty model; reference-date (`now`) discipline; parser+refiner pipeline concept (we hand-roll smaller). |
+| moment / [dayjs](https://github.com/iamkun/dayjs) relativeTime | MIT | The classic relative-time threshold table (`ss:44, m:45, h:22, d:26, M:11`) our reversible humanizer descends from. |
+| [date-fns formatDistanceStrict](https://date-fns.org/docs/formatDistanceStrict) | MIT | Qualifier-free strict humanize as our default model; `roundingMethod`; DST-normalized minutes before day bucketing. |
+| [Luxon](https://github.com/moment/luxon) | MIT | `toRelative` vs `toRelativeCalendar` split (elapsed-time vs calendar-compare units) — how "yesterday" stays correct across DST. |
+| [timeago.js](https://github.com/hustcc/timeago.js) | MIT | ≤10 s "just now" special case; two-sided past/future phrasing. |
+| [humanize-duration](https://github.com/EvanHahn/HumanizeDuration.js) | Unlicense | Duration decomposition + `largest` units option; humanizer() factory over global config. |
+| [ms](https://github.com/vercel/ms) | MIT | Short-form duration lexicon (2.5 hrs, 1y); cautionary: silent undefined, month-less model. |
+| [tinyduration](https://github.com/MelleB/tinyduration) | MIT | ISO-8601 duration parse/serialize with a tiny surface, plain objects, typed error, no normalization. |
+| Intl.RelativeTimeFormat | spec | Baseline phrasing conventions for relative time; `numeric: 'auto'` calendar words. |
+
+## Input & form DX domain (research pass 2026-07-03)
+
+| library | license | what we took |
+|---------|---------|--------------|
+| [Maskito](https://maskito.dev) (@maskito/core) | Apache-2.0 | The size bar (~4 kB gz, zero deps); `new X(el, opts)` + single `destroy()`; pure transform function for programmatic values; adapters as ref-returning hooks. |
+| [imask](https://imask.js.org) | MIT | `updateOptions` live reconfig; value/unmaskedValue/typedValue triad → our raw/value/quantity; accept-vs-complete event split → parse-vs-commit. |
+| [cleave-zen](https://github.com/nosir/cleave-zen) | MIT | DOM-decoupled pure formatter core with optional DOM layer (their own deprecation lesson from cleave.js). |
+| [react-aria](https://react-aria.adobe.com) NumberField + [@internationalized/number](https://react-aria.adobe.com/internationalized/number/) | Apache-2.0 | `isValidPartialNumber` → our `isValidPartialQuantity` tri-state; commit-on-blur model; `validationBehavior: 'native'\|'aria'`; OS-aware `inputmode`; deriving locale symbols from formatToParts instead of shipping data. |
+| [react-number-format](https://github.com/s-yadav/react-number-format) | MIT | Three-representation callback payload + `isAllowed` veto hook. |
+| [Base UI](https://base-ui.com) Field | MIT | Field-state data-attribute vocabulary (`data-invalid/touched/dirty/filled`), `validationMode` + `validationDebounceTime` options, ValidityState-keyed error matching. |
+| [Radix Primitives](https://www.radix-ui.com/primitives) / [Headless UI](https://headlessui.com) | MIT | Zero shipped CSS; one `data-*` attribute per state (not combined strings); namespaced CSS custom properties. |
+| [downshift](https://github.com/downshift-js/downshift) | MIT | Prop-getter pattern for the React hook adapter. |
+| [flatpickr](https://flatpickr.js.org) | MIT | `altInput` pattern: pretty text visible, hidden canonical input submits — our `name` option. |
+| WAI / W3C forms tutorials & WAI-ARIA APG | W3C | Polite-while-typing vs alert-on-commit announcement split; debounce guidance; error summary + focus management. |
+| MDN Constraint Validation, `:user-invalid` | CC / spec | Post-interaction error timing semantics; `setCustomValidity` interop. |
+
+## Docs-site design references
+
+| reference | what we took |
+|-----------|--------------|
+| [Velvet UI](https://velvet-ui-eight.vercel.app) (24h.studio) | Named motion scale + ease tokens; tinted demo stages with meta below; error choreography (decaying shake, 12%-alpha ring, reserved message space); aphoristic captions; achromatic OKLCH discipline. |
+| [jakub.kr — "Details that make interfaces feel better"](https://jakub.kr/writing/details-that-make-interfaces-feel-better) | The pre-ship detail checklist: tabular-nums on live outputs, concentric radii, blur-morph icon swaps, interruptible transitions, staggered enters/blur exits, 3-layer shadow recipe with dark-ring collapse. (Also cited by Pascal's own design language.) |
+| [muload.dev](https://muload.dev) (Murat Alpay) | Rail TOC with overlapping active border; tiny-h2 + hairline + air section rhythm; command-bar hero; ring-shadow code containers; variant walls captioned by prop diff; ghost-width tabs. |
+| [BE UI](https://beui.dev) | Demo-before-prose page anatomy; collapsing code bodies; input state choreography vocabulary (gliding caret, shake, check draw). Tabs (`components/motion/tabs.tsx`): one shared `layoutId` per instance driving a spring pill/underline indicator (`stiffness 170, damping 24, mass 1.2`), inactive panels kept mounted as `hidden` (no `AnimatePresence`, enter-only fade+4px rise), named easing/spring token file (`lib/ease.ts`) pattern. Range Slider (`components/motion/range-slider.tsx`): plain pointer events (no Framer `drag`) with instant-commit value decoupled from a spring-smoothed visual position (`SPRING_GLIDE 700/50/0.5` for glide, `SPRING_BOUNCY 500/14/0.7` for an underdamped grab-scale bounce), single vertical-bar thumb with self-offsetting `x` transform to stay inside the track at both ends. |
+| [shadcn/ui docs code blocks](https://github.com/shadcn-ui/ui/tree/main/apps/v4/components) (dissected 2026-07-03) | `ComponentSource`/`CodeCollapsibleWrapper`/`CodeBlockCommand` anatomy: theme-follows (not forced-dark) code surface one step off page bg; radius-xl panel with no border; npm↔pnpm/yarn/bun command-transform lookup table; PM-tab overflow layout. Confirms our own dual-theme `codeToHtml` + `defaultColor:false` approach is already sound — no `rehype-pretty-code` or `jotai` needed. |
+| [shadcn/ui ComponentPreviewTabs](https://github.com/shadcn-ui/ui/tree/main/apps/v4/components) (inspected 2026-07-06) | Preview-first component docs rhythm: keep the live demo as the default surface and move code/source or raw payloads behind a secondary tab/toggle. Adapted to lingo's local Tabs and DemoFrame instead of importing upstream dependencies. |
+| [shadcn/ui docs app implementation](https://github.com/shadcn-ui/ui/tree/main/apps/v4) (inspected 2026-07-04) | Actual docs shell anatomy: Fumadocs page tree feeding a grouped `DocsSidebar`, H1 row with split `DocsCopyPage` action and previous/next buttons, right-side `DocsTableOfContents`, and a command dialog that combines static page groups with indexed search results. We adapted the patterns route-stably: local docs catalog, grouped anchor nav, `/`/Cmd+K search, split copy/view-markdown controls, and query-scoped markdown routes. |
+| [shadcn/ui v4 navigation and theme source](https://github.com/shadcn-ui/ui/tree/main/apps/v4/components) (inspected 2026-07-05) | `site-header`, `main-nav`, `mobile-nav`, `mode-switcher`, and `theme-provider` patterns: sticky header, desktop ghost-button nav, mobile nav organized into primary/resources/sections, header search always reachable, System/Light/Dark theme choices, and system `color-scheme` propagation. We adapted those directly while removing our tab/docs-nav Motion layout transitions for a snappier docs feel. |
+| [shadcn/ui Base Dialog](https://ui.shadcn.com/docs/components/base/dialog) + [Base Table](https://ui.shadcn.com/docs/components/base/table) (inspected 2026-07-05) | Base UI-backed Dialog anatomy (`Portal`/`Overlay`/`Content`/`Title`/`Description`/`Close`) and the semantic table slot contract. We adapted them manually so the site could keep its local Button styling, Tailwind v4 `data-open`/`data-closed` state classes, and scroll-contained docs tables. |
+| [shadcn/ui Base Field](https://ui.shadcn.com/docs/components/base/field), [Textarea](https://ui.shadcn.com/docs/components/base/textarea), and [Separator](https://ui.shadcn.com/docs/components/base/separator) (inspected 2026-07-05) | Field composition (`Field`/`FieldLabel`/`FieldDescription`/`FieldError`/`FieldGroup`) plus shared Textarea/Separator primitives. We adapted them manually to avoid overwriting local Input/Button styling, then used them to normalize AI JSON and escalation controls. |
+| [shadcn/ui Base Dropdown Menu](https://ui.shadcn.com/docs/components/base/dropdown-menu) + [Base UI Menu](https://base-ui.com/react/components/menu.md) (inspected 2026-07-05) | Base Menu composition (`Root`/`Trigger`/`Portal`/`Positioner`/`Popup`) plus semantic `Item`/`LinkItem` roles and trigger expanded state. We adapted it manually with local Button styling, lucide icons, and Tailwind v4 state classes, then used it to replace the docs actions' bespoke absolute menu. |
+| [shadcn/ui Base Tabs](https://ui.shadcn.com/docs/components/base/tabs) + [Base UI Tabs](https://base-ui.com/react/components/tabs.md) (inspected 2026-07-05) | Tablist/tab/tabpanel semantics for small option sets. We reused the site's already-owned Tabs primitive to replace the install command block's bespoke package-manager buttons while preserving local motion timing and package-manager persistence. |
+| [shadcn/ui Base Button](https://ui.shadcn.com/docs/components/base/button) (inspected 2026-07-05) | Base UI Button link guidance: anchors should use `buttonVariants` on plain links instead of `Button render={<a />}` because Base UI applies button semantics. We adopted that pattern for header and hero link CTAs while keeping the local button visual system. |
+| [Simple Icons](https://github.com/simple-icons/simple-icons) (inspected 2026-07-06) | Integration picker brand SVG paths and default HEX colors for JavaScript, webcomponents.org, React, React Hook Form, TanStack, shadcn/ui, Next.js, Vue.js, Svelte, Node.js, and Anthropic. Kept inline to avoid a runtime dependency or runtime CDN request. |
+| [WAI-ARIA APG Combobox Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) (inspected 2026-07-05) | Editable combobox + listbox popup focus contract: keep DOM focus on the input, point `aria-activedescendant` at the active option, connect the popup with `aria-controls`, and mark the visually active option with `aria-selected`. Applied to the docs search dialog while keeping local Dialog/Input/Button primitives. |
+| [coss.com/ui](https://coss.com/ui) | Dense component-gallery pacing: compact section nav, practical demos before prose, and fewer ornamental status chips. |
+| [Motion Primitives Border Trail](https://motion-primitives.com/docs/border-trail) | Subtle edge motion as an affordance around interactive demo surfaces; adapted as a dependency-free neutral top-edge trail that disables under reduced motion. |
+| [Motion Primitives](https://motion-primitives.com) (ibelick, MIT — dissected 2026-07-04) | `text-effect.tsx`: word/char/line splitting with a non-animated per-word wrapper for char mode, preset variant shapes (blur/fade-in-blur/scale/fade/slide), and the sr-only-plus-`aria-hidden` pairing as our house pattern for any split-text animation. `text-scramble.tsx`: cautionary reference (linear reveal-front sweep, not per-glyph settle) and an explicit gap to fix, not copy — it has zero accessibility accommodation for its live-updating text node. `text-shimmer.tsx`: the two-layer `background-clip:text` gradient + animated `backgroundPosition` shimmer technique, spread-scales-with-content-length idea (credited by them to JohnPhamous), and its AI-loading demo framing as precedent for our own async/parsing-in-progress affordance. All three re-timed onto our own `--motion-*`/`--ease-out` tokens and given reduced-motion fallbacks upstream doesn't have; no `motion`/`clsx`/`tailwind-merge` deps pulled in. |
+| [llms.txt proposal](https://llmstxt.org/) | One-file agent orientation: H1 package identity, short summary, and a concise Markdown link section for deeper docs. |
+
+## AI structured-output & Standard Schema domain (research pass 2026-07-04, wiki/research/ai-structured-output.md)
+
+| source | license/type | what we took |
+|--------|--------------|--------------|
+| [Standard Schema](https://standardschema.dev) / [@standard-schema/spec](https://github.com/standard-schema/standard-schema) | MIT, types-only spec | The `~standard.validate` Input≠Output transform contract as the correct shape for a `lingoField()` — coercion belongs *inside* validate, not bolted on; confirmed the package is pure types (zero runtime bytes), so depending on it costs nothing against our zero-dep budget. |
+| [Vercel AI SDK](https://ai-sdk.dev) (`ai@7.0.14`) | Apache-2.0 | `experimental_repairText`'s local-repair-first design (return `null` to fall through, no forced LLM round-trip) as the model for a deterministic lingo repair function; the `FlexibleSchema`/`asSchema` pattern (accept Zod ∪ Standard Schema ∪ plain JSON Schema behind one union) as prior art for how lingo could expose fields that compose into someone else's schema; `experimental_refineToolInput`'s post-validate/pre-execute placement as a second, narrower interception point. |
+| [instructor-js](https://github.com/567-labs/instructor-js) | MIT | Cautionary contrast, not borrowed: its retry-on-validation-failure loop always costs an LLM round-trip. Sharpened our positioning — deterministic local canonicalization (parse "2 lbs" without asking the model again) is the gap it leaves open. |
+| Anthropic [computer-use tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool) docs | spec/docs | The `type` action's documented failure mode ("Claude sometimes assumes outcomes... take a screenshot and evaluate") as the concrete justification for lingo's DOM layer's untrusted-event handling and blur-time canonicalization — a problem statement, not code. |
+
+## LLM/agent formatting-failure evidence domain (research pass 2026-07-04, wiki/research/llm-formatting-failures.md)
+
+| source | license/type | what we took |
+|--------|--------------|--------------|
+| OpenAI — [Structured Outputs docs](https://developers.openai.com/api/docs/guides/structured-outputs) & [launch post](https://openai.com/index/introducing-structured-outputs-in-the-api/) | docs/spec | The primary-source admission, in the vendor's own words, that anchors the whole positioning: Structured Outputs guarantees schema shape but "the model may still make mistakes within the values of the JSON object" — the exact syntax/semantics line lingo sits on. |
+| [Berkeley Function-Calling Leaderboard / Gorilla](https://gorilla.cs.berkeley.edu/blogs/8_berkeley_function_calling_leaderboard.html) and [Gorilla paper](https://arxiv.org/abs/2305.15334) | research/blog | The "5% → 5, not 0.05" implicit-conversion example — the crispest, primary-source illustration of a value-format error a schema can't catch. |
+| [ComplexFuncBench](https://arxiv.org/abs/2501.10132) | arXiv paper | Its `value_error` (78.8% for Qwen2.5-72B) as the dominant category in a 5-way error taxonomy — quantified evidence that value correctness, not structural correctness, is function-calling's real bottleneck. |
+| [The Constraint Tax](https://arxiv.org/abs/2605.26128) (Jaideep Ray) | arXiv preprint | The clearest quantified validity/correctness tradeoff: schema validity 61.5%→100%, answer accuracy 19.7%→11%, wrong-valid-schema outputs up to 88.9% under hard constraints (sub-3B models) — used to argue constraints alone can *increase* silently-wrong output. |
+| [Outlines](https://github.com/dottxt-ai/outlines) issue #1178 | GitHub issue (Apache-2.0 project) | A reproducible counterexample: a grammar-constrained "float format" decoder still emits tokens that fail `float()` conversion — proof that even working constrained decoding doesn't close the semantic gap. |
+| [JSONSchemaBench](https://arxiv.org/abs/2501.10868) | arXiv paper | Compliance-rate numbers (13% unconstrained → 41% best constrained-decoding framework on hard schemas) as evidence that failure rates are schema-complexity-dependent, framing why a canonicalization layer's value doesn't show up on toy schemas. |
+| [Tool-Reflection-Bench](https://arxiv.org/abs/2509.18847) | arXiv paper | Repair@1 ≤ 9.6% baseline figure — the retry-economics argument that naive re-ask-on-failure is a low-yield fix, sharpening the case for fixing formatting before validation instead of after. |
+| [WebVoyager](https://arxiv.org/abs/2401.13919), [OSWorld](https://arxiv.org/abs/2404.07972), [FormFactory](https://arxiv.org/abs/2506.01520), [UI-CUBE](https://arxiv.org/abs/2511.17131) | arXiv papers | Confirmed that published browser/computer-use agent failure taxonomies are dominated by grounding/navigation, and that FormFactory (the benchmark closest to testing form-filling formatting) explicitly admits its own metric can't yet detect wrong-format field entry — the "instrumentation gap, not an absence of the problem" framing for lingo's computer-use pitch. |
+| [apple-health-data-bridge](https://github.com/stephenfeather/apple-health-data-bridge) issues #14 / PR #13 | GitHub project | Concrete, if small-scale, real-world incidents of LLM unit hallucination (mg/dL vs mmol/L, both valid-looking) and calendar-invalid date extraction — used as illustrative, explicitly anecdotal-tier examples, not load-bearing statistics. |
+
+## Ecosystem integration & DX domain (research pass 2026-07-05, wiki/research/ecosystem-*.md)
+
+| source | license/type | what we took |
+|--------|--------------|--------------|
+| [Standard JSON Schema](https://standardschema.dev/json-schema) / [`@standard-schema/spec@1.1.0`](https://github.com/standard-schema/standard-schema) | MIT, types-only | The ratified `StandardJSONSchemaV1` sibling interface (`~standard.jsonSchema.input/output({target})`, published 2025-12-15) — lingo implements it verbatim, so fields drop into AI SDK v6/v7 and LangChain with zero adapter. Now vendored as a types-only devDep behind a conformance test so drift from upstream fails CI. |
+| [Vercel AI SDK](https://ai-sdk.dev) `@ai-sdk/provider-utils` `asSchema()` | Apache-2.0 | The vendor-dispatch contract we conform to (`vendor!=='zod'` → the SDK reads `~standard.jsonSchema.input({target:'draft-07'})`); its `experimental_repairToolCall` shape as the model for `repairToolCallWith` (since `experimental_repairText`/`generateObject` are deprecated in AI SDK 6). |
+| [Zod v4](https://zod.dev) | MIT | `.meta()`→JSON-Schema passthrough and the `toJSONSchema(schema,{target})` helper *name* (adopted as our `toJSONSchema(field)`); `.overwrite()` as the exact shape of our type-preserving "benign forgiveness"; Zod Mini's function-call tree-shaking (which our option-object fields already get for free). `z.coerce.number()`→`NaN` stays the cautionary wedge. Skipped deliberately: a fluent chain builder and `.catch()`-style silent fallback (contradicts "LLM tools safer"). |
+| [Valibot](https://valibot.dev) + `@valibot/to-json-schema` · [ArkType](https://arktype.io) | MIT | Two contrasting `StandardJSONSchemaV1` shapes: Valibot's separate-package modularity (mirrors our separate `./ai` entry) and ArkType's implements-both-halves-from-construction (mirrors our `LingoField`). |
+| [Effect Schema](https://effect.website) `transform({decode,encode})` | MIT | Independent confirmation of our two-way guarantee (hard rule 4): its canonical teaching example is height↔string via paired decode/encode — the same law, arrived at separately. |
+| [@hookform/resolvers](https://github.com/react-hook-form/resolvers) `standardSchemaResolver` | MIT | The "one resolver adapter per ecosystem" pattern and the transform-on-submit contract (returns the parsed `result.value` unless `{raw:true}`) that lets a `lingoObject` canonicalize a whole react-hook-form on submit. |
+| [TanStack Form](https://tanstack.com/form) · [shadcn/ui Field](https://ui.shadcn.com/docs/forms) `FieldError` | MIT | Native vendor-agnostic Standard-Schema validators and Standard-Schema-agnostic error rendering — lingo fields plug into both unmodified; TanStack's documented "`onSubmit` gets raw input" limitation is what our `useLingoInput` bridge closes. |
+| [Braintrust autoevals](https://github.com/braintrustdata/autoevals) · [promptfoo](https://promptfoo.dev) | MIT | The `{pass,score,reason}`/`Score` grader shape our `quantityMatch`/`dateMatch` duck-type into; autoevals' unit-blind `NumericDiff` (5000 g vs 5 kg ≈ 0) and string-vs-number `JSONDiff` Levenshtein fallback are the cautionary bug that motivates "canonicalize both sides *before* you diff." |
+| [Baymard Institute](https://baymard.com/research/checkout-usability) · [GoodUI](https://goodui.org/patterns/8/) | research | The form-UX evidence base: fewer fields + single-input-entity integrity (Baymard); natural-language forms win for one value+unit but lose replacing whole forms (GoodUI's mixed A/B data, incl. a −22% test) — which scopes our claim honestly. |
+| Google Home [TemperatureSetting](https://developers.home.google.com/cloud-to-cloud/traits/temperaturesetting) trait · [Stripe minor units](https://stripe.com/docs/currencies) | docs | Prior art for canonical-unit storage with presentational display (Celsius-canonical; integer cents) — exactly our `display:'canonical'` vs `'echo'` split, validated on trusted platforms. |
+| [@openai/agents](https://github.com/openai/openai-agents-js) tool guardrails · [LangGraph](https://langchain-ai.github.io/langgraphjs/) `interrupt()` · [Stagehand](https://docs.stagehand.dev) | MIT/Apache-2.0 | Interception points for agent workflows: `defineToolInputGuardrail` and `interrupt()` as homes for lingo's did-you-mean candidate; Stagehand's Zod-only `extract()` as the cautionary case motivating the extract-then-`canonicalizeValues` recipe. |
+| [MDN ElementInternals](https://developer.mozilla.org/en-US/docs/Web/API/ElementInternals) / [web.dev — form-associated custom elements](https://web.dev/articles/more-capable-form-controls) | docs/spec | `formAssociated` + `setFormValue`/`setValidity` as the way `<lingo-input>` becomes a real form control in one node (collapsing the visible+hidden two-node trick) for framework-agnostic use. |
+
+## Process & orchestration domain (adopted 2026-07-04)
+
+| source | license/type | what we took |
+|--------|--------------|--------------|
+| Pascal **home-services** & **private-editor** repos (same owner, internal) | internal | The agent-first knowledge layer this repo now runs on: AGENTS.md-as-canonical with `CLAUDE.md` = `@AGENTS.md`; the plans↔wiki lifecycle ("plans = where it's going, wiki = how it works today; ship → promote the durable explanation, keep the plan as history") with explicit read-before/update-when triggers; `goal` + `success_criteria -> proof artifact` plan frontmatter with `[MET]/[SKIPPED]` annotations; the decisions **offer-gate** (hard to reverse / surprising / real trade-off — all three); `CONTEXT.md` glossary with *Avoid* synonym lists; `plans/backlog.md` parking lot ("append, don't act"); behavioral-guardrails block; doc-rules compiled into deterministic gate scripts (our `check-zero-deps.mjs`); playbooks ending in numbered PR checklists; "don't invent nits" review closing rule. |
+| Pascal **home-services** resource/API design playbooks (same owner, internal) | internal | The resource-style output contract behind `describeResult()`: stable `object` names, grouped related fields, outsider-readable primitives, composition over flattened blobs, and the decision not to copy persistence fields such as `id`/timestamps onto deterministic parser values. |
+| [shadcn/ui](https://github.com/shadcn-ui/ui) | MIT | The public-library monorepo shape: `packages/*` (published) + `apps/*` (docs site) with turbo at the root (bun as the package manager here), CONTRIBUTING at root, the site as a first-class app beside the library. |
+| Matt Pocock's skills & ADR-FORMAT (via the repos above, which credit him) | — | The one-paragraph-ADR minimalism and the offer-gate framing that our decisions.md rubric descends from. |
+| [agents.md](https://agents.md) convention | open convention | AGENTS.md as the single cross-tool agent entrypoint. |
+
+## Also studied (cautionary or partial)
+
+- **AutoNumeric** (MIT) — feature completeness vs 43 kB gz: the monolith we refuse to be.
+- **cleave.js** (Apache-2.0, deprecated) — hard DOM binding as original sin.
+- **Luxon** (MIT) — API elegance reference; too heavy for our budget.
+- **Quill CJK breakage** (chrome 65 / quill#2009) — why we never mutate during IME composition.
+- **react-scan** (Aiden Bai, MIT) — dev-only render highlighting + FPS toolbar wired
+  into the site via `src/components/dev/dev-tools.tsx`; the NODE_ENV-gated
+  dynamic-import pattern keeps it at zero prod bytes.
+- **react-grab** (Aiden Bai, MIT) — ⌘C-over-element copies component stack + source
+  locations for agents; dev-only alongside react-scan. Pairs with our own agent
+  workflow on this repo.
+- **react-doctor** (Million, MIT) — static React audit (state/effects, perf, a11y,
+  security); adopted as an advisory PR workflow (`.github/workflows/react-doctor.yml`).
+- **taste-skill** (Leonxlnx, tasteskill.dev) — anti-slop frontend skill; its
+  redesign protocol (audit-first, targeted-evolution levers, IA preservation
+  rules) governs site Pass 10; installed via `npx skills add`.

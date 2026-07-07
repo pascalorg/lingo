@@ -1,0 +1,67 @@
+name: Release
+
+# Editor-style dispatch release (plan 023):
+#   gh workflow run release.yml -f bump=patch|minor|major
+# Bumps packages/lingo, runs the full gate, publishes to npm with provenance,
+# then tags and creates the GitHub release.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump
+        required: true
+        type: choice
+        options: [patch, minor, major]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - run: bun install --frozen-lockfile
+      - run: bun run --filter @pascal-app/lingo check
+      - name: Bump version + roll changelog
+        id: bump
+        working-directory: packages/lingo
+        run: |
+          npm version ${{ inputs.bump }} --no-git-tag-version
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          # Promote the [Unreleased] section to a dated version heading, leaving
+          # a fresh empty [Unreleased] on top (conventions.md docs-surface rule).
+          # VERSION reaches the script via env, not shell interpolation into JS.
+          VERSION="$VERSION" node -e '
+            const fs = require("node:fs")
+            const p = "CHANGELOG.md"
+            const date = new Date().toISOString().slice(0, 10)
+            const src = fs.readFileSync(p, "utf8")
+            fs.writeFileSync(p, src.replace(
+              /## \[Unreleased\]/,
+              "## [Unreleased]\n\n## [" + process.env.VERSION + "] - " + date))
+          '
+      - name: Publish (provenance)
+        run: npm publish --provenance --access public
+        working-directory: packages/lingo
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Commit, tag, release
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add packages/lingo/package.json packages/lingo/CHANGELOG.md
+          git commit -m "chore(release): v${{ steps.bump.outputs.version }}"
+          git tag "v${{ steps.bump.outputs.version }}"
+          git push origin HEAD --tags
+          gh release create "v${{ steps.bump.outputs.version }}" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}

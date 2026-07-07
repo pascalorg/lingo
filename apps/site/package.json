@@ -1,0 +1,45 @@
+{
+  "name": "lingo-site",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "NEXT_DIST_DIR=.next-dev next dev",
+    "build": "bun run typecheck && next build",
+    "start": "next start",
+    "typecheck": "tsgo --project tsconfig.json --noEmit",
+    "kill": "bun ./scripts/kill-port.mjs",
+    "clean": "bun ./scripts/clean-next.mjs",
+    "reset": "bun run kill && bun run clean",
+    "restart": "bun run reset && bun run dev",
+    "lint": "eslint",
+    "doctor": "react-doctor"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.6.0",
+    "@pascal-app/lingo": "workspace:*",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "geist": "^1.7.2",
+    "lucide-react": "^1.23.0",
+    "motion": "^12.42.2",
+    "next": "16.2.10",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "shiki": "^4.3.0",
+    "tailwind-merge": "^3.6.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@typescript/native-preview": "7.0.0-dev.20260704.1",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.10",
+    "react-doctor": "^0.6.2",
+    "react-grab": "^0.1.48",
+    "react-scan": "^0.5.7",
+    "tailwindcss": "^4",
+    "typescript": "^6.0.3"
+  }
+}

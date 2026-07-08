@@ -14,8 +14,9 @@ strings: `"5'11\""`, `"1½ cups"`, `"twenty-five kg"`, `"3pm EST"`,
 `"1,234 kg"`. Your database wants canonical values: one number in one unit,
 one ISO date. The library is the layer in between: natural-language
 quantities, units, dates, and ranges parsed into validated values, then
-humanized back. Zero dependencies; English-first parsing with locale-aware
-formatting (locale packs are on the roadmap, plan 013).
+humanized back. Zero dependencies; English by default with opt-in locale packs
+(Spanish, French, Portuguese, Chinese, Japanese, en-GB) for parsing, plus
+locale-aware number formatting via `Intl`.
 
 **For the web.** Use one text field instead of a value box plus a unit dropdown:
 

@@ -6,9 +6,11 @@ lingo parses what humans type and what models emit: natural-language quantities,
 units, dates, and ranges. It turns them into canonical, validated values and
 humanizes them back. Zero runtime dependencies. The size gate lives in
 `scripts/size.mjs`, and the package includes thirty-three built-in kinds
-(chrono-node needs 35 kB for dates alone). Parsing is English-first today;
-number *formatting* is locale-aware. Locale packs are the 0.2 roadmap
-(plan 013).
+(chrono-node needs 35 kB for dates alone). English is the default; opt-in locale
+packs (`createLingo({ locales })`, `@pascal-app/lingo/locales/*`) add number words,
+grammar, units, and relative dates for Spanish, French, Portuguese, Chinese,
+Japanese, and en-GB (plan 031). Number *formatting* is locale-aware via `Intl` in
+every locale; `humanizeDate()` output stays English for now.
 
 ```ts
 import { lingo, parseQuantity, convert, tryConvert } from '@pascal-app/lingo'
@@ -59,7 +61,8 @@ layer in between: **forgiving in, canonical through, human out.**
 - **Errors are UX.** Every issue has a stable code, a human message you can
   override, an input span for highlighting, and did-you-mean suggestions.
 - **Tiny and dependency-free.** No runtime deps. Tree-shakeable. `Intl` handles
-  locale number formatting, so the package ships no locale data.
+  locale number formatting, so the main entry ships no locale data — parser locale
+  packs are opt-in `@pascal-app/lingo/locales/*` subpaths you load explicitly.
 
 ## Performance
 
@@ -425,6 +428,27 @@ They use the same fields and the same scoped form-UX case: collapse one value + 
 dropdown into a single text field, not "replace the whole form with a
 sentence."
 
+### Completions: `@pascal-app/lingo/complete`
+
+`completions(input, opts)` returns **ranked, fully-parsed** canonical readings of
+partial or ambiguous input — prefix fan-out, unit-ambiguity forks, number
+alternatives, implied units, range-tail units — each a `text` plus a successful
+quantity/range/conversion result. It powers comboboxes and is distinct from a parse
+candidate/alternative/suggestion.
+
+```ts
+import { completions } from '@pascal-app/lingo/complete'
+
+completions('2 f', { kind: 'length' }).map((c) => c.text)
+// ['2 ft', '2 ft-us', '2 fathom', '2 furlong', …]
+completions('5', { kind: 'length' }).map((c) => c.text)
+// ['5 m', '5 ft', '5 cm', '5 in', '5 km', '5 mi']
+```
+
+The DOM field is headless about this too: `lingoInput` accepts injected
+`complete` / `onComplete` hooks, so you render your own dropdown — the library ships
+no UI.
+
 ## Extending
 
 ```ts
@@ -458,6 +482,25 @@ import { createLingo } from '@pascal-app/lingo'
 const metricOnly = createLingo({ messages: { UNKNOWN_UNIT: 'Metric units only.' } })
 metricOnly.parse('5 kg')          // isolated instance, same API
 ```
+
+Parse non-English input by loading packs on an instance — English stays the default:
+
+```ts
+import { createLingo } from '@pascal-app/lingo'
+import { es } from '@pascal-app/lingo/locales/es'
+
+const app = createLingo({ locales: [es] })
+app.parse('dos kg', { locale: 'es' })          // 2 kg
+app.parse('al menos 2 m', { locale: 'es' })     // ≥ 2 m  (open range)
+app.parse('entre 5 y 10 kg', { locale: 'es' })  // 5–10 kg
+// omit `locale` to auto-detect among the loaded packs
+```
+
+Packs (`en`, `en-gb`, `es`, `fr`, `pt`, `zh`, `ja`) are additive and tree-shakeable;
+they add number words, units, ranges, and relative dates (through
+`@pascal-app/lingo/date`) for their language. Requesting an unloaded locale returns
+`LOCALE_NOT_LOADED` rather than silently parsing as English; `humanizeDate()` output
+stays English for now.
 
 The global `lingo()` is itself a `createLingo()` singleton. One code path,
 two tiers of convenience.
@@ -737,10 +780,11 @@ natural-language dates, where 50% were accepted and all accepted rows were wrong
 `EMPTY · NO_VALUE · UNKNOWN_UNIT · KIND_MISMATCH · RANGE_KIND_MISMATCH ·
 CONVERSION_KIND_MISMATCH · RATE_REQUIRED · TRAILING_INPUT · SINGLE_VALUE_EXPECTED ·
 APPROX_NOT_ALLOWED · UNIT_REQUIRED · CONVERSION_NOT_ALLOWED · NUMBER_FORMAT ·
-NONFINITE · RANGE_MIN · RANGE_MAX · REQUIRED · UNSUPPORTED_DATE · NOW_REQUIRED ·
+NONFINITE · LOCALE_NOT_LOADED · RANGE_MIN · RANGE_MAX · REQUIRED · UNSUPPORTED_DATE · NOW_REQUIRED ·
 RANGE_OPEN_BOUND_NOT_ALLOWED · TYPO_CORRECTED · AMBIGUOUS_NUMBER ·
 AMBIGUOUS_UNIT · AMBIGUOUS_DATE · RANGE_REVERSED · COMPOUND_OVERFLOW ·
-CIVIL_AVERAGE · UNIT_ASSUMED · WEEKDAY_ASSUMED_NEXT · SLANG_UNIT · TZ_IGNORED`
+CIVIL_AVERAGE · UNIT_ASSUMED · WEEKDAY_ASSUMED_NEXT · SLANG_UNIT · TZ_IGNORED ·
+AMBIGUOUS_TIMEZONE · LOCALE_NOT_LOADED`
 
 Every issue carries a typed `data` payload (`LingoIssue<'UNKNOWN_UNIT'>` knows
 `data.unit` and `data.suggestions`). `NOW_REQUIRED` fires when a date input

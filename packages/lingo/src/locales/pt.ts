@@ -7,6 +7,38 @@ export const pt: LocalePack = {
   defaults: {
     numberFormat: 'comma-decimal',
   },
+  units: {
+    length: [
+      ['m', 'metro metros'],
+      ['cm', 'centimetro centimetros'],
+      ['mm', 'milimetro milimetros'],
+      ['km', 'quilometro quilometros'],
+      ['in', 'polegada polegadas'],
+      ['ft', 'pe pes'],
+      ['mi', 'milha milhas'],
+    ],
+    mass: [
+      ['g', 'grama gramas'],
+      ['kg', 'quilograma quilogramas quilo quilos'],
+      ['lb', 'libra libras'],
+      ['oz', 'onca oncas'],
+    ],
+    volume: [
+      ['l', 'litro litros'],
+      ['ml', 'mililitro mililitros'],
+      ['gal', 'galao galoes'],
+    ],
+    temperature: [['C', 'grau graus']],
+    duration: [
+      ['s', 'segundo segundos'],
+      ['min', 'minuto minutos'],
+      ['h', 'hora horas'],
+      ['d', 'dia dias'],
+      ['wk', 'semana semanas'],
+      ['mo', 'mes meses'],
+      ['yr', 'ano anos'],
+    ],
+  },
   grammar: {
     approximateWords: ['aproximadamente', 'aprox', 'cerca', 'quase'],
     boundPhrases: [
@@ -93,6 +125,27 @@ export const pt: LocalePack = {
     },
   },
   date: {
+    dayOffsets: {
+      hoje: 0,
+      amanha: 1,
+      ontem: -1,
+    },
+    dayTimePhrases: {
+      'de manha': { hour: 9 },
+      'amanha de manha': { dayOffset: 1, hour: 9 },
+      'meio-dia amanha': { dayOffset: 1, hour: 12 },
+      'amanha meio-dia': { dayOffset: 1, hour: 12 },
+      'meio dia amanha': { dayOffset: 1, hour: 12 },
+      'amanha meio dia': { dayOffset: 1, hour: 12 },
+      'meio-dia': { dayOffset: 0, hour: 12 },
+      'meio dia': { dayOffset: 0, hour: 12 },
+    },
+    fillerWords: ['o', 'a', 'os', 'as', 'de', 'do', 'da'],
+    modifiers: {
+      this: ['este', 'esta'],
+      next: ['proximo', 'proxima', 'que vem'],
+      last: ['passado', 'passada', 'ultimo', 'ultima'],
+    },
     months: {
       janeiro: 0,
       jan: 0,
@@ -117,6 +170,20 @@ export const pt: LocalePack = {
       nov: 10,
       dezembro: 11,
       dez: 11,
+    },
+    periodWords: {
+      week: ['semana'],
+      month: ['mes'],
+      year: ['ano'],
+    },
+    relative: {
+      futurePrefixes: ['em', 'daqui a'],
+      pastPrefixes: ['ha'],
+    },
+    timeAliases: {
+      'meio-dia': { hour: 12 },
+      'meio dia': { hour: 12 },
+      'meia noite': { hour: 0 },
     },
     unitWords: {
       segundo: 'second',

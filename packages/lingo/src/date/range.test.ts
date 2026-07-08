@@ -146,6 +146,32 @@ describe('parseDateRange', () => {
     expect(!r.ok && r.issues[0]?.code).toBe('NOW_REQUIRED')
   })
 
+  it('parses duration ranges anchored by a starting date', () => {
+    const now = new Date(2026, 6, 8, 9, 0, 0)
+    for (const text of ['3 days starting tomorrow', '3days starting tomorrow']) {
+      const r = parseDateRange(text, { now })
+      expect(r.ok).toBe(true)
+      if (!r.ok) {
+        return
+      }
+      expect(r.span).toEqual({ start: 0, end: text.length })
+      expect(r.start?.date).toEqual(new Date(2026, 6, 9))
+      expect(r.end?.date).toEqual(new Date(2026, 6, 12))
+      expect(r.start?.grain).toBe('day')
+      expect(r.end?.grain).toBe('day')
+
+      const phrase = humanizeDateRange(r)
+      expect(phrase).toBe('3 days starting 2026-07-09')
+      const reparsed = parseDateRange(phrase, { now })
+      expect(reparsed.ok).toBe(true)
+      if (!reparsed.ok) {
+        return
+      }
+      expect(reparsed.start?.date).toEqual(r.start?.date)
+      expect(reparsed.end?.date).toEqual(r.end?.date)
+    }
+  })
+
   it('fails cleanly on non-ranges', () => {
     const r = parseDateRange('the quick brown fox', { now: NOW })
     expect(r.ok).toBe(false)

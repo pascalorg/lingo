@@ -113,7 +113,7 @@ function endpoint(ep: NonNullable<DateRange['start']>): SerializedDateRangeEndpo
 }
 
 function serializeRange(result: DateRange): SerializedDateRange {
-  const { toJSON, start, end, span, ...rest } = result
+  const { toJSON, anchored, start, end, span, ...rest } = result
   return {
     ...rest,
     ...wire(result, result.span),

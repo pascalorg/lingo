@@ -6,6 +6,9 @@ export type LocaleId = string
 export type WordSetInput = ReadonlySet<string> | readonly string[]
 
 export type DateOffsetUnit = 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year'
+export type DateGrainUnit = 'hour' | 'minute' | 'second'
+export type DatePeriodUnit = 'week' | 'month' | 'year'
+export type DateRelativeModifier = 'this' | 'next' | 'last'
 
 export interface GrammarBoundPhrase {
   bound: 'min' | 'max'
@@ -87,15 +90,57 @@ export interface LocaleUnitAliases {
   unit: string
 }
 
+export type LocaleUnitAliasGroups = Partial<
+  Record<Kind, readonly (readonly [unit: string, aliases: string])[]>
+>
+
 export interface LocaleFuzzyVocab {
   kind: Kind
   vocab: FuzzyVocab
 }
 
+export interface DateTimeAlias {
+  grain?: DateGrainUnit
+  hour: number
+  minute?: number
+  second?: number
+}
+
+export interface DateDayTimePhrase extends DateTimeAlias {
+  dayOffset?: number
+}
+
+export interface DateCalendarPeriodPhrase {
+  modifier: DateRelativeModifier
+  period: DatePeriodUnit
+}
+
+export interface DateCompactOffsetVocab {
+  futureSuffixes?: readonly string[]
+  pastSuffixes?: readonly string[]
+  unitWords: Record<string, DateOffsetUnit>
+}
+
+export interface DateRelativeVocab {
+  anchorWords?: readonly string[]
+  futurePrefixes?: readonly string[]
+  pastPrefixes?: readonly string[]
+  pastSuffixes?: readonly string[]
+}
+
 export interface DateVocabPack {
+  calendarPeriodPhrases?: Record<string, DateCalendarPeriodPhrase>
+  compactOffset?: DateCompactOffsetVocab
+  dayOffsets?: Record<string, number>
+  dayTimePhrases?: Record<string, DateDayTimePhrase>
   durationUnitSeconds?: Record<string, number>
+  fillerWords?: readonly string[]
+  modifiers?: Partial<Record<DateRelativeModifier, readonly string[]>>
   months: Record<string, number>
+  periodWords?: Partial<Record<DatePeriodUnit, readonly string[]>>
+  relative?: DateRelativeVocab
   subunit: Partial<Record<DateOffsetUnit, DateOffsetUnit>>
+  timeAliases?: Record<string, DateTimeAlias>
   timeCorePattern?: string
   timePattern?: string
   unitWords: Record<string, DateOffsetUnit>
@@ -107,6 +152,7 @@ export interface LocalePack {
   aliases?: readonly string[]
   date?: Partial<DateVocabPack>
   defaults?: LocaleDefaults
+  detectionWords?: WordSetInput
   extends?: LocaleId
   fuzzy?: readonly LocaleFuzzyVocab[]
   grammar?: Partial<GrammarWordsInput>
@@ -114,6 +160,7 @@ export interface LocalePack {
   numberWords?: Partial<NumberWordTablesInput>
   numerals?: Record<string, number>
   unitAliases?: readonly LocaleUnitAliases[]
+  units?: LocaleUnitAliasGroups
 }
 
 export interface LanguageProfile {

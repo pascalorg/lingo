@@ -4,6 +4,7 @@ import { addCalendar } from './civil'
 import type { DateGrain, DateRange, DateRangeEndpoint, DateRangeFail } from './parse'
 import { confidence, knownFor, type P } from './state'
 import { parseTimeCore } from './time'
+import { TIME_ALIASES } from './vocab'
 import { applyZoneToCivil, type DateZone, stripTrailingZone } from './zone'
 
 export interface Endpoint {
@@ -15,8 +16,6 @@ export interface Endpoint {
   second: number
   zone?: DateZone
 }
-
-const NAMED_TIME = /^(?:noon|midday|midi|12\s*noon|midnight|minuit|12\s*midnight)$/i
 
 function meridiemHour(hour: number, meridiem: 'am' | 'pm'): number {
   if (meridiem === 'pm' && hour < 12) {
@@ -46,13 +45,13 @@ export function parseRangeEndpoint(p: P, text: string): Endpoint | null {
   // The am/pm/named test must run on the ZONE-STRIPPED text, else a trailing zone
   // ("3am EST") hides the endpoint's own half and corrupts inference.
   const bareText = (stripped ? stripped.source : trimmed).trim()
-  const core = parseTimeCore(bareText, [])
+  const core = parseTimeCore(p, bareText, [])
   if (core) {
     // Only a trailing am/pm (no word boundary in "2am", so anchor at end) or a
     // named time fixes the half. A bare "5:30" or "05:30" is NOT fixed — it is
     // eligible for am/pm inference, like a bare hour. A 24h hour (≥13) is fixed
     // by value, handled in isFixed().
-    const explicit = /(?:am|pm)$/i.test(bareText) || NAMED_TIME.test(bareText)
+    const explicit = /(?:am|pm)$/i.test(bareText) || isNamedTime(p, bareText)
     return { ...core, explicit, zone }
   }
   const bare = /^(\d{1,2})$/.exec(trimmed)
@@ -64,6 +63,11 @@ export function parseRangeEndpoint(p: P, text: string): Endpoint | null {
     return { hour, minute: 0, second: 0, grain: 'hour', explicit: false, zone }
   }
   return null
+}
+
+function isNamedTime(p: P, text: string): boolean {
+  const aliases = p.profile.date?.timeAliases ?? TIME_ALIASES
+  return aliases[text.toLowerCase()] !== undefined
 }
 
 export const RANGE_SPLITS: { re: RegExp; open?: 'start' | 'end' }[] = [

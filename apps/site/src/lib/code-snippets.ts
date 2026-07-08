@@ -10,6 +10,7 @@ const any = lingo("72 in to cm")
 const range = parseRange("between 5 and 10 kg", { kind: "mass" })`
 
 export const completionsSnippet = `import { completions } from "@pascal-app/lingo/complete"
+import { parseDate, parseDateRange } from "@pascal-app/lingo/date"
 import { lingoInput } from "@pascal-app/lingo/dom"
 
 // Debounce in your UI (~120–150ms) — completions() re-parses on every call
@@ -17,6 +18,16 @@ const items = completions("10 kg to 16", { kind: "mass", limit: 8 })
 // range tails fan out: 10–16 kg, 10–16 lb, …
 
 completions("10", { units: ["kg", "lb", "m", "ft"] }) // optimistic without kind
+
+// Inject the date engine (kept out of ./complete for size) — covers
+// "noon tomorrow", "next month", and "3 days starting tomorrow"
+const withDates = completions("noon tomorrow", {
+  date: (text) => {
+    const now = new Date()
+    const single = parseDate(text, { now })
+    return single.ok ? single : parseDateRange(text, { now })
+  },
+})
 
 lingoInput(input, {
   kind: "mass",

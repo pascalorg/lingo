@@ -3,7 +3,7 @@ id: 005
 title: Dates & durations
 status: approved
 created: 2026-07-03
-updated: 2026-07-07
+updated: 2026-07-08
 ---
 
 # Dates & durations (`@pascal-app/lingo/date`)
@@ -59,8 +59,9 @@ wall-clock time).
   ONE — default = first occurrence in *next* week (mainstream expectation), alternative
   interpretation (soonest occurrence) attached with its date; `last <weekday>` mirror.
 - `next week/month/year` → grain-sized result (Monday of next week etc.);
-  `this weekend` → next Saturday (grain day), `end of (the) month/week/year`,
-  `beginning/start of …`, `mid-<month>` → 15th.
+  `next <monthname>` / `last <monthname>` → the named month strictly after/before
+  the current month period; `this weekend` → next Saturday (grain day), `end of
+  (the) month/week/year`, `beginning/start of …`, `mid-<month>` → 15th.
 
 **Absolute**: ISO `2026-07-03`, `2026-07-03T14:30(:ss)`, compact `20260703` NOT
 supported (ambiguity with big ints). `7/3/2026`, `7/3` — slash/dot/dash numeric
@@ -68,14 +69,29 @@ dates honor `dayFirst` (default from locale option: en-US false, everything else
 true); ambiguity (both ≤ 12) → warning + alternative. `March 5`, `March 5th, 2026`,
 `5 March`, `5th of March`, `Mar 5 '26`, month names + 3-letter abbrevs (+ `sept`).
 Year-less dates: with explicit `now`, nearest occurrence per `forwardDates` (default:
-this year, past OK); without `now`, `NOW_REQUIRED`. 2-digit years: 69/70 pivot
-(≤69 → 20xx).
+future-biased, so past month/day and bare-month starts roll to next year); without
+`now`, `NOW_REQUIRED`. 2-digit years: 69/70 pivot (≤69 → 20xx).
 
 **Times attached**: `at 3pm`, `at 15:30`, `3:05 pm`, `noon`, `7 in the morning/evening`,
 `17h30` (French-ish but common). With explicit `now`, time-only input → today at
 that time (next day if past and `forwardDates`); without `now`, `NOW_REQUIRED`.
 Additional clock forms (bare `17h`, o'clock, quarter/half past/to, dot separator,
 military `0900 hours`, `midi`/`minuit`) per plan 030.
+
+**Locale packs**: loaded packs contribute date vocabulary through
+`LanguageProfile.date`: month/weekday names, date filler words (`de`, `le`, `el`),
+deictic day offsets, day-part/time phrases, relative offset frames, period
+modifier words, and compact CJK offset suffixes. Implemented examples include
+French `midi demain`, `le mois prochain`, `dans 3 jours`; Spanish `mañana`
+(tomorrow), `en la mañana` / `por la mañana` (morning), `el mes que viene`,
+`hace 3 días`; Portuguese `amanhã de manhã`, `mês que vem`; Chinese `明天中午`,
+`下个月`; Japanese `明日の正午`, `来月`; en-GB numeric dates stay day-first.
+Spanish ambiguity policy: bare `mañana` is tomorrow, while morning requires a
+prepositional frame, so `mañana por la mañana` is tomorrow morning.
+
+**Date ranges**: `parseDateRange` covers time slots per plan 030 plus duration
+ranges anchored by a date/time: `N <duration> starting <anchor>` (including glued
+duration units like `3days starting tomorrow`) → `[anchor, anchor + duration)`.
 
 **Durations**: `90 min`, `1h30`, `1:30` (with kind duration: h:mm; warns of mm:ss
 alternative), `1 h 30 min`, `an hour and a half`, `2 hours 15 minutes`, `three quarters

@@ -7,7 +7,39 @@ export const ja: LocalePack = {
   defaults: {
     numberFormat: 'auto',
   },
-  unitAliases: [{ kind: 'mass', unit: 'kg', aliases: ['キロ'] }],
+  units: {
+    length: [
+      ['m', 'メートル'],
+      ['cm', 'センチ センチメートル'],
+      ['mm', 'ミリ ミリメートル'],
+      ['km', 'キロメートル'],
+      ['in', 'インチ'],
+      ['ft', 'フィート'],
+      ['mi', 'マイル'],
+    ],
+    mass: [
+      ['g', 'グラム'],
+      ['kg', 'キログラム キロ'],
+      ['lb', 'ポンド'],
+    ],
+    volume: [
+      ['l', 'リットル'],
+      ['ml', 'ミリリットル'],
+    ],
+    temperature: [
+      ['C', '度 摂氏'],
+      ['F', '華氏'],
+    ],
+    duration: [
+      ['s', '秒'],
+      ['min', '分'],
+      ['h', '時間'],
+      ['d', '日'],
+      ['wk', '週間'],
+      ['mo', 'ヶ月'],
+      ['yr', '年'],
+    ],
+  },
   fuzzy: [
     {
       kind: 'temperature',
@@ -29,7 +61,7 @@ export const ja: LocalePack = {
     rangeAndWords: ['と'],
     rangeBetweenWords: ['間'],
     rangeFromWords: ['から'],
-    rangeSeparatorWords: ['まで', 'へ', 'に'],
+    rangeSeparatorWords: ['から', 'まで', 'へ', 'に'],
   },
   numberWords: {
     andWords: ['と'],
@@ -56,6 +88,45 @@ export const ja: LocalePack = {
       千: 1000,
       万: 10_000,
       億: 100_000_000,
+    },
+  },
+  date: {
+    calendarPeriodPhrases: {
+      来週: { modifier: 'next', period: 'week' },
+      来月: { modifier: 'next', period: 'month' },
+      来年: { modifier: 'next', period: 'year' },
+      先週: { modifier: 'last', period: 'week' },
+      先月: { modifier: 'last', period: 'month' },
+      去年: { modifier: 'last', period: 'year' },
+    },
+    compactOffset: {
+      futureSuffixes: ['後'],
+      pastSuffixes: ['前'],
+      unitWords: {
+        秒: 'second',
+        分: 'minute',
+        時間: 'hour',
+        日: 'day',
+        週間: 'week',
+        週: 'week',
+        ヶ月: 'month',
+        か月: 'month',
+        月: 'month',
+        年: 'year',
+      },
+    },
+    dayOffsets: {
+      今日: 0,
+      明日: 1,
+      昨日: -1,
+    },
+    dayTimePhrases: {
+      正午: { dayOffset: 0, hour: 12 },
+      明日の正午: { dayOffset: 1, hour: 12 },
+    },
+    timeAliases: {
+      正午: { hour: 12 },
+      真夜中: { hour: 0 },
     },
   },
   numerals: {

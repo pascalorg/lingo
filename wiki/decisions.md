@@ -399,7 +399,12 @@ field `kind` when they differ so mass input in a length field still completes.
 marginal budget recalibrated 1.8 → 2.2 kB (measured 2.15 kB; see `size.mjs`).
 Everyday-first prefix tiering later reused the same curated table with a deeper
 alias pool so duration/currency/common length readings beat obscure scientific
-symbols; the `./complete` gate moved to 2.25 kB (measured 2.21 kB).
+symbols; the `./complete` gate moved to 2.25 kB (measured 2.21 kB). Date
+completions use an injected parser option instead of importing `./date`, keeping
+D60's entry isolation while letting callers opt into date/date-range/duration
+readings; the `./complete` gate moved to 2.6 kB for that opt-in UX, then 2.8 kB
+when the D65 review made anchored date-range completions emit the canonical
+"N days starting YYYY-MM-DD" text instead of echoing the raw input.
 
 **D62 · 2026-07-08 · Locale packs are explicit data entries, shared locale
 infrastructure is product.** Multi-language parsing needs resolved language profiles,
@@ -421,3 +426,42 @@ issue code; after trimming, the main-entry gate and `./complete` marginal gate
 move by ~0.1 kB to reflect the correctness path and gzip interaction. Locale pack
 standalone/marginal gates stay unchanged except the newly measured published
 `./locales/en` entry.
+
+**D64 · 2026-07-08 · Locale showcases require real unit vocab.** The multi-language
+showcase cannot be credible if locale packs understand number/range words but not
+localized unit names (`pulgadas`, `pouces`, `公斤`, `メートル`). The fix keeps aliases
+pack-owned and tree-shakeable, uses compact grouped unit tables, and hardens
+auto-detection with unit/detection signals plus an English retry. Rejected: keeping
+the old budgets by dropping required aliases or letting showcase examples fail.
+Budgets recalibrate for the measured locale data and the shared detector path; revisit
+if locale packs move to generated compressed data or an async/plugin boundary.
+
+**D65 · 2026-07-08 · Date-grammar weight in /ai stays proportionate to the feature.**
+Plan 005's named-month periods (`last/next <month>` as strict month-grain shifts) and
+duration-starting date ranges (`N <duration> starting <anchor>`, incl. glued
+`3days starting tomorrow`) are shared date grammar, so they cascade into `./ai` through
+`dateRangeField`. The anchored-range path only needs a unit duration, so it reaches a
+split-out `parseUnitDuration` helper instead of the full `parseDuration`; the ISO 8601
+and clock-form machinery tree-shakes out of `/ai` (the `./date` entry still bundles the
+whole parser via its own export, so that marginal is unchanged). `humanizeDateRange`
+renders the "N days starting …" phrasing only for ranges carrying an internal `anchored`
+flag (never serialized) — not by pattern-matching midnight boundaries — so
+externally-built whole-day ranges keep their clock phrasing and the two-way corpus is
+unaffected. `./ai` marginal recalibrates 14.9 → 15.7 kB (measured 15.55) for the genuine
+unit-duration weight; the D64 detector grows `full`, so it cancels in this marginal.
+Rejected: reimplementing a mini duration parser inline (reinvention) or keeping the
+16.4 kB gate that bundled the unused ISO/clock paths.
+
+**D66 · 2026-07-08 · Locale date words live in packs; Spanish `mañana` is date-first.**
+Natural-language dates in shipped locale packs are data, not parser branches:
+`LocalePack.date` carries day offsets, day-part/time phrases, relative offset frames,
+period modifier words, date filler words, localized month/weekday names, and compact
+CJK offset suffixes. The shared date parser reads those tables through
+`LanguageProfile.date`, so adding phrases like `midi demain`, `hace 3 días`, `明天中午`,
+or `来月` grows the relevant pack row instead of the English grammar vocabulary.
+Spanish ambiguity is resolved deliberately: bare `mañana` means tomorrow; morning needs
+`en la mañana` / `por la mañana`, and `mañana por la mañana` means tomorrow morning.
+Budgets recalibrate for the shared profile merge/detector surface, the locale data rows,
+and the date parser layers that consume the new tables. Deferred: localized
+`humanizeDate()` output; current humanization remains English-only until date rendering
+gets pack-owned phrase tables too.

@@ -1,4 +1,5 @@
 import { allKinds } from '@pascal-app/lingo'
+import { ISSUE_CODES } from '@pascal-app/lingo/schema'
 import type { Metadata } from 'next'
 
 import { EscalationLab } from '@/app/escalation/escalation-lab'
@@ -182,39 +183,8 @@ const formSchemaSnippet = `import { standardSchemaResolver } from '@hookform/res
 // user types "5 kg" / picks a date; canonical on submit
 useForm({ resolver: standardSchemaResolver(shipment) })`
 
-const issueCodes = [
-  'EMPTY',
-  'NO_VALUE',
-  'UNKNOWN_UNIT',
-  'KIND_MISMATCH',
-  'RANGE_KIND_MISMATCH',
-  'CONVERSION_KIND_MISMATCH',
-  'TRAILING_INPUT',
-  'SINGLE_VALUE_EXPECTED',
-  'APPROX_NOT_ALLOWED',
-  'UNIT_REQUIRED',
-  'CONVERSION_NOT_ALLOWED',
-  'NUMBER_FORMAT',
-  'NONFINITE',
-  'RANGE_MIN',
-  'RANGE_MAX',
-  'RANGE_OPEN_BOUND_NOT_ALLOWED',
-  'REQUIRED',
-  'UNSUPPORTED_DATE',
-  'NOW_REQUIRED',
-  'TYPO_CORRECTED',
-  'AMBIGUOUS_NUMBER',
-  'AMBIGUOUS_UNIT',
-  'AMBIGUOUS_DATE',
-  'RANGE_REVERSED',
-  'COMPOUND_OVERFLOW',
-  'CIVIL_AVERAGE',
-  'UNIT_ASSUMED',
-  'WEEKDAY_ASSUMED_NEXT',
-  'SLANG_UNIT',
-  'TZ_IGNORED',
-  'AMBIGUOUS_TIMEZONE',
-]
+// Sourced from the package so the badge wall can't drift from IssueCode.
+const issueCodes = Object.keys(ISSUE_CODES)
 
 const DOCS_DESCRIPTION =
   'Make forms easier, LLM tools safer. One parser for forgiving human forms and stricter tool schemas: parse, strictness, forms, AI tool fields, MCP, convert, currency, dates, and API reference.'

@@ -286,6 +286,9 @@ export function parseAndFractionTail(
   }
   const pos = i + 1
   const a = word(tokens[pos])
+  if (a && tables.fractionWords[a] !== undefined) {
+    return { add: tables.fractionWords[a]!, next: pos + 1 }
+  }
   if (a && tables.articles.has(a)) {
     const frac = word(tokens[pos + 1])
     if (frac && tables.fractionWords[frac] !== undefined) {

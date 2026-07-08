@@ -8,7 +8,15 @@ export {
   resolveLanguageProfile,
 } from './profile'
 export type {
+  DateCalendarPeriodPhrase,
+  DateCompactOffsetVocab,
+  DateDayTimePhrase,
+  DateGrainUnit,
   DateOffsetUnit,
+  DatePeriodUnit,
+  DateRelativeModifier,
+  DateRelativeVocab,
+  DateTimeAlias,
   DateVocabPack,
   GrammarBoundPhrase,
   GrammarWords,
@@ -16,6 +24,7 @@ export type {
   LocaleFuzzyVocab,
   LocaleId,
   LocaleUnitAliases,
+  LocaleUnitAliasGroups,
   NumberWordTables,
   WordSetInput,
 } from './types'

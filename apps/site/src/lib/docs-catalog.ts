@@ -1,3 +1,5 @@
+import { ISSUE_CODES } from '@pascal-app/lingo/schema'
+
 export interface DocsNavItem {
   depth?: 2 | 3
   description: string
@@ -51,6 +53,8 @@ export const docsNavGroups: DocsNavGroup[] = [
         'install',
         'npm',
         'pnpm',
+        'yarn',
+        'bun',
         'entries',
         'zero dependencies',
       ]),
@@ -77,7 +81,19 @@ export const docsNavGroups: DocsNavGroup[] = [
         'parse-completions',
         'Autocomplete anything',
         'Ranked completions for every plausible canonical reading.',
-        ['completions', 'autocomplete', 'suggestions', 'prefix', 'ranked'],
+        [
+          'completions',
+          'autocomplete',
+          'suggestions',
+          'prefix',
+          'ranked',
+          'combobox',
+          'complete',
+          'debounce',
+          'cross-kind',
+          'date',
+          'noon tomorrow',
+        ],
         { depth: 3, markdownSectionId: 'parse' },
       ),
       page(
@@ -236,11 +252,15 @@ export const docsNavGroups: DocsNavGroup[] = [
         'usd',
         'eur',
         'gbp',
+        'money',
         'fromMinor',
         'toMinor',
         'convertCurrency',
         'rates',
         'stripe',
+        'RATE_REQUIRED',
+        'quid',
+        'pence',
       ]),
       page('dates', 'Dates & durations', 'Relative dates against an explicit now, two-way.', [
         'date',
@@ -262,6 +282,7 @@ export const docsNavGroups: DocsNavGroup[] = [
       ]),
       page('locales', 'Locales', 'Load tree-shakeable language packs for parsing.', [
         'locale',
+        'locale pack',
         'i18n',
         'language',
         'spanish',
@@ -271,6 +292,9 @@ export const docsNavGroups: DocsNavGroup[] = [
         'japanese',
         'en-gb',
         'createLingo',
+        'detection',
+        'LOCALE_NOT_LOADED',
+        'localePacks',
       ]),
       page('coverage', 'Catalog', 'Browse kinds, units, aliases, and fuzzy vocab.', [
         'catalog',
@@ -280,6 +304,13 @@ export const docsNavGroups: DocsNavGroup[] = [
         'fuzzy',
         'coverage',
       ]),
+      page(
+        'coverage-kinds',
+        'Kinds',
+        'Every built-in kind with its base unit and unit count.',
+        ['kind', 'base unit', 'length', 'mass', 'temperature', 'pressure', 'torque', 'radiation'],
+        { depth: 3, markdownSectionId: 'coverage' },
+      ),
       page(
         'coverage-aliases',
         'Aliases',
@@ -346,7 +377,18 @@ export const docsNavGroups: DocsNavGroup[] = [
         'api-core',
         'Core functions',
         'The public parsing and conversion exports.',
-        ['lingo', 'parseQuantity', 'parseRange', 'convert'],
+        [
+          'lingo',
+          'parseQuantity',
+          'parseRange',
+          'partialState',
+          'findQuantities',
+          'completions',
+          'quantity',
+          'convert',
+          'convertDelta',
+          'fromJSON',
+        ],
         { depth: 3, markdownSectionId: 'api' },
       ),
       page(
@@ -377,7 +419,9 @@ export const docsNavGroups: DocsNavGroup[] = [
         'api-issues',
         'Issue codes',
         'Machine-readable parser issue codes.',
-        ['EMPTY', 'UNKNOWN_UNIT', 'AMBIGUOUS_NUMBER', 'TZ_IGNORED'],
+        // Index every code from the package so searching any of them
+        // (e.g. RATE_REQUIRED, LOCALE_NOT_LOADED) lands here.
+        ['issue code', 'severity', ...Object.keys(ISSUE_CODES)],
         { depth: 3, markdownSectionId: 'api' },
       ),
       page(
@@ -399,6 +443,8 @@ export const docsTopLevelPages = docsPages.filter((item) => !item.depth)
 
 export const docsSearchIndex = docsPages.map((item) => ({
   ...item,
+  searchableTitle: item.title.toLowerCase(),
+  searchableKeywords: item.keywords.map((keyword) => keyword.toLowerCase()),
   searchableText: [item.title, item.description, item.group, ...item.keywords]
     .join(' ')
     .toLowerCase(),

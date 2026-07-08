@@ -1,6 +1,7 @@
 import type { LingoIssue } from '../core/types'
 import type { DateGrain } from './parse'
 import { issue, type P, trimRange } from './state'
+import { TIME_ALIASES, type TimeAlias } from './vocab'
 import { type DateZone, stripTrailingZone } from './zone'
 
 export interface TimeCore {
@@ -35,20 +36,18 @@ export function parseTimeOnly(p: P, start: number, end: number): TimeCore | null
     }
     source = stripped.source
   }
-  const core = parseTimeCore(source, issues)
+  const core = parseTimeCore(p, source, issues)
   if (core && zone) {
     core.zone = zone
   }
   return core
 }
 
-export function parseTimeCore(source: string, issues: LingoIssue[]): TimeCore | null {
+export function parseTimeCore(p: P, source: string, issues: LingoIssue[]): TimeCore | null {
   const lower = source.toLowerCase().replace(/^(?:at|@)\s+/, '')
-  if (lower === 'noon' || lower === 'midday' || lower === 'midi' || lower === '12 noon') {
-    return { hour: 12, minute: 0, second: 0, grain: 'hour', issues }
-  }
-  if (lower === 'midnight' || lower === 'minuit' || lower === '12 midnight') {
-    return { hour: 0, minute: 0, second: 0, grain: 'hour', issues }
+  const alias = timeAliases(p)[lower]
+  if (alias) {
+    return aliasTime(alias, issues)
   }
 
   const meridiem = /^(?:(?:at|@)\s*)?(\d{1,2})(?:[:.](\d{2})(?::(\d{2}))?)?\s*(am|pm)$/i.exec(
@@ -159,6 +158,20 @@ export function parseTimeCore(source: string, issues: LingoIssue[]): TimeCore | 
     return { hour, minute: 0, second: 0, grain: 'hour', issues }
   }
   return null
+}
+
+function timeAliases(p: P): Record<string, TimeAlias> {
+  return p.profile.date?.timeAliases ?? TIME_ALIASES
+}
+
+function aliasTime(alias: TimeAlias, issues: LingoIssue[]): TimeCore {
+  return {
+    hour: alias.hour,
+    minute: alias.minute ?? 0,
+    second: alias.second ?? 0,
+    grain: alias.grain ?? 'hour',
+    issues,
+  }
 }
 
 const TIME_NUM_WORDS: Record<string, number> = {

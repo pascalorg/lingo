@@ -17,12 +17,20 @@ import {
 import type { DateAlternative, DateGrain } from './parse'
 import { type CoreDate, core, issue, knownFor, needsNow, type P, trimRange } from './state'
 import {
+  type DayTimePhrase,
+  DAY_OFFSETS as EN_DAY_OFFSETS,
+  DAY_TIME_PHRASES as EN_DAY_TIME_PHRASES,
+  MODIFIERS as EN_MODIFIERS,
   MONTHS as EN_MONTHS,
+  PERIOD_WORDS as EN_PERIOD_WORDS,
+  RELATIVE_WORDS as EN_RELATIVE_WORDS,
   SUBUNIT as EN_SUBUNIT,
   UNIT_WORDS as EN_UNIT_WORDS,
   WEEKDAY_NAMES as EN_WEEKDAY_NAMES,
   WEEKDAYS as EN_WEEKDAYS,
   type OffsetUnit,
+  type PeriodUnit,
+  type RelativeModifier,
 } from './vocab'
 
 interface OffsetPart {
@@ -80,39 +88,13 @@ function parseDeictic(p: P, start: number, end: number): CoreDate | null {
   if (exactNow.includes(source)) {
     return core(new Date(p.now.getTime()), 'second', knownFor('second'), start, end)
   }
-  if (source === 'today') {
-    return core(today, 'day', knownFor('day'), start, end)
+  const dayTime = dateDayTimePhrases(p)[source]
+  if (dayTime) {
+    return dayTimeCore(p, today, dayTime, start, end)
   }
-  const localeDayOffset = deicticDayOffset(p, source)
-  if (localeDayOffset !== null) {
-    return core(addCalendar(today, { days: localeDayOffset }), 'day', knownFor('day'), start, end)
-  }
-  if (source === 'tonight' || source === 'tonite') {
-    return core(withTime(today, 22), 'hour', [...knownFor('hour'), 'implied-hour'], start, end)
-  }
-  if (source === 'tomorrow' || source === 'tmr' || source === 'tmrw') {
-    return core(addCalendar(today, { days: 1 }), 'day', knownFor('day'), start, end)
-  }
-  if (source === 'yesterday' || source === 'yday' || source === "y'day") {
-    return core(addCalendar(today, { days: -1 }), 'day', knownFor('day'), start, end)
-  }
-  if (source === 'day after tomorrow' || source === 'overmorrow') {
-    return core(addCalendar(today, { days: 2 }), 'day', knownFor('day'), start, end)
-  }
-  if (source === 'day before yesterday') {
-    return core(addCalendar(today, { days: -2 }), 'day', knownFor('day'), start, end)
-  }
-  if (source === 'this morning') {
-    return core(withTime(today, 9), 'hour', [...knownFor('hour'), 'implied-hour'], start, end)
-  }
-  if (source === 'this afternoon') {
-    return core(withTime(today, 15), 'hour', [...knownFor('hour'), 'implied-hour'], start, end)
-  }
-  if (source === 'this evening') {
-    return core(withTime(today, 19), 'hour', [...knownFor('hour'), 'implied-hour'], start, end)
-  }
-  if (source === 'noon') {
-    return core(withTime(today, 12), 'hour', knownFor('hour'), start, end)
+  const dayOffset = dateDayOffsets(p)[source]
+  if (dayOffset !== undefined) {
+    return core(addCalendar(today, { days: dayOffset }), 'day', knownFor('day'), start, end)
   }
   if (source === 'midnight') {
     const date = withTime(addCalendar(today, { days: p.now.getHours() > 2 ? 1 : 0 }), 0)
@@ -138,17 +120,18 @@ function parseOffset(p: P, start: number, end: number): CoreDate | null {
   if (compact) {
     return needsNow(compact)
   }
-  const pastPrefixEnd = eatPastPrefix(p, first)
+  const pastPrefixEnd = eatPrefix(p, first, dateRelativeWords(p).pastPrefixes)
   if (pastPrefixEnd > first) {
     const parts = parseOffsetParts(p, pastPrefixEnd, last + 1)
     if (parts && parts.next === last + 1) {
       return needsNow(offsetCore(p, p.now, parts.parts, -1, start, end))
     }
   }
-  if (wordAt(p, first) === 'in') {
-    const parts = parseOffsetParts(p, first + 1, last + 1)
-    if (parts && parts.next === last + 1) {
-      return needsNow(offsetCore(p, p.now, parts.parts, 1, start, end))
+  if (isPrefixAt(p, first, dateRelativeWords(p).futurePrefixes)) {
+    const prefixEnd = eatPrefix(p, first, dateRelativeWords(p).futurePrefixes)
+    const shiftedParts = parseOffsetParts(p, prefixEnd, last + 1)
+    if (shiftedParts && shiftedParts.next === last + 1) {
+      return needsNow(offsetCore(p, p.now, shiftedParts.parts, 1, start, end))
     }
   }
 
@@ -157,13 +140,13 @@ function parseOffset(p: P, start: number, end: number): CoreDate | null {
     return null
   }
   const nextWord = wordAt(p, parts.next)
-  if (nextWord === 'ago' && parts.next === last) {
+  if (isPrefixAt(p, parts.next, dateRelativeWords(p).pastSuffixes) && parts.next === last) {
     return needsNow(offsetCore(p, p.now, parts.parts, -1, start, end))
   }
   if (nextWord === 'from' && wordAt(p, parts.next + 1) === 'now' && parts.next + 1 === last) {
     return needsNow(offsetCore(p, p.now, parts.parts, 1, start, end))
   }
-  if (nextWord === 'from' || nextWord === 'after') {
+  if (isPrefixAt(p, parts.next, dateRelativeWords(p).anchorWords)) {
     const anchorStart = p.tokens[parts.next + 1]?.start
     if (anchorStart === undefined) {
       return null
@@ -285,13 +268,14 @@ function offsetCore(
 }
 
 function parseWeekday(p: P, start: number, end: number): CoreDate | null {
-  const source = p.text.slice(start, end).toLowerCase()
+  const source = stripDateFillers(p, p.text.slice(start, end).toLowerCase())
   const words = source.split(/\s+/)
   let modifier: 'bare' | 'this' | 'next' | 'last' = 'bare'
   let dayWord = words[0]
-  if (words.length === 2 && (words[0] === 'this' || words[0] === 'next' || words[0] === 'last')) {
-    modifier = words[0]
-    dayWord = words[1]
+  const withModifier = matchWordModifier(p, source)
+  if (withModifier) {
+    modifier = withModifier.modifier
+    dayWord = withModifier.word
   } else if (words.length !== 1) {
     return null
   }
@@ -338,13 +322,46 @@ function parseWeekday(p: P, start: number, end: number): CoreDate | null {
   return core(date, 'day', [...knownFor('day'), 'weekday'], start, end, issues, alternatives)
 }
 
+function matchWordModifier(
+  p: P,
+  source: string,
+): { modifier: 'this' | 'next' | 'last'; word: string } | null {
+  for (const modifier of ['this', 'next', 'last'] as const) {
+    for (const modWord of dateModifiers(p)[modifier]) {
+      if (source.startsWith(`${modWord} `)) {
+        return { modifier, word: source.slice(modWord.length + 1) }
+      }
+      if (source.endsWith(` ${modWord}`)) {
+        return { modifier, word: source.slice(0, -modWord.length - 1) }
+      }
+    }
+  }
+  return null
+}
+
 function parseCalendarPeriod(p: P, start: number, end: number): CoreDate | null {
-  const source = p.text.slice(start, end).toLowerCase()
+  const source = stripDateFillers(p, p.text.slice(start, end).toLowerCase())
+  const phrase = p.profile.date?.calendarPeriodPhrases?.[source]
+  if (phrase) {
+    return periodCore(p, phrase.modifier, phrase.period, start, end)
+  }
   const rel = /^(this|next|last)\s+(week|month|year)$/.exec(source)
   if (rel) {
     const mod = rel[1] as 'this' | 'next' | 'last'
     const period = rel[2] as 'week' | 'month' | 'year'
     return periodCore(p, mod, period, start, end)
+  }
+  const localePeriod = matchPeriodModifier(p, source)
+  if (localePeriod) {
+    return periodCore(p, localePeriod.modifier, localePeriod.period, start, end)
+  }
+  const monthRel = matchMonthModifier(p, source)
+  if (monthRel) {
+    const { modifier: mod, monthWord } = monthRel
+    const month = dateMonths(p)[monthWord]
+    if (month !== undefined) {
+      return monthPeriodCore(p, mod, month, start, end)
+    }
   }
   if (source === 'this weekend') {
     const today = startOfDay(p.now)
@@ -409,6 +426,20 @@ function periodCore(
     date = new Date(p.now.getFullYear() + delta, 0, 1)
   }
   return core(date, period, knownFor(period), start, end)
+}
+
+function monthPeriodCore(
+  p: P,
+  mod: 'next' | 'last',
+  month: number,
+  start: number,
+  end: number,
+): CoreDate {
+  const currentMonth = p.now.getMonth()
+  const year =
+    p.now.getFullYear() +
+    (mod === 'next' ? (month <= currentMonth ? 1 : 0) : month >= currentMonth ? -1 : 0)
+  return core(new Date(year, month, 1), 'month', knownFor('month'), start, end)
 }
 
 function middlePeriodCore(
@@ -531,63 +562,170 @@ function dateWeekdays(p: P): Record<string, number> {
   return p.profile.date?.weekdays ?? EN_WEEKDAYS
 }
 
-function deicticDayOffset(p: P, source: string): number | null {
-  if (p.profile.locale === 'es' && source === 'manana') {
-    return 1
-  }
-  if (p.profile.locale === 'fr' && source === 'demain') {
-    return 1
-  }
-  if (p.profile.locale === 'pt' && source === 'amanha') {
-    return 1
-  }
-  return null
+function dateDayOffsets(p: P): Record<string, number> {
+  return p.profile.date?.dayOffsets ?? EN_DAY_OFFSETS
 }
 
-function eatPastPrefix(p: P, first: number): number {
-  if (p.profile.locale === 'es' && wordAt(p, first) === 'hace') {
-    return first + 1
+function dateDayTimePhrases(p: P): Record<string, DayTimePhrase> {
+  return p.profile.date?.dayTimePhrases ?? EN_DAY_TIME_PHRASES
+}
+
+function dayTimeCore(
+  p: P,
+  today: Date,
+  phrase: DayTimePhrase,
+  start: number,
+  end: number,
+): CoreDate {
+  let date = withTime(addCalendar(today, { days: phrase.dayOffset ?? 0 }), phrase.hour)
+  date.setMinutes(phrase.minute ?? 0, phrase.second ?? 0, 0)
+  if (phrase.dayOffset === undefined && p.forwardDates && date.getTime() < p.now.getTime()) {
+    date = addCalendar(date, { days: 1 })
   }
-  if (p.profile.locale === 'pt' && wordAt(p, first) === 'ha') {
-    return first + 1
+  const grain = phrase.grain ?? 'hour'
+  return core(date, grain, [...knownFor(grain), 'implied-hour'], start, end)
+}
+
+function dateRelativeWords(p: P): {
+  anchorWords: readonly string[]
+  futurePrefixes: readonly string[]
+  pastPrefixes: readonly string[]
+  pastSuffixes: readonly string[]
+} {
+  return {
+    anchorWords: wordsOr(p.profile.date?.relative?.anchorWords, EN_RELATIVE_WORDS.anchorWords),
+    futurePrefixes: wordsOr(
+      p.profile.date?.relative?.futurePrefixes,
+      EN_RELATIVE_WORDS.futurePrefixes,
+    ),
+    pastPrefixes: wordsOr(p.profile.date?.relative?.pastPrefixes, EN_RELATIVE_WORDS.pastPrefixes),
+    pastSuffixes: wordsOr(p.profile.date?.relative?.pastSuffixes, EN_RELATIVE_WORDS.pastSuffixes),
   }
-  if (
-    p.profile.locale === 'fr' &&
-    wordAt(p, first) === 'il' &&
-    wordAt(p, first + 1) === 'y' &&
-    wordAt(p, first + 2) === 'a'
-  ) {
-    return first + 3
+}
+
+function dateModifiers(p: P): Record<RelativeModifier, readonly string[]> {
+  return {
+    this: wordsOr(p.profile.date?.modifiers?.this, EN_MODIFIERS.this),
+    next: wordsOr(p.profile.date?.modifiers?.next, EN_MODIFIERS.next),
+    last: wordsOr(p.profile.date?.modifiers?.last, EN_MODIFIERS.last),
+  }
+}
+
+function datePeriodWords(p: P): Record<PeriodUnit, readonly string[]> {
+  return {
+    week: wordsOr(p.profile.date?.periodWords?.week, EN_PERIOD_WORDS.week),
+    month: wordsOr(p.profile.date?.periodWords?.month, EN_PERIOD_WORDS.month),
+    year: wordsOr(p.profile.date?.periodWords?.year, EN_PERIOD_WORDS.year),
+  }
+}
+
+function wordsOr(
+  words: readonly string[] | undefined,
+  fallback: readonly string[],
+): readonly string[] {
+  return words && words.length > 0 ? words : fallback
+}
+
+function eatPrefix(p: P, first: number, phrases: readonly string[] | undefined): number {
+  for (const phrase of phrases ?? []) {
+    const words = phrase.split(/\s+/)
+    if (words.every((word, index) => wordAt(p, first + index) === word)) {
+      return first + words.length
+    }
   }
   return first
 }
 
+function isPrefixAt(p: P, first: number, phrases: readonly string[] | undefined): boolean {
+  return eatPrefix(p, first, phrases) > first
+}
+
+function stripDateFillers(p: P, source: string): string {
+  const fillers = p.profile.date?.fillerWords
+  if (!(fillers && fillers.length > 0)) {
+    return source
+  }
+  const fillerSet = new Set(fillers)
+  return source
+    .split(/\s+/)
+    .filter((word) => !fillerSet.has(word.toLowerCase()))
+    .join(' ')
+}
+
+function matchPeriodModifier(
+  p: P,
+  source: string,
+): { modifier: RelativeModifier; period: PeriodUnit } | null {
+  const periods = datePeriodWords(p)
+  for (const modifier of ['this', 'next', 'last'] as const) {
+    for (const modWord of dateModifiers(p)[modifier]) {
+      for (const period of ['week', 'month', 'year'] as const) {
+        for (const periodWord of periods[period]) {
+          if (source === `${modWord} ${periodWord}` || source === `${periodWord} ${modWord}`) {
+            return { modifier, period }
+          }
+        }
+      }
+    }
+  }
+  return null
+}
+
+function matchMonthModifier(
+  p: P,
+  source: string,
+): { modifier: 'next' | 'last'; monthWord: string } | null {
+  for (const modifier of ['next', 'last'] as const) {
+    for (const modWord of dateModifiers(p)[modifier]) {
+      for (const monthWord of Object.keys(dateMonths(p))) {
+        if (source === `${modWord} ${monthWord}` || source === `${monthWord} ${modWord}`) {
+          return { modifier, monthWord }
+        }
+      }
+    }
+  }
+  return null
+}
+
 function parseCompactLocaleOffset(p: P, start: number, end: number): CoreDate | null {
   const source = p.text.slice(start, end)
-  const locale = p.profile.locale
-  const zh =
-    locale === 'zh'
-      ? /^([0-9零〇一二两三四五六七八九十]+)(秒|分钟|分|小时|天|日|周|星期|个月|月|年)(前|后)$/.exec(
-          source,
-        )
-      : null
-  const ja =
-    locale === 'ja'
-      ? /^([0-9零〇一二三四五六七八九十]+)(秒|分|時間|日|週間|週|ヶ月|か月|月|年)(前|後)$/.exec(
-          source,
-        )
-      : null
-  const m = zh ?? ja
-  if (!m) {
+  const compact = p.profile.date?.compactOffset
+  if (!compact) {
     return null
   }
-  const value = parseCompactNumber(p, m[1]!)
-  const unit = compactUnit(m[2]!)
-  if (value === null || !unit) {
+  for (const suffix of compact.pastSuffixes ?? []) {
+    const parsed = parseCompactOffsetBody(p, source, suffix, compact.unitWords)
+    if (parsed) {
+      return offsetCore(p, p.now, [parsed], -1, start, end)
+    }
+  }
+  for (const suffix of compact.futureSuffixes ?? []) {
+    const parsed = parseCompactOffsetBody(p, source, suffix, compact.unitWords)
+    if (parsed) {
+      return offsetCore(p, p.now, [parsed], 1, start, end)
+    }
+  }
+  return null
+}
+
+function parseCompactOffsetBody(
+  p: P,
+  source: string,
+  suffix: string,
+  units: Record<string, OffsetUnit>,
+): OffsetPart | null {
+  if (!source.endsWith(suffix)) {
     return null
   }
-  const direction = m[3] === '前' ? -1 : 1
-  return offsetCore(p, p.now, [{ unit, value }], direction, start, end)
+  const body = source.slice(0, -suffix.length)
+  const unitEntry = Object.keys(units)
+    .sort((a, b) => b.length - a.length)
+    .find((unitWord) => body.endsWith(unitWord))
+  if (!unitEntry) {
+    return null
+  }
+  const value = parseCompactNumber(p, body.slice(0, -unitEntry.length))
+  return value === null ? null : { unit: units[unitEntry]!, value }
 }
 
 function parseCompactNumber(p: P, text: string): number | null {
@@ -607,28 +745,6 @@ function parseCompactNumber(p: P, text: string): number | null {
   }
   const value = p.profile.numerals?.[text]
   return value === undefined ? null : value
-}
-
-function compactUnit(text: string): OffsetUnit | null {
-  if (text === '秒') {
-    return 'second'
-  }
-  if (text === '分钟' || text === '分') {
-    return 'minute'
-  }
-  if (text === '小时' || text === '時間') {
-    return 'hour'
-  }
-  if (text === '天' || text === '日') {
-    return 'day'
-  }
-  if (text === '周' || text === '星期' || text === '週間' || text === '週') {
-    return 'week'
-  }
-  if (text === '个月' || text === 'ヶ月' || text === 'か月' || text === '月') {
-    return 'month'
-  }
-  return text === '年' ? 'year' : null
 }
 
 function isJoinWord(p: P, pos: number): boolean {

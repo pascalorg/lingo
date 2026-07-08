@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { completions } from '../src/complete/index'
+import { parseDate, parseDateRange } from '../src/date/index'
 import { defaultRegistry, lingo } from '../src/index'
+import { es } from '../src/locales/es'
 
 describe('Registry.aliasCompletions', () => {
   it('returns ranked prefix expansions', () => {
@@ -92,6 +94,12 @@ describe('completions()', () => {
     expect(list.some((c) => c.text === '10–16 lb')).toBe(true)
   })
 
+  it('surfaces a cross-kind reading when field kind rejects the parse', () => {
+    const list = completions('$10', { kind: 'mass' })
+    expect(list.map((c) => c.text)).toEqual(['$10.00'])
+    expect(list[0]?.source).toBe('cross-kind')
+  })
+
   it('suggests custom units without kind', () => {
     const list = completions('10', { units: ['kg', 'lb', 'm'], limit: 6 })
     expect(list.map((c) => c.text)).toEqual(['10 kg', '10 lb', '10 m'])
@@ -128,6 +136,61 @@ describe('completions()', () => {
         expect(again.quantity.unit).toBe(item.result.quantity.unit)
       }
     }
+  })
+
+  it('adds date completions through an injected parser', () => {
+    const now = new Date('2026-07-08T09:00:00')
+    const date = (text: string) => parseDate(text, { now })
+    const list = completions('noon tomorrow', { date })
+    const item = list.find((candidate) => candidate.source === 'date')
+
+    expect(item?.result.type).toBe('date')
+    const again = item ? date(item.text) : undefined
+    expect(again?.ok).toBe(true)
+    if (item?.result.type === 'date' && again?.ok) {
+      expect(again.date.getTime()).toBe(item.result.date.getTime())
+    }
+  })
+
+  it('passes localized date input through a locale-configured injected parser', () => {
+    const now = new Date('2026-07-08T09:00:00')
+    const date = (text: string) => parseDate(text, { now, locale: 'es', localePacks: [es] })
+    const list = completions('mediodía mañana', { date })
+    const item = list.find((candidate) => candidate.source === 'date')
+
+    expect(item?.result.type).toBe('date')
+    const again = item ? date(item.text) : undefined
+    expect(again?.ok).toBe(true)
+    if (item?.result.type === 'date' && again?.ok) {
+      expect(item.result.date).toEqual(new Date(2026, 6, 9, 12))
+      expect(again.date.getTime()).toBe(item.result.date.getTime())
+    }
+  })
+
+  it('surfaces anchored date ranges when the injected parser falls back to parseDateRange', () => {
+    const now = new Date('2026-07-08T09:00:00')
+    const date = (text: string) => {
+      const single = parseDate(text, { now })
+      return single.ok ? single : parseDateRange(text, { now })
+    }
+    for (const input of ['3 days starting tomorrow', '3days starting tomorrow']) {
+      const list = completions(input, { date })
+      const item = list.find((candidate) => candidate.source === 'date')
+      expect(item?.result.type).toBe('date-range')
+      expect(item?.text).toBe('3 days starting 2026-07-09')
+      const again = item ? parseDateRange(item.text, { now }) : undefined
+      expect(again?.ok).toBe(true)
+      if (item?.result.type === 'date-range' && again?.ok) {
+        expect(item.result.start?.date).toEqual(new Date(2026, 6, 9))
+        expect(item.result.end?.date).toEqual(new Date(2026, 6, 12))
+        expect(again.start?.date.getTime()).toBe(item.result.start?.date.getTime())
+        expect(again.end?.date.getTime()).toBe(item.result.end?.date.getTime())
+      }
+    }
+  })
+
+  it('does not bundle date completions without an injected parser', () => {
+    expect(completions('noon tomorrow')).toEqual([])
   })
 
   it('returns empty for blank input', () => {

@@ -20,7 +20,10 @@ const TYPE_DELAY_BASE_MS = 64
 const TYPE_DELAY_STEP_MS = 18
 const INPUT_CARET_GUTTER_PX = 7
 const FIX_REVEAL_DELAY_MS = 280
-const FIX_CURSOR_SETTLE_DELAY_MS = 620
+// Travel time must match --hero-cursor-duration for [data-state="fix"] in
+// globals.css; the extra time is a human-like pause before pressing.
+const FIX_CURSOR_TRAVEL_MS = 950
+const FIX_CURSOR_SETTLE_DELAY_MS = FIX_CURSOR_TRAVEL_MS + 250
 const FIX_PRESS_HOLD_MS = 420
 const FIX_HIDE_DELAY_MS = 260
 const MIDNIGHT_REFRESH_BUFFER_MS = 1000
@@ -699,7 +702,15 @@ export function UniversalInput({ autoFocus = false }: { autoFocus?: boolean }) {
       FIX_REVEAL_DELAY_MS
     const fixTimer =
       activeExample.autoFix === true
-        ? window.setTimeout(() => positionHeroCursor('fix'), fixAt)
+        ? window.setTimeout(() => {
+            // Stop caret tracking or it re-snaps the cursor to the input every
+            // tick, cancelling the travel toward the fix button.
+            if (trackingTimer !== null) {
+              window.clearInterval(trackingTimer)
+              trackingTimer = null
+            }
+            positionHeroCursor('fix')
+          }, fixAt)
         : null
     const clickTimer =
       activeExample.autoFix === true

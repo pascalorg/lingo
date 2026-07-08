@@ -37,10 +37,10 @@ Kinds: length mass temperature duration volume area speed data data_rate flow_ra
 import { completions } from "@pascal-app/lingo/complete"
 
 const items = completions("10 kg to 16", { kind: "mass", limit: 8 })
-// [{ text, result, confidence, source }] — source: parse|alternative|unit-ambiguity|unit-prefix|implied-unit
+// [{ text, result, confidence, source }] — source: parse|alternative|unit-ambiguity|unit-prefix|implied-unit|range-implied|cross-kind|date
 ```
 
-Distinct from success `alternatives`, failure `candidate`, and issue `suggestions`. Wire into `lingoInput({ complete, onComplete })` for autocomplete dropdowns.
+Distinct from success `alternatives`, failure `candidate`, and issue `suggestions`. Wire into `lingoInput({ complete, onComplete })` for autocomplete dropdowns. Pass `date: (text) => parseDate(text, { now })` to opt into date completions without bundling `@pascal-app/lingo/date` into `@pascal-app/lingo/complete`.
 
 ## Locales (`@pascal-app/lingo/locales/*`)
 

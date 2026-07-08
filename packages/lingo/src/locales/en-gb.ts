@@ -8,6 +8,7 @@ export const enGb: LocalePack = {
     currency: 'GBP',
     system: 'imperial',
   },
+  detectionWords: ['stone', 'quid', 'fortnight', 'roundabout'],
   grammar: {
     approximateWords: ['roundabout'],
   },

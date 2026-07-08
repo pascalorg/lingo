@@ -35,6 +35,14 @@ surfaces mid-task, add it here and keep going — don't act on it.
   original intent was `joiner || !t.spaceBefore` (reject spaced "2 ½").
   Changing that would alter corpus-locked behavior — needs an owner decision.
   (`packages/lingo/src/number/value.ts`)
+- **Resolved language-profile memoization** — `prepare()` (`parse/config.ts`)
+  runs `detectLanguageProfile`/`resolveLanguageProfile` on every parse for a
+  non-English instance, and detection re-`buildProfile`s (fresh grammar/number/
+  date `Set`s) *and* re-normalizes+tokenizes per candidate pack. Packs are stable
+  singletons, so cache the merged profile by pack-set identity, mirroring the
+  existing `packAliasCache`/`englishWordCache` WeakMaps. Correctness is fine;
+  this is throughput for locale-configured fields (the English hot path never
+  hits it). Surfaced by the 0.2.0 locale pre-release review.
 
 ## Currency
 
@@ -55,6 +63,19 @@ surfaces mid-task, add it here and keep going — don't act on it.
   endpoints), which touches the whole date result shape and its serialization.
   Fold in with a broader "approximate/uncertain date" pass; `humanizeDate`
   would need to emit the marker back for two-way.
+- **CJK compact date offsets aren't auto-detected** — `detectLocale([zh], '3天后')`
+  falls back to English because `compactOffset.unitWords`/suffixes (天, 后) feed
+  neither `aliasWords` nor `detectionWords` (`locale/detect.ts`), whereas
+  unit-alias inputs like `5公里` detect fine. Seed detection from `compactOffset`
+  vocab, or document that CJK date offsets need an explicit `locale`. Every
+  locale test passes an explicit `locale`, so today this only bites auto-detect
+  callers. Surfaced by the 0.2.0 locale pre-release review.
+- **`/complete` hour-grain date text carries `:00` minutes** — `formatDate`
+  (`complete/completions.ts`) slices `localIso` to 16 chars for `hour` grain,
+  emitting `2026-07-08T15:00`, which re-parses at `minute` grain (a one-grain
+  drift in the autocomplete display string, not in `format`/`humanize`). Slicing
+  to 13 (`…T15`) fixes it only if the date parser accepts a bare `THH` — verify
+  that round-trips before changing. Surfaced by the 0.2.0 completions review.
 
 ## Wire schema & types
 

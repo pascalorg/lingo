@@ -897,8 +897,12 @@ p {
   --hero-cursor-duration: 92ms;
 }
 
+/* Duration must match FIX_CURSOR_TRAVEL_MS in universal-input.tsx. */
 .hero-demo-cursor[data-state="fix"] {
-  --hero-cursor-duration: 620ms;
+  --hero-cursor-duration: 950ms;
+  transition:
+    opacity var(--motion-fast) var(--ease-out),
+    transform var(--hero-cursor-duration) cubic-bezier(0.3, 0.75, 0.3, 1);
 }
 
 .hero-demo-cursor[data-state="clicking"] {

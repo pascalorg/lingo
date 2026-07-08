@@ -7,6 +7,38 @@ export const es: LocalePack = {
   defaults: {
     numberFormat: 'comma-decimal',
   },
+  units: {
+    length: [
+      ['m', 'metro metros'],
+      ['cm', 'centimetro centimetros'],
+      ['mm', 'milimetro milimetros'],
+      ['km', 'kilometro kilometros'],
+      ['in', 'pulgada pulgadas'],
+      ['ft', 'pie pies'],
+      ['mi', 'milla millas'],
+    ],
+    mass: [
+      ['g', 'gramo gramos'],
+      ['kg', 'kilogramo kilogramos kilo kilos'],
+      ['lb', 'libra libras'],
+      ['oz', 'onza onzas'],
+    ],
+    volume: [
+      ['l', 'litro litros'],
+      ['ml', 'mililitro mililitros'],
+      ['gal', 'galon galones'],
+    ],
+    temperature: [['C', 'grado grados']],
+    duration: [
+      ['s', 'segundo segundos'],
+      ['min', 'minuto minutos'],
+      ['h', 'hora horas'],
+      ['d', 'dia dias'],
+      ['wk', 'semana semanas'],
+      ['mo', 'mes meses'],
+      ['yr', 'ano anos'],
+    ],
+  },
   grammar: {
     approximateWords: ['aproximadamente', 'aprox', 'alrededor', 'cerca', 'casi'],
     boundPhrases: [
@@ -90,6 +122,25 @@ export const es: LocalePack = {
     },
   },
   date: {
+    dayOffsets: {
+      hoy: 0,
+      manana: 1,
+      ayer: -1,
+    },
+    dayTimePhrases: {
+      'en la manana': { hour: 9 },
+      'por la manana': { hour: 9 },
+      'manana por la manana': { dayOffset: 1, hour: 9 },
+      'manana en la manana': { dayOffset: 1, hour: 9 },
+      'mediodia manana': { dayOffset: 1, hour: 12 },
+      mediodia: { dayOffset: 0, hour: 12 },
+    },
+    fillerWords: ['el', 'la', 'los', 'las', 'de', 'del'],
+    modifiers: {
+      this: ['este', 'esta'],
+      next: ['proximo', 'proxima', 'que viene'],
+      last: ['pasado', 'pasada', 'ultimo', 'ultima'],
+    },
     months: {
       enero: 0,
       ene: 0,
@@ -115,6 +166,19 @@ export const es: LocalePack = {
       nov: 10,
       diciembre: 11,
       dic: 11,
+    },
+    periodWords: {
+      week: ['semana'],
+      month: ['mes'],
+      year: ['ano'],
+    },
+    relative: {
+      futurePrefixes: ['en', 'dentro de'],
+      pastPrefixes: ['hace'],
+    },
+    timeAliases: {
+      mediodia: { hour: 12 },
+      medianoche: { hour: 0 },
     },
     unitWords: {
       segundo: 'second',

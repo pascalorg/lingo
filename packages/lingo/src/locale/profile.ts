@@ -198,9 +198,71 @@ function mergeDate(
     return
   }
   return {
+    calendarPeriodPhrases: {
+      ...(base?.calendarPeriodPhrases ?? {}),
+      ...overlay?.calendarPeriodPhrases,
+    },
+    compactOffset:
+      base?.compactOffset || overlay?.compactOffset
+        ? {
+            futureSuffixes: mergeList(
+              base?.compactOffset?.futureSuffixes ?? [],
+              overlay?.compactOffset?.futureSuffixes,
+            ),
+            pastSuffixes: mergeList(
+              base?.compactOffset?.pastSuffixes ?? [],
+              overlay?.compactOffset?.pastSuffixes,
+            ),
+            unitWords: {
+              ...(base?.compactOffset?.unitWords ?? {}),
+              ...overlay?.compactOffset?.unitWords,
+            },
+          }
+        : undefined,
+    dayOffsets: { ...(base?.dayOffsets ?? {}), ...overlay?.dayOffsets },
+    dayTimePhrases: { ...(base?.dayTimePhrases ?? {}), ...overlay?.dayTimePhrases },
     durationUnitSeconds: { ...(base?.durationUnitSeconds ?? {}), ...overlay?.durationUnitSeconds },
+    fillerWords: mergeList(base?.fillerWords ?? [], overlay?.fillerWords),
+    modifiers:
+      base?.modifiers || overlay?.modifiers
+        ? {
+            this: mergeList(base?.modifiers?.this ?? [], overlay?.modifiers?.this),
+            next: mergeList(base?.modifiers?.next ?? [], overlay?.modifiers?.next),
+            last: mergeList(base?.modifiers?.last ?? [], overlay?.modifiers?.last),
+          }
+        : undefined,
     months: { ...(base?.months ?? {}), ...overlay?.months },
+    periodWords:
+      base?.periodWords || overlay?.periodWords
+        ? {
+            week: mergeList(base?.periodWords?.week ?? [], overlay?.periodWords?.week),
+            month: mergeList(base?.periodWords?.month ?? [], overlay?.periodWords?.month),
+            year: mergeList(base?.periodWords?.year ?? [], overlay?.periodWords?.year),
+          }
+        : undefined,
+    relative:
+      base?.relative || overlay?.relative
+        ? {
+            anchorWords: mergeList(
+              base?.relative?.anchorWords ?? [],
+              overlay?.relative?.anchorWords,
+            ),
+            futurePrefixes: mergeList(
+              base?.relative?.futurePrefixes ?? [],
+              overlay?.relative?.futurePrefixes,
+            ),
+            pastPrefixes: mergeList(
+              base?.relative?.pastPrefixes ?? [],
+              overlay?.relative?.pastPrefixes,
+            ),
+            pastSuffixes: mergeList(
+              base?.relative?.pastSuffixes ?? [],
+              overlay?.relative?.pastSuffixes,
+            ),
+          }
+        : undefined,
     subunit: { ...(base?.subunit ?? {}), ...overlay?.subunit },
+    timeAliases: { ...(base?.timeAliases ?? {}), ...overlay?.timeAliases },
     timeCorePattern: overlay?.timeCorePattern ?? base?.timeCorePattern,
     timePattern: overlay?.timePattern ?? base?.timePattern,
     unitWords: { ...(base?.unitWords ?? {}), ...overlay?.unitWords },

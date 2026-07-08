@@ -2,6 +2,15 @@
 // stay additive — new languages add tables, they never edit grammar code.
 
 export type OffsetUnit = 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year'
+export type RelativeModifier = 'this' | 'next' | 'last'
+export type PeriodUnit = 'week' | 'month' | 'year'
+export type TimeAlias = {
+  grain?: 'hour' | 'minute' | 'second'
+  hour: number
+  minute?: number
+  second?: number
+}
+export type DayTimePhrase = TimeAlias & { dayOffset?: number }
 
 export const WEEKDAYS: Record<string, number> = {
   sunday: 0,
@@ -102,6 +111,57 @@ export const SUBUNIT: Partial<Record<OffsetUnit, OffsetUnit>> = {
   minute: 'second',
   day: 'hour',
   week: 'day',
+}
+
+export const DAY_OFFSETS: Record<string, number> = {
+  today: 0,
+  tomorrow: 1,
+  tmr: 1,
+  tmrw: 1,
+  yesterday: -1,
+  yday: -1,
+  "y'day": -1,
+  'day after tomorrow': 2,
+  overmorrow: 2,
+  'day before yesterday': -2,
+}
+
+export const DAY_TIME_PHRASES: Record<string, DayTimePhrase> = {
+  'this morning': { dayOffset: 0, hour: 9 },
+  'this afternoon': { dayOffset: 0, hour: 15 },
+  'this evening': { dayOffset: 0, hour: 19 },
+  tonight: { dayOffset: 0, hour: 22 },
+  tonite: { dayOffset: 0, hour: 22 },
+  noon: { dayOffset: 0, hour: 12 },
+}
+
+export const TIME_ALIASES: Record<string, TimeAlias> = {
+  noon: { hour: 12 },
+  midday: { hour: 12 },
+  midi: { hour: 12 },
+  '12 noon': { hour: 12 },
+  midnight: { hour: 0 },
+  minuit: { hour: 0 },
+  '12 midnight': { hour: 0 },
+}
+
+export const RELATIVE_WORDS = {
+  anchorWords: ['from', 'after'],
+  futurePrefixes: ['in'],
+  pastPrefixes: [],
+  pastSuffixes: ['ago'],
+} as const
+
+export const MODIFIERS: Record<RelativeModifier, readonly string[]> = {
+  this: ['this'],
+  next: ['next'],
+  last: ['last'],
+}
+
+export const PERIOD_WORDS: Record<PeriodUnit, readonly string[]> = {
+  week: ['week'],
+  month: ['month'],
+  year: ['year'],
 }
 
 // Julian/UCUM civil averages — mo = 30.4375 d, yr = 365.25 d — matching the

@@ -26,18 +26,44 @@ function isTypingTarget(target: EventTarget | null) {
   )
 }
 
-function scoreResult(searchableText: string, query: string) {
-  if (!query) {
+interface SearchableItem {
+  searchableKeywords: string[]
+  searchableText: string
+  searchableTitle: string
+}
+
+function scoreWord(item: SearchableItem, word: string) {
+  if (item.searchableTitle.startsWith(word)) {
+    return 6
+  }
+  if (item.searchableTitle.includes(word)) {
+    return 4
+  }
+  if (item.searchableKeywords.some((keyword) => keyword.startsWith(word))) {
+    return 3
+  }
+  if (item.searchableText.includes(word)) {
+    return 1
+  }
+  return 0
+}
+
+// Every query word must match somewhere; title > keyword > body.
+function scoreResult(item: SearchableItem, query: string) {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean)
+  if (words.length === 0) {
     return 0
   }
 
-  const words = query.toLowerCase().split(/\s+/).filter(Boolean)
-  return words.reduce((score, word) => {
-    if (searchableText.includes(word)) {
-      return score + (searchableText.startsWith(word) ? 3 : 1)
+  let total = 0
+  for (const word of words) {
+    const score = scoreWord(item, word)
+    if (score === 0) {
+      return 0
     }
-    return score
-  }, 0)
+    total += score
+  }
+  return total
 }
 
 export function DocsSearch({ className }: { className?: string }) {
@@ -59,7 +85,7 @@ export function DocsSearch({ className }: { className?: string }) {
     }
 
     return docsSearchIndex
-      .map((item) => ({ ...item, score: scoreResult(item.searchableText, trimmed) }))
+      .map((item) => ({ ...item, score: scoreResult(item, trimmed) }))
       .filter((item) => item.score > 0)
       .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
       .slice(0, 10)

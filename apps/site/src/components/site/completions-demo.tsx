@@ -1,6 +1,7 @@
 'use client'
 
 import { type Completion, type CompletionSource, completions } from '@pascal-app/lingo/complete'
+import { parseDate, parseDateRange } from '@pascal-app/lingo/date'
 import { AnimatePresence, m, useReducedMotion } from 'motion/react'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 
@@ -12,7 +13,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 
-const EXAMPLES = ['2 f', '8 oz', '10 kg to 16', '30 min to 2', '2 h', '5'] as const
+const EXAMPLES = [
+  'noon tomorrow',
+  '3days starting tomorrow',
+  '$10',
+  '2 f',
+  '10 kg to 16',
+  '5',
+] as const
 const DEBOUNCE_MS = 140
 const PANEL_EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
@@ -25,6 +33,8 @@ const SOURCE_ORDER: CompletionSource[] = [
   'unit-prefix',
   'implied-unit',
   'range-implied',
+  'cross-kind',
+  'date',
 ]
 
 const SOURCE_META: Record<CompletionSource, { label: string; hint: string; badgeClass: string }> = {
@@ -58,12 +68,26 @@ const SOURCE_META: Record<CompletionSource, { label: string; hint: string; badge
     hint: 'Open ranges fan out to kg, lb, m, ft, …',
     badgeClass: 'border-orange-500/25 bg-orange-500/10 text-orange-950 dark:text-orange-100',
   },
+  'cross-kind': {
+    label: 'Different kind',
+    hint: 'Optimistic reading when field kind rejects the parse',
+    badgeClass: 'border-fuchsia-500/25 bg-fuchsia-500/10 text-fuchsia-900 dark:text-fuchsia-100',
+  },
+  date: {
+    label: 'Date & time',
+    hint: 'Injected date parser from @pascal-app/lingo/date',
+    badgeClass: 'border-cyan-500/25 bg-cyan-500/10 text-cyan-900 dark:text-cyan-100',
+  },
 }
 
 const DEFAULT_SOURCES = Object.fromEntries(SOURCE_ORDER.map((source) => [source, true])) as Record<
   CompletionSource,
   boolean
 >
+const PILL_ACTIVE_CLASS = 'bg-muted text-foreground hover:bg-muted/80'
+const FILTER_PILL_INACTIVE_CLASS =
+  'bg-background text-muted-foreground line-through hover:bg-muted/30 hover:text-muted-foreground'
+const SELECT_PILL_INACTIVE_CLASS = 'bg-background text-muted-foreground hover:bg-muted/30'
 
 function useDebouncedValue<T>(value: T, delayMs: number) {
   const [debounced, setDebounced] = useState(value)
@@ -100,7 +124,7 @@ export function CompletionsDemo() {
   const [value, setValue] = useState('2 f')
   const [activeIndex, setActiveIndex] = useState(0)
   const [sources, setSources] = useState(DEFAULT_SOURCES)
-  const [fieldKind, setFieldKind] = useState<FieldKind>('mass')
+  const [fieldKind, setFieldKind] = useState<FieldKind>('off')
   const [customUnits, setCustomUnits] = useState('')
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -117,6 +141,11 @@ export function CompletionsDemo() {
   const rawItems = useMemo(
     () =>
       completions(query, {
+        date: (text) => {
+          const now = new Date()
+          const single = parseDate(text, { now })
+          return single.ok ? single : parseDateRange(text, { now })
+        },
         limit: 12,
         kind: fieldKind === 'off' ? undefined : fieldKind,
         units: parsedUnits,
@@ -185,7 +214,10 @@ export function CompletionsDemo() {
               ).map(([kind, label]) => (
                 <Button
                   aria-pressed={fieldKind === kind}
-                  className="h-7 rounded-full px-2.5 text-xs shadow-none"
+                  className={cn(
+                    'h-7 rounded-full px-2.5 text-xs shadow-none',
+                    fieldKind === kind ? PILL_ACTIVE_CLASS : SELECT_PILL_INACTIVE_CLASS,
+                  )}
                   key={kind}
                   onClick={() => setFieldKind(kind)}
                   size="sm"
@@ -230,7 +262,7 @@ export function CompletionsDemo() {
                     aria-pressed={on}
                     className={cn(
                       'h-7 rounded-full px-2.5 text-xs shadow-none',
-                      on && meta.badgeClass,
+                      on ? PILL_ACTIVE_CLASS : FILTER_PILL_INACTIVE_CLASS,
                     )}
                     key={source}
                     onClick={() => toggleSource(source)}

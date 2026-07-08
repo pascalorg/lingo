@@ -1,7 +1,14 @@
 import type { AliasCompletion, Registry, UnitMatch } from '../core/registry'
 import type { Kind } from '../core/types'
 import type { LingoOptions } from '../factory'
-import { type LingoResult, type ParseOptions, prepare, type QuantityResult } from '../parse/config'
+import {
+  type ConversionResult,
+  type LingoResult,
+  type ParseOptions,
+  prepare,
+  type QuantityResult,
+  type RangeResult,
+} from '../parse/config'
 import { parsePreparedExpression, partialQuantityState } from '../parse/finish'
 import { attachSerialization } from '../parse/serialize'
 import type { Token } from '../parse/tokenize'
@@ -12,11 +19,29 @@ import {
   resolveSuggestedUnits,
   SUGGEST_UNITS_BY_KIND,
 } from './suggest-units'
-import type { Completion, CompletionResult, CompletionSource } from './types'
+import type {
+  Completion,
+  CompletionDateParser,
+  CompletionDateResult,
+  CompletionResult,
+  CompletionSource,
+} from './types'
 
-export type { Completion, CompletionResult, CompletionSource } from './types'
+export type {
+  Completion,
+  CompletionDateParser,
+  CompletionDateResult,
+  CompletionResult,
+  CompletionSource,
+} from './types'
 
 export interface CompletionsOptions extends LingoOptions {
+  /**
+   * Inject `parseDate` / `parseDateRange` / `parseDuration` from
+   * `@pascal-app/lingo/date` to add date completions without bundling the date
+   * engine into `@pascal-app/lingo/complete`.
+   */
+  date?: CompletionDateParser
   /** Max implied / range-implied suggestions (default 8). */
   impliedLimit?: number
   limit?: number
@@ -37,8 +62,14 @@ interface Draft {
   source: CompletionSource
 }
 
-function isCompletionResult(r: LingoResult): r is CompletionResult {
+type CoreCompletionResult = QuantityResult | RangeResult | ConversionResult
+
+function isCompletionResult(r: LingoResult): r is CoreCompletionResult {
   return r.ok && (r.type === 'quantity' || r.type === 'range' || r.type === 'conversion')
+}
+
+function isDateCompletionResult(r: ReturnType<CompletionDateParser>): r is CompletionDateResult {
+  return r.ok
 }
 
 function completionText(result: CompletionResult): string {
@@ -48,7 +79,44 @@ function completionText(result: CompletionResult): string {
   if (result.type === 'range') {
     return result.range.format()
   }
+  if (result.type === 'date') {
+    return formatDate(result)
+  }
+  if (result.type === 'date-range') {
+    return formatDateRange(result)
+  }
+  if (result.type === 'duration') {
+    return result.text
+  }
   return result.converted.format()
+}
+
+function localIso(date: Date): string {
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString()
+}
+
+function formatDate(result: CompletionDateResult & { type: 'date' }): string {
+  const iso = localIso(result.date)
+  return iso.slice(
+    0,
+    result.grain === 'second' ? 19 : result.grain === 'minute' || result.grain === 'hour' ? 16 : 10,
+  )
+}
+
+/**
+ * Anchored whole-day ranges get the same "N days starting YYYY-MM-DD" form
+ * `humanizeDateRange()` emits (re-parses via `parseDateRange`); everything
+ * else falls back to the input text.
+ */
+function formatDateRange(result: CompletionDateResult & { type: 'date-range' }): string {
+  if (result.anchored && result.start && result.end) {
+    const start = localIso(result.start.date)
+    const days = (Date.parse(localIso(result.end.date)) - Date.parse(start)) / 86_400_000
+    if (start.includes('T00:00:00') && Number.isInteger(days) && days > 0) {
+      return `${days} day${days === 1 ? '' : 's'} starting ${start.slice(0, 10)}`
+    }
+  }
+  return result.text
 }
 
 function parseRewritten(text: string, options: ParseOptions): CompletionResult | null {
@@ -71,6 +139,36 @@ function addDraft(
     return
   }
   drafts.push({ result, source, confidence })
+}
+
+function hasKindMismatch(result: LingoResult): boolean {
+  return (
+    !result.ok &&
+    result.issues.some((it) => it.code === 'KIND_MISMATCH' || it.code === 'RANGE_KIND_MISMATCH')
+  )
+}
+
+function collectCrossKind(
+  drafts: Draft[],
+  primary: LingoResult,
+  input: string,
+  options: ParseOptions,
+): void {
+  if (!(options.kind && hasKindMismatch(primary))) {
+    return
+  }
+  const kindFreeOptions: ParseOptions = { ...options, kind: undefined }
+  addDraft(drafts, parseRewritten(input, kindFreeOptions), 'cross-kind', 0.42)
+}
+
+function collectDate(drafts: Draft[], input: string, date: CompletionDateParser | undefined): void {
+  if (!date) {
+    return
+  }
+  const result = date(input)
+  if (isDateCompletionResult(result)) {
+    addDraft(drafts, result, 'date', result.confidence)
+  }
 }
 
 function collectUnitAmbiguity(
@@ -298,7 +396,11 @@ export function completions(input: string, opts?: CompletionsOptions): Completio
       reg,
       opts?.kind,
     )
+  } else {
+    collectCrossKind(drafts, primary, input, parseOptions)
   }
+
+  collectDate(drafts, input, opts?.date)
 
   const tail = detectRangeTail(prepared.tokens, prepared.text)
   const rangeKind = tail

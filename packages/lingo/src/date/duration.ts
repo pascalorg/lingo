@@ -126,10 +126,18 @@ function parseDurationImpl(text: string, opts?: DurationOptions): DurationResult
     return finishDuration(colon, opts)
   }
 
-  const reg = registryFor(opts)
+  return parseUnitDuration(text, opts)
+}
+
+/**
+ * Parse a plain unit-expression duration ("90 min", "3 days") via the shared
+ * quantity grammar — no ISO/clock forms. Split out so callers that only need
+ * unit durations (anchored date ranges) tree-shake the ISO/colon machinery.
+ */
+export function parseUnitDuration(text: string, opts?: DurationOptions): DurationResult | DateFail {
   const q = parseQuantityExpr(text, {
     kind: 'duration',
-    registry: reg,
+    registry: registryFor(opts),
     numberFormat: opts?.numberFormat ?? 'auto',
     messages: opts?.messages,
   })

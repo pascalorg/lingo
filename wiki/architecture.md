@@ -36,10 +36,13 @@ input string
 | `./schema` | `src/schema/` | machine-readable schema for the v3 wire JSON (pure data) |
 | `./ai` | `src/ai/` | Standard Schema fields for LLM structured output, eval graders, repair hooks |
 | `./mcp` | `src/mcp/` | `lingoTool` MCP tool descriptor builder |
+| `./complete` | `src/complete/` | ranked autocomplete: `completions`, unit suggestions (D60/D61) |
+| `./locales/*` | `src/locales/` + `src/locale/` | opt-in per-language packs (en, en-gb, es, fr, pt, zh, ja) for `createLingo({ locales })` (D62–D66) |
 
 Supporting internals: `src/units/` (33 built-in kinds, pure const data),
 `src/fuzzy/` (temperature vocabularies), `src/messages/en.ts` (swappable
-English message pack — `/core` ships copy-free).
+English message pack — `/core` ships copy-free), and `src/locale/` (locale-pack
+resolver + detector; the packs themselves live in `src/locales/`).
 
 ## Key mechanisms worth knowing before touching anything
 

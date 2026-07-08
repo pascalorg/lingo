@@ -29,3 +29,4 @@ packages/lingo/bench/ai-eval.json
 *.log
 .DS_Store
 .vercel
+/video

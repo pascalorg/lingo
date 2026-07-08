@@ -11,37 +11,25 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { DocsPane, DocsSplitPaneSection } from '@/components/site/docs-split-pane'
 import { JsonView } from '@/components/site/json-view'
+import { LocaleBadge, LocaleSelect } from '@/components/site/locale-select'
 import { Readout } from '@/components/site/readout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
 import { resultToPlain } from '@/lib/lingo-display'
+import type { LocaleChoice } from '@/lib/locale-meta'
 import { cn } from '@/lib/utils'
-
-type LocaleChoice = 'auto' | 'en' | 'es' | 'fr' | 'pt' | 'zh' | 'ja' | 'en-gb'
 
 const localeLingo = createLingo({ locales: [es, fr, pt, zh, ja, enGb] })
 
-const LOCALE_OPTIONS = [
-  { label: 'Auto', value: 'auto' },
-  { label: 'English', value: 'en' },
-  { label: 'Español', value: 'es' },
-  { label: 'Français', value: 'fr' },
-  { label: 'Português', value: 'pt' },
-  { label: '中文', value: 'zh' },
-  { label: '日本語', value: 'ja' },
-  { label: 'English (UK)', value: 'en-gb' },
-]
-
 const EXAMPLES: Record<LocaleChoice, readonly string[]> = {
   auto: ['72 in to cm', 'dos kg', 'entre 5 et 10 kg', '5公斤', '暑い'],
-  en: ['2 ft', '72 in to cm', 'between 5 and 10 kg', '5 meterz', "it's hot"],
-  es: ['dos kg', 'entre 5 y 10 kg', 'al menos 2 m'],
-  fr: ['deux kg', 'entre 5 et 10 kg'],
-  pt: ['dois kg', 'entre 5 e 10 kg'],
-  zh: ['5公斤', '很热'],
-  ja: ['5キロ', '暑い'],
+  en: ['2 ft', '72 in to cm', 'between 5 and 10 kg', '5 meters', "it's hot"],
+  es: ['dos kg', 'entre 5 y 10 kg', '72 pulgadas a cm', 'dos metros y medio', 'al menos 2 m'],
+  fr: ['deux kg', 'entre 5 et 10 kg', '72 pouces en cm', 'deux metres et demi', 'au moins 2 m'],
+  pt: ['dois kg', 'entre 5 e 10 kg', '72 polegadas em cm', 'pelo menos 2 m'],
+  zh: ['5公斤', '3米', '5到10公斤', '很热'],
+  ja: ['5キロ', '3メートル', '5から10キロ', '暑い'],
   'en-gb': ['12 stone', '3 quid', 'roundabout 2 m'],
 }
 
@@ -117,16 +105,14 @@ export function ParsePlayground() {
             </div>
             <div className="flex min-w-36 flex-col gap-1.5">
               <Label htmlFor="parse-locale">Locale</Label>
-              <Select
+              <LocaleSelect
                 id="parse-locale"
-                onValueChange={(next) => {
-                  const choice = next as LocaleChoice
+                onValueChange={(choice) => {
                   setLocale(choice)
                   setValue(EXAMPLES[choice][0] ?? '')
                   setCommitAttempt(0)
                   setShake(false)
                 }}
-                options={LOCALE_OPTIONS}
                 value={locale}
               />
             </div>
@@ -155,9 +141,11 @@ export function ParsePlayground() {
             </span>
             <span className="text-muted-foreground">
               locale:{' '}
-              <span className="numeric-mono text-foreground">
-                {result.ok ? (result.locale ?? 'en') : '—'}
-              </span>
+              {result.ok ? (
+                <LocaleBadge locale={result.locale ?? 'en'} />
+              ) : (
+                <span className="numeric-mono text-foreground">—</span>
+              )}
             </span>
             <span className="text-destructive" id="parse-error">
               {committedError ? result.issues[0]?.message : ''}

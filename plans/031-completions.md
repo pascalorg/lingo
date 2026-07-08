@@ -37,10 +37,12 @@ export type CompletionSource =
   | 'unit-prefix'
   | 'implied-unit'
   | 'range-implied'
+  | 'cross-kind'
+  | 'date'
 
 export interface Completion {
   text: string
-  result: QuantityResult | RangeResult | ConversionResult
+  result: QuantityResult | RangeResult | ConversionResult | DateResult | DateRange | DurationResult
   confidence: number
   source: CompletionSource
 }
@@ -50,6 +52,8 @@ export interface CompletionsOptions extends LingoOptions {
   /** Unit refs to fan out for bare numbers and range tails. */
   units?: readonly string[]
   impliedLimit?: number
+  /** Inject `parseDate` / `parseDateRange` / `parseDuration` for date completions without bundling `./date`. */
+  date?: (input: string) => DateResult | DateRange | DurationResult | DateFail | DateRangeFail
 }
 
 function completions(input: string, opts?: CompletionsOptions): Completion[]
@@ -61,9 +65,11 @@ Generation flow:
 2. Primary ok result → `source: 'parse'`.
 3. `result.alternatives` → `source: 'alternative'`.
 4. `AMBIGUOUS_UNIT` on primary → fan out `matchUnitsAt` hits, rewrite `value + alias`, re-parse → `source: 'unit-ambiguity'`.
-5. Incomplete tail (`partialState === 'incomplete'`, last token is a word prefix) → `Registry.aliasCompletions(prefix)` with a deeper candidate pool → everyday-first re-ranking from the curated per-kind unit table → rewrite + re-parse → `source: 'unit-prefix'`. Range tails use kind inferred from the left unit for prefix filtering.
-6. Bare number + `kind` or `units` → curated units of kind → rewrite + re-parse → `source: 'implied-unit'`.
-7. Open range with bare/partial trailing bound (`10 kg to 16`, `5 to 10`, `between 5 and 10`) → fan out units → `source: 'range-implied'`. Left-side unit kind wins over field `kind` when they differ.
+5. Primary failure with field `kind` and `KIND_MISMATCH` / `RANGE_KIND_MISMATCH` → one kind-free re-parse → `source: 'cross-kind'` so valid readings from another kind are still visible.
+6. Injected `date` parser succeeds with a date/date-range/duration result → format a canonical text that the same injected parser re-accepts → `source: 'date'`. `./complete` never imports `./date` at runtime.
+7. Incomplete tail (`partialState === 'incomplete'`, last token is a word prefix) → `Registry.aliasCompletions(prefix)` with a deeper candidate pool → everyday-first re-ranking from the curated per-kind unit table → rewrite + re-parse → `source: 'unit-prefix'`. Range tails use kind inferred from the left unit for prefix filtering.
+8. Bare number + `kind` or `units` → curated units of kind → rewrite + re-parse → `source: 'implied-unit'`.
+9. Open range with bare/partial trailing bound (`10 kg to 16`, `5 to 10`, `between 5 and 10`) → fan out units → `source: 'range-implied'`. Left-side unit kind wins over field `kind` when they differ.
 
 Dedupe by canonical `text`, sort by `confidence` descending, cap at `limit` (default 10).
 
@@ -81,7 +87,6 @@ bundled dropdown (plan 008 non-goal stands; site builds the combobox demo).
 
 ## Non-goals
 
-- Dates/durations (`./date`) — phase 2.
 - Library-shipped dropdown/combobox UI.
 - Cross-kind fan-out for bare numbers without `kind` (explosion risk).
 

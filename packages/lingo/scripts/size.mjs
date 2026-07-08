@@ -132,37 +132,43 @@ function check(label, size, budget) {
 // 35.8 (was 35.7): D63 — locale correctness hardening: English wins inherited
 // overlay ties, explicit unloaded locales return LOCALE_NOT_LOADED, and zh/ja
 // pack-owned CJK aliases/fuzzy vocab install through a tiny registry hook.
+// 36.4 (was 35.8): D64 — locale showcases require real localized unit vocab,
+// detection scores pack-owned unit/range signals, and auto mode retries English
+// on detected-locale failures. Aliases stay pack-owned and tree-shakeable.
+// 36.9 (was 36.4): D66 — locale date vocab tables/frames are pack-owned
+// (deictics, day parts, relative offset markers, period words, compact CJK
+// offsets) and the shared profile merger/detector knows those optional fields.
 const full = await bundleStdin(`export * from './src/index.ts'`)
-check('lingo (full)', full, 35_800)
+check('lingo (full)', full, 36_900)
 
 if (has('src/locales/es.ts')) {
   const enLocale = await bundleStdin(`export * from './src/locales/en.ts'`)
-  check('./locales/en (standalone data)', enLocale, 1800)
+  check('./locales/en (standalone data)', enLocale, 2100)
   const esLocale = await bundleStdin(`export * from './src/locales/es.ts'`)
-  check('./locales/es (standalone data)', esLocale, 1150)
+  check('./locales/es (standalone data)', esLocale, 1600)
   const frLocale = await bundleStdin(`export * from './src/locales/fr.ts'`)
-  check('./locales/fr (standalone data)', frLocale, 1150)
+  check('./locales/fr (standalone data)', frLocale, 1600)
   const ptLocale = await bundleStdin(`export * from './src/locales/pt.ts'`)
-  check('./locales/pt (standalone data)', ptLocale, 1150)
+  check('./locales/pt (standalone data)', ptLocale, 1600)
   const zhLocale = await bundleStdin(`export * from './src/locales/zh.ts'`)
-  check('./locales/zh (standalone data)', zhLocale, 700)
+  check('./locales/zh (standalone data)', zhLocale, 1200)
   const jaLocale = await bundleStdin(`export * from './src/locales/ja.ts'`)
-  check('./locales/ja (standalone data)', jaLocale, 700)
+  check('./locales/ja (standalone data)', jaLocale, 1200)
   const enGbLocale = await bundleStdin(`export * from './src/locales/en-gb.ts'`)
   check('./locales/en-gb (standalone data)', enGbLocale, 250)
 
   const withRomanceLocales = await bundleStdin(
     `export * from './src/index.ts'; export { es } from './src/locales/es.ts'; export { fr } from './src/locales/fr.ts'; export { pt } from './src/locales/pt.ts'`,
   )
-  check('./locales es+fr+pt (marginal over full)', withRomanceLocales - full, 2200)
+  check('./locales es+fr+pt (marginal over full)', withRomanceLocales - full, 3100)
   const withCjkLocales = await bundleStdin(
     `export * from './src/index.ts'; export { zh } from './src/locales/zh.ts'; export { ja } from './src/locales/ja.ts'`,
   )
-  check('./locales zh+ja (marginal over full)', withCjkLocales - full, 850)
+  check('./locales zh+ja (marginal over full)', withCjkLocales - full, 1600)
   const withAllLocales = await bundleStdin(
     `export * from './src/index.ts'; export { es } from './src/locales/es.ts'; export { fr } from './src/locales/fr.ts'; export { pt } from './src/locales/pt.ts'; export { zh } from './src/locales/zh.ts'; export { ja } from './src/locales/ja.ts'; export { enGb } from './src/locales/en-gb.ts'`,
   )
-  check('./locales all loaded (marginal over full)', withAllLocales - full, 2900)
+  check('./locales all loaded (marginal over full)', withAllLocales - full, 4500)
 }
 
 // 19.9 (was 19.6): D48 — shared parser recognizes GBP pence idioms and
@@ -199,8 +205,13 @@ if (has('src/locales/es.ts')) {
 // 23.2 (was 20.5): D62 — shared locale resolver/detector/profile merge and
 // diacritic/CJK tokenizer support live in the engine so BYO-registry users get
 // the same locale semantics without importing default unit data.
+// 23.8 (was 23.2): D64 — detector scores pack-owned range/unit/detection
+// signals and parseExpression retries English when auto-detected locale parsing
+// fails. Keeps auto mode robust without importing locale data into core.
+// 24.2 (was 23.8): D66 — the shared locale profile merge/detection layer knows
+// the optional date-vocab fields; the actual language strings remain in packs.
 const core = await bundleStdin(`export * from './src/core/index.ts'`)
-check('./core (engine, no unit data)', core, 23_200)
+check('./core (engine, no unit data)', core, 24_200)
 
 if (has('src/date/index.ts')) {
   const dateAlone = await bundleStdin(`export * from './src/date/index.ts'`)
@@ -240,7 +251,12 @@ if (has('src/date/index.ts')) {
   // 36.2 (was 32.7): D62 — standalone date inherits the shared locale engine
   // through parseDuration and now accepts caller-loaded locale packs for
   // Romance/CJK relative date vocabulary.
-  check('./date (standalone, incl. engine)', dateAlone, 36_200)
+  // 36.8 (was 36.2): D64 — inherits the shared detector/English-retry hardening.
+  // 37.3 (was 36.8): named-month periods + duration-starting date ranges.
+  // 37.6 (was 37.3): D64 — locale unit-vocab detection cascade; the standalone
+  // date build inherits the shared alias-aware detector.
+  // 38.2 (was 37.6): D66 — locale date vocab readers plus pack-owned date frames.
+  check('./date (standalone, incl. engine)', dateAlone, 38_200)
   const withDate = await bundleStdin(
     `export * from './src/index.ts'; export * from './src/date/index.ts'`,
   )
@@ -256,7 +272,11 @@ if (has('src/date/index.ts')) {
   // 12.2 (was 11.2): D62 — locale-aware date options and relative-date pack
   // bridge live in `./date`, while the main entry already carries core locale
   // infrastructure.
-  check('./date (marginal over full)', withDate - full, 12_200)
+  // 12.6 (was 12.2): named-month periods + duration-starting date ranges.
+  // 12.9 (was 12.6): D64 — locale unit-vocab detection cascade (see the
+  // standalone note above).
+  // 13.1 (was 12.9): D66 — date-only parser readers for locale date vocab.
+  check('./date (marginal over full)', withDate - full, 13_100)
 }
 
 if (has('src/dom/index.ts')) {
@@ -325,7 +345,11 @@ if (has('src/complete/index.ts')) {
   // orchestrator + aliasCompletions index walk; not re-exported from `.`.
   // 2.4 (was 2.25): D63 gzip interaction after the full-entry locale
   // correctness hardening; ./complete code itself did not grow.
-  check('./complete (marginal over full)', withComplete - full, 2400)
+  // 2.6 (was 2.4): D61 follow-up — cross-kind recovery and injected date
+  // completions add opt-in UX without importing the date engine.
+  // 2.8 (was 2.6): D65 review — canonical text for anchored date-range
+  // completions ("N days starting YYYY-MM-DD" instead of echoing raw input).
+  check('./complete (marginal over full)', withComplete - full, 2800)
 }
 
 if (has('src/schema/index.ts')) {
@@ -365,7 +389,13 @@ if (has('src/ai/index.ts')) {
   // bundled date module (see the ./date standalone note).
   // 14.9 (was 13.9): D62 — dateField/dateRangeField expose the locale-aware
   // DateOptions surface, so the date locale bridge cascades through /ai.
-  check('./ai (marginal over full)', withAi - full, 14_900) // D30: +notation in shared renderNumber
+  // 15.7 (was 14.9): D65 — plan-005 named-month periods + duration-starting
+  // date ranges. dateRangeField's parseDateRange now reaches parseUnitDuration
+  // for anchored ranges ("3 days starting X"); the full parseDuration ISO/clock
+  // machinery still tree-shakes out of /ai. The D64 detector grows `full`, so it
+  // cancels in this marginal — the growth here is date-grammar weight only.
+  // 16.1 (was 15.7): D66 — /ai date fields bundle the locale-aware date parser.
+  check('./ai (marginal over full)', withAi - full, 16_100) // D30: +notation in shared renderNumber
   if (has('src/mcp/index.ts')) {
     const withMcp = await bundleStdin(
       `export * from './src/index.ts'; export * from './src/ai/index.ts'; export * from './src/mcp/index.ts'`,

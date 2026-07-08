@@ -319,9 +319,16 @@ export interface HumanizeDateRangeOptions {
  * ```
  */
 export function humanizeDateRange(
-  range: { start?: { date: Date }; end?: { date: Date } },
+  range: { anchored?: boolean; start?: { date: Date }; end?: { date: Date } },
   opts?: HumanizeDateRangeOptions,
 ): string {
+  if (range.anchored) {
+    const dayRange = wholeDayRange(range)
+    if (dayRange) {
+      const unit = dayRange.days === 1 ? 'day' : 'days'
+      return `${dayRange.days} ${unit} starting ${formatMonthDayYear(dayRange.start)}`
+    }
+  }
   const hour12 = opts?.hour12 ?? true
   const start = range.start ? formatClock(range.start.date, hour12) : undefined
   const end = range.end ? formatClock(range.end.date, hour12) : undefined
@@ -335,6 +342,35 @@ export function humanizeDateRange(
     return `until ${end}`
   }
   throw new Error('humanizeDateRange: range has neither start nor end.')
+}
+
+function wholeDayRange(range: {
+  start?: { date: Date }
+  end?: { date: Date }
+}): { days: number; start: Date } | null {
+  if (!(range.start && range.end)) {
+    return null
+  }
+  const start = range.start.date
+  const end = range.end.date
+  if (!(isMidnight(start) && isMidnight(end))) {
+    return null
+  }
+  const minutes =
+    (end.getTime() -
+      start.getTime() -
+      (end.getTimezoneOffset() - start.getTimezoneOffset()) * 60_000) /
+    60_000
+  const days = minutes / (24 * 60)
+  return Number.isInteger(days) && days > 0 ? { days, start } : null
+}
+
+function isMidnight(date: Date): boolean {
+  return date.getHours() === 0 && date.getMinutes() === 0 && date.getSeconds() === 0
+}
+
+function formatMonthDayYear(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
 function formatClock(date: Date, hour12: boolean): string {

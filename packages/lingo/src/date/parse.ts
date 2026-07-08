@@ -1,4 +1,5 @@
 import { makeIssue } from '../core/errors'
+import type { Quantity } from '../core/quantity'
 import type { IssueCode, IssueInputData, LingoIssue, Messages, Severity, Span } from '../core/types'
 import { resolveLanguageProfile } from '../locale/profile'
 import type { LocalePack } from '../locale/types'
@@ -6,6 +7,7 @@ import { normalizeInput, toSourceSpan } from '../parse/normalize'
 import type { SerializedResult } from '../parse/serialize'
 import { tokenize } from '../parse/tokenize'
 import { addCalendar } from './civil'
+import { parseUnitDuration } from './duration'
 import {
   type Endpoint,
   endpointDate,
@@ -196,7 +198,8 @@ function dateEscalate(opts: DateOptions | undefined): Partial<Record<IssueCode, 
 
 function parseWithOptionalTime(p: P, start: number, end: number): CoreDate | null {
   const source = p.text.slice(start, end)
-  const trailing = new RegExp(`^(.*?)(?:\\s+)?(${TIME_PATTERN})$`, 'i').exec(source)
+  const timePattern = dateTimePattern(p)
+  const trailing = new RegExp(`^(.*?)(?:\\s+)?(${timePattern})$`, 'i').exec(source)
   if (trailing?.[1] && trailing[2]) {
     const localTimeStart = source.length - trailing[2].length
     const { start: dateStart, end: dateEnd } = trimRange(p.text, start, start + trailing[1].length)
@@ -210,7 +213,7 @@ function parseWithOptionalTime(p: P, start: number, end: number): CoreDate | nul
     }
   }
 
-  const leading = new RegExp(`^(${TIME_PATTERN})\\s+(?:on\\s+)?(.+)$`, 'i').exec(source)
+  const leading = new RegExp(`^(${timePattern})\\s+(?:on\\s+)?(.+)$`, 'i').exec(source)
   if (leading?.[1] && leading[2]) {
     const timeEnd = start + leading[1].length
     const dateStart = end - leading[2].length
@@ -251,6 +254,10 @@ function parseWithOptionalTime(p: P, start: number, end: number): CoreDate | nul
     }
   }
   return null
+}
+
+function dateTimePattern(p: P): string {
+  return p.profile.date?.timePattern ?? TIME_PATTERN
 }
 
 function attachTime(core: CoreDate, time: TimeCore, start: number, end: number): CoreDate {
@@ -342,6 +349,12 @@ export interface DateRangeEndpoint {
 
 /** A time range/slot from `parseDateRange()` — either or both ends may be open. */
 export interface DateRange {
+  /**
+   * True when the range came from the `N <duration> starting <anchor>` grammar,
+   * so `humanizeDateRange()` renders it as "N days starting …" rather than a
+   * clock phrase. Runtime-only provenance; never serialized.
+   */
+  anchored?: boolean
   confidence: number
   end?: DateRangeEndpoint
   issues: LingoIssue[]
@@ -423,6 +436,11 @@ function parseDateRangeImpl(text: string, opts?: DateOptions): DateRange | DateR
     issues: [makeIssue('UNSUPPORTED_DATE', { example: '"2pm to 4pm"' }, span, p.opts.messages)],
   })
 
+  const anchored = parseAnchoredDurationRange(p, source, span, zoneSpan, issues)
+  if (anchored) {
+    return anchored
+  }
+
   for (const { re, open } of RANGE_SPLITS) {
     const m = re.exec(source)
     if (!m) {
@@ -478,4 +496,113 @@ function parseDateRangeImpl(text: string, opts?: DateOptions): DateRange | DateR
     return finishRange(p, span, zoneSpan, issues, startEp, endEp)
   }
   return fail()
+}
+
+type CalendarDelta = Parameters<typeof addCalendar>[1]
+
+function parseAnchoredDurationRange(
+  p: P,
+  source: string,
+  span: Span,
+  zoneSpan: Span,
+  issues: LingoIssue[],
+): DateRange | DateRangeFail | null {
+  const m = /^(.+?)\s+starting\s+(.+)$/i.exec(source)
+  if (!m) {
+    return null
+  }
+  const durationText = m[1]!
+  const anchorText = m[2]!
+  const durationStart = span.start
+  const durationEnd = durationStart + durationText.length
+  const anchorStart = span.start + source.length - anchorText.length
+  const anchorEnd = span.start + source.length
+  const duration = parseUnitDuration(p.text.slice(durationStart, durationEnd), {
+    escalate: p.opts.escalate,
+    messages: p.opts.messages,
+    strictness: p.opts.strictness,
+  })
+  if (!duration.ok || duration.duration.base <= 0) {
+    return null
+  }
+  const anchor = parseWithOptionalTime(p, anchorStart, anchorEnd)
+  if (!anchor) {
+    return null
+  }
+
+  const endDate = addCalendar(anchor.date, durationDelta(duration.duration))
+  const endGrain = finestGrain(anchor.grain, durationGrain(duration.duration))
+  const startEp: DateRangeEndpoint = {
+    date: anchor.date,
+    grain: anchor.grain,
+    known: [...new Set(anchor.known)],
+  }
+  const endEp: DateRangeEndpoint = {
+    date: endDate,
+    grain: endGrain,
+    known: knownFor(endGrain),
+  }
+  if (anchor.zone) {
+    startEp.zone = anchor.zone
+    endEp.zone = anchor.zone
+  }
+  const range = finishRange(
+    p,
+    span,
+    zoneSpan,
+    [...issues, ...rebaseIssues(p, duration.issues, durationStart), ...anchor.issues],
+    startEp,
+    endEp,
+  )
+  if (range.ok) {
+    range.anchored = true
+  }
+  return range
+}
+
+function rebaseIssues(p: P, issues: readonly LingoIssue[], normOffset: number): LingoIssue[] {
+  return issues.map((it) =>
+    it.span
+      ? {
+          ...it,
+          span: toSourceSpan(p.n, normOffset + it.span.start, normOffset + it.span.end),
+        }
+      : it,
+  )
+}
+
+function durationDelta(duration: Quantity): CalendarDelta {
+  if (!duration.parts && Number.isInteger(duration.value)) {
+    if (duration.unit === 'd') {
+      return { days: duration.value }
+    }
+    if (duration.unit === 'wk') {
+      return { weeks: duration.value }
+    }
+  }
+  return { seconds: duration.base }
+}
+
+function durationGrain(duration: Quantity): DateGrain {
+  if (duration.unit === 'yr') {
+    return 'year'
+  }
+  if (duration.unit === 'mo') {
+    return 'month'
+  }
+  if (duration.unit === 'wk' || duration.unit === 'd') {
+    return 'day'
+  }
+  if (duration.unit === 'h') {
+    return 'hour'
+  }
+  if (duration.unit === 'min') {
+    return 'minute'
+  }
+  return 'second'
+}
+
+function finestGrain(a: DateGrain, b: DateGrain): DateGrain {
+  const order: DateGrain[] = ['year', 'month', 'week', 'day', 'hour', 'minute', 'second']
+  return order[Math.max(order.indexOf(a), order.indexOf(b))]!
 }

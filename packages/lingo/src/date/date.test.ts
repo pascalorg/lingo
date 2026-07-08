@@ -2,6 +2,20 @@ import { describe, expect, it } from 'vitest'
 import { humanizeDuration, parseDate, parseDuration } from './index'
 
 const NOW = new Date(2026, 6, 3, 14, 30, 0)
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+]
 
 function expectOkDate(
   input: string,
@@ -29,6 +43,20 @@ function expectDuration(input: string, seconds: number) {
   }
   expect(result.duration.base).toBeCloseTo(seconds, 9)
   return result
+}
+
+function expectDateRoundTrip(result: ReturnType<typeof expectOkDate>, now: Date) {
+  const phrase =
+    result.grain === 'month'
+      ? `${MONTH_NAMES[result.date.getMonth()]} ${result.date.getFullYear()}`
+      : `${MONTH_NAMES[result.date.getMonth()]} ${result.date.getDate()} ${result.date.getFullYear()}`
+  const reparsed = parseDate(phrase, { now })
+  expect(reparsed.ok).toBe(true)
+  if (!reparsed.ok) {
+    return
+  }
+  expect(reparsed.date).toEqual(result.date)
+  expect(reparsed.grain).toBe(result.grain)
 }
 
 describe('parseDate deictic and offsets', () => {
@@ -220,6 +248,16 @@ describe('parseDate weekdays and calendar periods', () => {
       expectOkDate(input, expected, grain)
     }
   })
+
+  it('parses next/last month names as strict month periods', () => {
+    const julyNow = new Date(2026, 6, 8, 12)
+    // Like `last month`, named month modifiers are strict period shifts: the
+    // current July is neither "last July" nor "next July".
+    const last = expectOkDate('last july', new Date(2025, 6, 1), 'month', { now: julyNow })
+    const next = expectOkDate('next july', new Date(2027, 6, 1), 'month', { now: julyNow })
+    expectDateRoundTrip(last, julyNow)
+    expectDateRoundTrip(next, julyNow)
+  })
 })
 
 describe('parseDate absolute dates and times', () => {
@@ -247,6 +285,14 @@ describe('parseDate absolute dates and times', () => {
     expect(ambiguous.issues.some((i) => i.code === 'AMBIGUOUS_DATE')).toBe(true)
     expectOkDate('5/3/2026', new Date(2026, 2, 5), 'day', { dayFirst: true })
     expectOkDate('5/3/2026', new Date(2026, 2, 5), 'day', { locale: 'en-GB' })
+  })
+
+  it('keeps yearless month-day dates future-biased after the stated day passes', () => {
+    const afterJuly12 = new Date(2026, 6, 20, 9)
+    // Plan 005's binding refinements make `forwardDates: true` the default for
+    // UI input, so a yearless month+day rolls forward once this year's date is past.
+    const result = expectOkDate('july 12th', new Date(2027, 6, 12), 'day', { now: afterJuly12 })
+    expectDateRoundTrip(result, afterJuly12)
   })
 
   it('parses time-only and date-time phrases', () => {

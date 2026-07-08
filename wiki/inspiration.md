@@ -22,6 +22,7 @@ license obligation; we do not copy code without noting it here explicitly.
 | [js-quantities](https://github.com/gentooboontoo/js-quantities) | MIT | Temperature absolute-vs-delta separation (tempC vs degC) — our `convert`/`convertDelta` split. |
 | [unitmath](https://github.com/ericman314/UnitMath) | Apache-2.0 | Formatting options design; custom unit definition ergonomics. |
 | mathjs unit system | Apache-2.0 | Prefix handling and parsing grammar cautionary study (powerful but heavyweight — we deliberately stay non-algebraic). |
+| [mathjs expression trees](https://mathjs.org/docs/expressions/expression_trees.html) | Apache-2.0 | Typed node AST + parse/evaluate split studied for plan 032 (input calculations); we'd take the tiny node union and canonical `toString`, reject scopes/functions/CAS. |
 | ECMA-402 / Intl.NumberFormat unit style | spec | Sanctioned unit identifier list; free locale-aware formatting we lean on instead of shipping CLDR. |
 
 ## Dates domain

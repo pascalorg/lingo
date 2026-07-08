@@ -7,7 +7,39 @@ export const zh: LocalePack = {
   defaults: {
     numberFormat: 'auto',
   },
-  unitAliases: [{ kind: 'mass', unit: 'kg', aliases: ['公斤'] }],
+  units: {
+    length: [
+      ['m', '米'],
+      ['cm', '厘米'],
+      ['mm', '毫米'],
+      ['km', '公里 千米'],
+      ['in', '英寸'],
+      ['ft', '英尺'],
+      ['mi', '英里'],
+    ],
+    mass: [
+      ['g', '克'],
+      ['kg', '千克 公斤'],
+      ['lb', '磅'],
+    ],
+    volume: [
+      ['l', '升'],
+      ['ml', '毫升'],
+    ],
+    temperature: [
+      ['C', '度 摄氏度'],
+      ['F', '华氏度'],
+    ],
+    duration: [
+      ['s', '秒'],
+      ['min', '分钟'],
+      ['h', '小时'],
+      ['d', '天'],
+      ['wk', '周 星期'],
+      ['mo', '月'],
+      ['yr', '年'],
+    ],
+  },
   fuzzy: [
     {
       kind: 'temperature',
@@ -57,6 +89,46 @@ export const zh: LocalePack = {
       千: 1000,
       万: 10_000,
       亿: 100_000_000,
+    },
+  },
+  date: {
+    calendarPeriodPhrases: {
+      下周: { modifier: 'next', period: 'week' },
+      下个月: { modifier: 'next', period: 'month' },
+      明年: { modifier: 'next', period: 'year' },
+      上周: { modifier: 'last', period: 'week' },
+      上个月: { modifier: 'last', period: 'month' },
+      去年: { modifier: 'last', period: 'year' },
+    },
+    compactOffset: {
+      futureSuffixes: ['后'],
+      pastSuffixes: ['前'],
+      unitWords: {
+        秒: 'second',
+        分钟: 'minute',
+        分: 'minute',
+        小时: 'hour',
+        天: 'day',
+        日: 'day',
+        周: 'week',
+        星期: 'week',
+        个月: 'month',
+        月: 'month',
+        年: 'year',
+      },
+    },
+    dayOffsets: {
+      今天: 0,
+      明天: 1,
+      昨天: -1,
+    },
+    dayTimePhrases: {
+      中午: { dayOffset: 0, hour: 12 },
+      明天中午: { dayOffset: 1, hour: 12 },
+    },
+    timeAliases: {
+      中午: { hour: 12 },
+      午夜: { hour: 0 },
     },
   },
   numerals: {

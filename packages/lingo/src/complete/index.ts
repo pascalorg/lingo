@@ -12,7 +12,13 @@ import { completions as completionsImpl } from './completions'
 
 export type { CompletionsOptions } from './completions'
 export { completions as completionsCore } from './completions'
-export type { Completion, CompletionResult, CompletionSource } from './types'
+export type {
+  Completion,
+  CompletionDateParser,
+  CompletionDateResult,
+  CompletionResult,
+  CompletionSource,
+} from './types'
 
 const defaultRegistry = createRegistry(allKinds)
 registerTemperatureVocabs(defaultRegistry)

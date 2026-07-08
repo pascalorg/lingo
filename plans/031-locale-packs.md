@@ -97,12 +97,39 @@ Published packs:
    English.
 7. Tests: profile resolution, overlay merge, detector basics, parser locale
    selection, CJK tokenization.
+8. Date vocabulary: `LocalePack.date` now carries pack-owned deictics
+   (`demain`, `mañana`, `明天`), day-part/time phrases (`midi demain`,
+   `mañana por la mañana`, `明天中午`), relative offset frames (`dans N jours`,
+   `hace N días`), calendar period words (`le mois prochain`,
+   `el mes que viene`, `下个月`), localized month/weekday names, filler words for
+   dates like `12 de julio de 2026`, and compact CJK offset units/suffixes.
+   The date parser reads those tables through `LanguageProfile.date`; language
+   strings do not live in the core date grammar.
+
+## Date locale policy
+
+- Spanish `mañana` is **tomorrow** when it stands alone. Morning requires an
+  explicit frame such as `en la mañana` / `por la mañana`; `mañana por la
+  mañana` means tomorrow morning. Those bare morning frames forward-bias to the
+  next morning (the mañana policy), so at 3pm they resolve to tomorrow 9am.
+- Bare midday phrases (`mediodía`, `midi`, `meio-dia`, `中午`, `正午`) anchor to
+  **today**, matching English `noon` — they carry `dayOffset: 0`. Midnight
+  (`minuit`) has no such pin and forward-rolls to the next `00:00`, matching
+  English `midnight` (a `TIME_ALIAS`, not a pinned day-time phrase).
+- French, Spanish, and Portuguese packs cover the owner-requested date examples
+  end-to-end. Chinese and Japanese cover compact offsets plus the requested
+  tomorrow-noon and next-month phrases without a broader segmentation rewrite.
+- `humanizeDate()` remains English-only in this phase. Because non-English
+  packs still inherit English parser support only partially in date space,
+  localized humanized date output is a follow-up before claiming full per-locale
+  two-way natural-language rendering. Parser tests round-trip via ISO canonical
+  dates until locale humanization ships.
 
 ## Non-goals
 
 - Translating the built-in English unit tables.
 - Shipping all locale packs through the default `.` entry.
-- Rewriting the date parser to consume `LanguageProfile.date` in Phase 0.
+- Localized `humanizeDate()` / `humanizeDuration()` output in Phase 0.
 - Full CJK segmentation or compound numeral grammar.
 - Changing serialized result JSON in the v3 contract.
 

@@ -20,15 +20,26 @@ change**, even if the API is untouched.
   `il y a trois jours`, `há três dias`, `三天前`, `3日前`), CJK kg aliases
   (`公斤`, `キロ`), CJK temperature words (`很热`, `暑い`), and en-GB defaults
   for imperial/GBP parsing.
+- Locale packs now own date vocabulary for natural-language dates: deictics and
+  day parts (`midi demain`, `mañana por la mañana`, `明天中午`), relative frames
+  (`dans 3 jours`, `hace 3 días`), localized month-date fillers
+  (`12 de julio de 2026`), calendar periods (`le mois prochain`,
+  `el mes que viene`, `下个月`, `来月`), and compact CJK offsets.
+- Date grammar now accepts strict named-month modifiers (`last July`,
+  `next July`) and duration-anchored ranges such as
+  `3 days starting tomorrow` / `3days starting tomorrow`.
 - `@pascal-app/lingo/complete`: `completions()` returns ranked canonical
   interpretations of partial or ambiguous quantity input (prefix fan-out, unit
   ambiguity forks, number alternatives, implied units, range-tail unit fan-out).
   `Registry.aliasCompletions()` powers prefix expansion. `units` option overrides
   suggested units for bare numbers and open ranges; curated per-kind defaults
   (m/ft/cm before nm) also re-rank prefix fan-out so everyday readings like
-  `min`, `mi`, and `mL` beat obscure scientific shorthands. DOM `lingoInput`
-  accepts injected `complete` / `onComplete` hooks (no library dropdown). Docs
-  showcase combobox demo.
+  `min`, `mi`, and `mL` beat obscure scientific shorthands. Kind-mismatch
+  failures now surface one optimistic cross-kind reading, and callers can inject
+  the date parser for date completions without bundling `@pascal-app/lingo/date`
+  into `@pascal-app/lingo/complete`. DOM `lingoInput` accepts injected
+  `complete` / `onComplete` hooks (no library dropdown). Docs showcase combobox
+  demo.
 - Agent docs tiers: site `/llms.txt` is now a spec-compliant index (llmstxt.org);
   `/llms-full.txt` serves the complete docs narrative; `/llms-small.txt` mirrors
   the npm-shipped compressed reference; `/docs/<section>.md` serves self-contained
@@ -42,6 +53,11 @@ change**, even if the API is untouched.
   are loaded. Explicit unloaded locales now return `LOCALE_NOT_LOADED`.
 - CJK kg aliases and temperature fuzzy words are pack-owned (`zh`/`ja`) instead
   of leaking into the default English unit and fuzzy vocabularies.
+- Locale packs now install localized unit aliases, score range/bound words and
+  pack-owned unit/detection signals during auto-detection, and retry English
+  when a detected locale fails so auto mode is not worse than English parsing.
+- Localized half-unit tails such as `dos kg y medio` and
+  `deux kilos et demi` now use the active locale's fraction words.
 
 ## [0.1.0] - 2026-07-08
 

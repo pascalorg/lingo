@@ -5,7 +5,7 @@ import { type CoreDate, core, issue, knownFor, needsNow, type P } from './state'
 import { MONTHS as EN_MONTHS } from './vocab'
 
 export function parseAbsolute(p: P, start: number, end: number): CoreDate | null {
-  const source = p.text.slice(start, end)
+  const source = stripDateFillers(p, p.text.slice(start, end))
   const lower = source.toLowerCase()
   const pureYear = /^(\d{4})$/.exec(source)
   if (pureYear) {
@@ -149,6 +149,18 @@ function monthAlternation(p: P): string {
 
 function dateMonths(p: P): Record<string, number> {
   return p.profile.date?.months ?? EN_MONTHS
+}
+
+function stripDateFillers(p: P, source: string): string {
+  const fillers = p.profile.date?.fillerWords
+  if (!(fillers && fillers.length > 0)) {
+    return source
+  }
+  const fillerSet = new Set(fillers)
+  return source
+    .split(/\s+/)
+    .filter((word) => !fillerSet.has(word.toLowerCase()))
+    .join(' ')
 }
 
 function buildYearless(p: P, month: number, day: number, year: number | undefined): Date | null {

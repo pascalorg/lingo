@@ -7,6 +7,38 @@ export const fr: LocalePack = {
   defaults: {
     numberFormat: 'comma-decimal',
   },
+  units: {
+    length: [
+      ['m', 'metre metres'],
+      ['cm', 'centimetre centimetres'],
+      ['mm', 'millimetre millimetres'],
+      ['km', 'kilometre kilometres'],
+      ['in', 'pouce pouces'],
+      ['ft', 'pied pieds'],
+      ['mi', 'mille milles'],
+    ],
+    mass: [
+      ['g', 'gramme grammes'],
+      ['kg', 'kilogramme kilogrammes kilo kilos'],
+      ['lb', 'livre livres'],
+      ['oz', 'once onces'],
+    ],
+    volume: [
+      ['l', 'litre litres'],
+      ['ml', 'millilitre millilitres'],
+      ['gal', 'gallon gallons'],
+    ],
+    temperature: [['C', 'degre degres']],
+    duration: [
+      ['s', 'seconde secondes'],
+      ['min', 'minute minutes'],
+      ['h', 'heure heures'],
+      ['d', 'jour jours'],
+      ['wk', 'semaine semaines'],
+      ['mo', 'mois'],
+      ['yr', 'an ans annee annees'],
+    ],
+  },
   grammar: {
     approximateWords: ['environ', 'approximativement', 'approx', 'presque'],
     boundPhrases: [
@@ -91,6 +123,26 @@ export const fr: LocalePack = {
     },
   },
   date: {
+    dayOffsets: {
+      demain: 1,
+      hier: -1,
+    },
+    dayTimePhrases: {
+      'ce matin': { hour: 9 },
+      'demain matin': { dayOffset: 1, hour: 9 },
+      'midi demain': { dayOffset: 1, hour: 12 },
+      'demain midi': { dayOffset: 1, hour: 12 },
+      midi: { dayOffset: 0, hour: 12 },
+      // No dayOffset on minuit: like English "midnight", it forward-rolls to the
+      // next 00:00 (parseTimeOnly), whereas pinned noon stays on today.
+      minuit: { hour: 0 },
+    },
+    fillerWords: ['le', 'la', 'les', 'l', 'de', 'du', 'des'],
+    modifiers: {
+      this: ['ce', 'cette'],
+      next: ['prochain', 'prochaine'],
+      last: ['dernier', 'derniere'],
+    },
     months: {
       janvier: 0,
       jan: 0,
@@ -112,6 +164,19 @@ export const fr: LocalePack = {
       nov: 10,
       decembre: 11,
       dec: 11,
+    },
+    periodWords: {
+      week: ['semaine'],
+      month: ['mois'],
+      year: ['an', 'annee'],
+    },
+    relative: {
+      futurePrefixes: ['dans'],
+      pastPrefixes: ['il y a'],
+    },
+    timeAliases: {
+      midi: { hour: 12 },
+      minuit: { hour: 0 },
     },
     unitWords: {
       seconde: 'second',

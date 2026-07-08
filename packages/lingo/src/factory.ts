@@ -342,6 +342,11 @@ function installLocalePacks(
   includeFuzzy: boolean,
 ): void {
   for (const pack of packs ?? []) {
+    for (const kind of Object.keys(pack.units ?? {})) {
+      for (const [unit, aliases] of pack.units![kind as keyof typeof pack.units] ?? []) {
+        reg.registerUnitAliases(kind as Kind, unit, aliases.split(' '))
+      }
+    }
     for (const { kind, unit, aliases } of pack.unitAliases ?? []) {
       reg.registerUnitAliases(kind, unit, aliases)
     }

@@ -38,7 +38,14 @@ import { suggestUnits, topTypo } from './unit-match'
  */
 export function parseExpression(input: string, options: ParseOptions): LingoResult {
   const p = prepare(input, options)
-  return parsePreparedExpression(p)
+  const result = parsePreparedExpression(p)
+  if (!(result.ok || options.locale) && p.profile.locale !== 'en') {
+    const english = parseExpression(input, { ...options, locale: 'en' })
+    if (english.ok) {
+      return english
+    }
+  }
+  return result
 }
 
 export function parsePreparedExpression(p: ParserState, startToken = 0): LingoResult {

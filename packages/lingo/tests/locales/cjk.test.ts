@@ -31,6 +31,20 @@ describe('CJK locale packs', () => {
       expect(date.grain).toBe('day')
     }
 
+    const noonTomorrow = parseDate('明天中午', { now: NOW, locale: 'zh', localePacks: [zh] })
+    expect(noonTomorrow.ok, JSON.stringify(noonTomorrow.issues)).toBe(true)
+    if (noonTomorrow.ok) {
+      expect(noonTomorrow.date).toEqual(new Date(2026, 6, 9, 12))
+      expect(noonTomorrow.grain).toBe('hour')
+    }
+
+    const nextMonth = parseDate('下个月', { now: NOW, locale: 'zh', localePacks: [zh] })
+    expect(nextMonth.ok, JSON.stringify(nextMonth.issues)).toBe(true)
+    if (nextMonth.ok) {
+      expect(nextMonth.date).toEqual(new Date(2026, 7, 1))
+      expect(nextMonth.grain).toBe('month')
+    }
+
     const fuzzy = lingo.parse('很热', { kind: 'temperature', locale: 'zh' })
     expect(fuzzy.ok, JSON.stringify(fuzzy.issues)).toBe(true)
     if (fuzzy.ok) {
@@ -60,6 +74,20 @@ describe('CJK locale packs', () => {
       expect(date.grain).toBe('day')
     }
 
+    const noonTomorrow = parseDate('明日の正午', { now: NOW, locale: 'ja', localePacks: [ja] })
+    expect(noonTomorrow.ok, JSON.stringify(noonTomorrow.issues)).toBe(true)
+    if (noonTomorrow.ok) {
+      expect(noonTomorrow.date).toEqual(new Date(2026, 6, 9, 12))
+      expect(noonTomorrow.grain).toBe('hour')
+    }
+
+    const nextMonth = parseDate('来月', { now: NOW, locale: 'ja', localePacks: [ja] })
+    expect(nextMonth.ok, JSON.stringify(nextMonth.issues)).toBe(true)
+    if (nextMonth.ok) {
+      expect(nextMonth.date).toEqual(new Date(2026, 7, 1))
+      expect(nextMonth.grain).toBe('month')
+    }
+
     const fuzzy = lingo.parse('暑い', { kind: 'temperature', locale: 'ja' })
     expect(fuzzy.ok, JSON.stringify(fuzzy.issues)).toBe(true)
     if (fuzzy.ok) {
@@ -68,6 +96,21 @@ describe('CJK locale packs', () => {
       if (fuzzy.type === 'range') {
         expect(fuzzy.range.fuzzy?.term).toBe('暑い')
       }
+    }
+  })
+
+  it('pins bare CJK noon to today like English "noon"', () => {
+    // An afternoon `now`: an unpinned noon would forward-roll to tomorrow.
+    const afternoon = new Date(2026, 6, 8, 15)
+    const zhNoon = parseDate('中午', { now: afternoon, locale: 'zh', localePacks: [zh] })
+    expect(zhNoon.ok, JSON.stringify(zhNoon.ok ? '' : zhNoon.issues)).toBe(true)
+    if (zhNoon.ok) {
+      expect(zhNoon.date).toEqual(new Date(2026, 6, 8, 12))
+    }
+    const jaNoon = parseDate('正午', { now: afternoon, locale: 'ja', localePacks: [ja] })
+    expect(jaNoon.ok, JSON.stringify(jaNoon.ok ? '' : jaNoon.issues)).toBe(true)
+    if (jaNoon.ok) {
+      expect(jaNoon.date).toEqual(new Date(2026, 6, 8, 12))
     }
   })
 })

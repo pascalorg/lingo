@@ -1,5 +1,11 @@
 # lingo
 
+<div align="center">
+
+[![Watch the lingo intro](assets/lingo-poster.jpg)](assets/lingo-intro.mp4)
+
+</div>
+
 **Make forms easier, LLM tools safer.**
 
 People type fast and loose: `180cm`, `5ft 11`, `1.5 cups`, `90 min`,

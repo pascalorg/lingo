@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Watch the lingo intro](assets/lingo-poster.jpg)](assets/lingo-intro.mp4)
+[![Watch the lingo intro](assets/lingo-poster.jpg)](https://github.com/user-attachments/assets/c2115174-db48-4e81-8c8b-b794b616c19e)
 
 </div>
 

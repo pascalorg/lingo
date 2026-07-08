@@ -61,7 +61,7 @@ layer in between: **forgiving in, canonical through, human out.**
 - **Tiny and dependency-free.** No runtime deps. Tree-shakeable. `Intl` handles
   locale number formatting, so the package ships no locale data.
 
-## Performance in plain English
+## Performance
 
 lingo is designed to be cheap enough to run while someone types, and fast enough
 to validate large imports without a worker queue.

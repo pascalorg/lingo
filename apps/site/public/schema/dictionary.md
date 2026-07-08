@@ -41,7 +41,7 @@ The compact wire JSON `JSON.stringify(lingo(...))` produces. Generated from
 
 `error`, `warning`, `info`
 
-## Issue codes (32)
+## Issue codes (33)
 
 | code | meaning |
 |---|---|
@@ -59,6 +59,7 @@ The compact wire JSON `JSON.stringify(lingo(...))` produces. Generated from
 | `CONVERSION_NOT_ALLOWED` | A conversion was not allowed here. |
 | `NUMBER_FORMAT` | The number could not be parsed. |
 | `NONFINITE` | The value is not finite. |
+| `LOCALE_NOT_LOADED` | The requested locale pack was not loaded. |
 | `RANGE_MIN` | Value is below the allowed minimum. |
 | `RANGE_MAX` | Value is above the allowed maximum. |
 | `RANGE_OPEN_BOUND_NOT_ALLOWED` | An open-ended range bound was not allowed. |

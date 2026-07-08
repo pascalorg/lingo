@@ -31,7 +31,10 @@ export function hasNonEnglishLocalePacks(packs?: readonly LocalePack[]): boolean
 }
 
 export function isLocaleLoaded(packs: readonly LocalePack[] | undefined, locale: string): boolean {
-  return Boolean(findPack(uniquePacks([...DEFAULT_LOCALE_PACKS, ...(packs ?? [])]), locale))
+  const target = normalizeLocale(locale)
+  return (
+    matchesLocale(enCore, target) || (packs?.some((pack) => matchesLocale(pack, target)) ?? false)
+  )
 }
 
 function buildProfile(

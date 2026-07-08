@@ -129,10 +129,15 @@ function check(label, size, budget) {
 // built-in hooks for tree-shakeable es/fr/pt/zh/ja/en-gb packs. English-only
 // parsing uses a prebuilt singleton, but the shared parser still carries the
 // public `createLingo({ locales })` / `locale` option machinery.
+// 35.8 (was 35.7): D63 — locale correctness hardening: English wins inherited
+// overlay ties, explicit unloaded locales return LOCALE_NOT_LOADED, and zh/ja
+// pack-owned CJK aliases/fuzzy vocab install through a tiny registry hook.
 const full = await bundleStdin(`export * from './src/index.ts'`)
-check('lingo (full)', full, 35_700)
+check('lingo (full)', full, 35_800)
 
 if (has('src/locales/es.ts')) {
+  const enLocale = await bundleStdin(`export * from './src/locales/en.ts'`)
+  check('./locales/en (standalone data)', enLocale, 1800)
   const esLocale = await bundleStdin(`export * from './src/locales/es.ts'`)
   check('./locales/es (standalone data)', esLocale, 1150)
   const frLocale = await bundleStdin(`export * from './src/locales/fr.ts'`)
@@ -318,7 +323,9 @@ if (has('src/complete/index.ts')) {
   // D60/D61 — ./complete: ranked autocomplete fan-out (unit ambiguity, prefix,
   // range-tail implied units, curated suggest-units table). Marginal is the
   // orchestrator + aliasCompletions index walk; not re-exported from `.`.
-  check('./complete (marginal over full)', withComplete - full, 2250)
+  // 2.4 (was 2.25): D63 gzip interaction after the full-entry locale
+  // correctness hardening; ./complete code itself did not grow.
+  check('./complete (marginal over full)', withComplete - full, 2400)
 }
 
 if (has('src/schema/index.ts')) {

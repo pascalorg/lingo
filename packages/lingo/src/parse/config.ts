@@ -328,16 +328,11 @@ export function prepare(input: string, opts: ParseOptions): ParserState {
   const text = n.text
   const localePacks = opts.localePacks
   const localeNotLoaded =
-    opts.locale !== undefined && !isLocaleLoaded(localePacks, opts.locale)
-      ? makeIssue(
-          'LOCALE_NOT_LOADED',
-          { locale: opts.locale },
-          toSourceSpan(n, 0, text.length),
-          opts.messages,
-        )
+    opts.locale && !isLocaleLoaded(localePacks, opts.locale)
+      ? makeIssue('LOCALE_NOT_LOADED', { locale: opts.locale }, undefined, opts.messages)
       : undefined
   const profile = opts.locale
-    ? resolveLanguageProfile(localePacks, localeNotLoaded ? 'en' : opts.locale)
+    ? resolveLanguageProfile(localePacks, opts.locale)
     : hasNonEnglishLocalePacks(localePacks)
       ? detectLanguageProfile(localePacks!, input)
       : englishLanguageProfile

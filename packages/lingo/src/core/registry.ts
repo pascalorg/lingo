@@ -182,9 +182,8 @@ export class Registry {
   registerUnitAliases(kind: Kind, unitRef: string, aliases: readonly string[]): void {
     const unit = this.unitByRef(kind, unitRef)
     if (!unit) {
-      throw new Error(`lingo: unknown unit "${unitRef}" in kind "${kind}"`)
+      return
     }
-    unit.aliases = [...new Set([...(unit.aliases ?? []), ...aliases])]
     for (const alias of aliases) {
       this.insert(this.ci, alias.toLowerCase(), false, kind, unit)
     }

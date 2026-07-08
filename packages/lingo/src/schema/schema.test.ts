@@ -118,7 +118,7 @@ describe('schema reference data', () => {
   })
 
   it('every issue code has a dictionary description', () => {
-    expect(Object.keys(ISSUE_CODES).length).toBe(32)
+    expect(Object.keys(ISSUE_CODES).length).toBe(33)
     for (const desc of Object.values(ISSUE_CODES)) {
       expect(desc.length).toBeGreaterThan(5)
     }

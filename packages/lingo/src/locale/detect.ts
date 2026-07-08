@@ -13,21 +13,21 @@ export function detectLanguageProfile(
 }
 
 export function detectLocale(packs: readonly LocalePack[], input: string): string | undefined {
-  let best: { index: number; locale: string; score: number } | undefined
-  const candidates: LanguageProfile[] = [
-    englishLanguageProfile,
-    ...packs
-      .filter((pack) => normalizeLocale(pack.locale) !== 'en')
-      .map((pack) => resolveLanguageProfile(packs, pack.locale)),
-  ]
-  for (let i = 0; i < candidates.length; i++) {
-    const profile = candidates[i]!
+  let best: { locale: string; score: number } = {
+    locale: 'en',
+    score: scoreProfile(englishLanguageProfile, input),
+  }
+  for (let i = 0; i < packs.length; i++) {
+    if (normalizeLocale(packs[i]!.locale) === 'en') {
+      continue
+    }
+    const profile = resolveLanguageProfile(packs, packs[i]!.locale)
     const score = scoreProfile(profile, input)
-    if (!best || score > best.score || (score === best.score && i < best.index)) {
-      best = { index: i, locale: profile.locale, score }
+    if (score > best.score) {
+      best = { locale: profile.locale, score }
     }
   }
-  return best && best.score > 0 ? best.locale : undefined
+  return best.score > 0 ? best.locale : undefined
 }
 
 export function scoreProfile(profile: LanguageProfile, input: string): number {

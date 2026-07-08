@@ -1,6 +1,6 @@
 import { makeIssue } from '../core/errors'
 import type { IssueCode, IssueInputData, LingoIssue, Messages, Severity, Span } from '../core/types'
-import { isLocaleLoaded, resolveLanguageProfile } from '../locale/profile'
+import { resolveLanguageProfile } from '../locale/profile'
 import type { LocalePack } from '../locale/types'
 import { normalizeInput, toSourceSpan } from '../parse/normalize'
 import type { SerializedResult } from '../parse/serialize'
@@ -155,15 +155,6 @@ export function parseDate(text: string, opts?: DateOptions): DateResult | DateFa
 function parseDateImpl(text: string, opts?: DateOptions): DateResult | DateFail<DateResult> {
   const now = opts?.now === undefined ? anchorNow() : new Date(opts.now.getTime())
   const n = normalizeInput(text)
-  const localeNotLoaded =
-    opts?.locale !== undefined && !isLocaleLoaded(opts.localePacks, opts.locale)
-      ? makeIssue(
-          'LOCALE_NOT_LOADED',
-          { locale: opts.locale },
-          toSourceSpan(n, 0, n.text.length),
-          opts.messages,
-        )
-      : undefined
   const p: P = {
     src: text,
     n,
@@ -171,13 +162,10 @@ function parseDateImpl(text: string, opts?: DateOptions): DateResult | DateFail<
     tokens: tokenize(n),
     now,
     opts: opts ?? {},
-    profile: resolveLanguageProfile(opts?.localePacks, localeNotLoaded ? 'en' : opts?.locale),
+    profile: resolveLanguageProfile(opts?.localePacks, opts?.locale),
     weekStart: normalizeWeekStart(opts?.weekStart),
     forwardDates: opts?.forwardDates ?? true,
     escalate: dateEscalate(opts),
-  }
-  if (localeNotLoaded) {
-    return { ok: false, text: p.src, issues: [localeNotLoaded] }
   }
   const { start, end } = trimRange(n.text, 0, n.text.length)
   if (start === end) {
@@ -394,15 +382,6 @@ export function parseDateRange(text: string, opts?: DateOptions): DateRange | Da
 function parseDateRangeImpl(text: string, opts?: DateOptions): DateRange | DateRangeFail {
   const now = opts?.now === undefined ? anchorNow() : new Date(opts.now.getTime())
   const n = normalizeInput(text)
-  const localeNotLoaded =
-    opts?.locale !== undefined && !isLocaleLoaded(opts.localePacks, opts.locale)
-      ? makeIssue(
-          'LOCALE_NOT_LOADED',
-          { locale: opts.locale },
-          toSourceSpan(n, 0, n.text.length),
-          opts.messages,
-        )
-      : undefined
   const p: P = {
     src: text,
     n,
@@ -410,13 +389,10 @@ function parseDateRangeImpl(text: string, opts?: DateOptions): DateRange | DateR
     tokens: tokenize(n),
     now,
     opts: opts ?? {},
-    profile: resolveLanguageProfile(opts?.localePacks, localeNotLoaded ? 'en' : opts?.locale),
+    profile: resolveLanguageProfile(opts?.localePacks, opts?.locale),
     weekStart: normalizeWeekStart(opts?.weekStart),
     forwardDates: opts?.forwardDates ?? true,
     escalate: dateEscalate(opts),
-  }
-  if (localeNotLoaded) {
-    return { ok: false, type: 'date-range-failure', text, issues: [localeNotLoaded] }
   }
   let source = n.text.trim()
   const issues: LingoIssue[] = []

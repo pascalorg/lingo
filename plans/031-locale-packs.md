@@ -33,6 +33,8 @@ export interface LocalePack {
   aliases?: readonly string[]
   extends?: string
   defaults?: LocaleDefaults
+  unitAliases?: readonly LocaleUnitAliases[]
+  fuzzy?: readonly LocaleFuzzyVocab[]
   grammar?: Partial<GrammarWordsInput>
   numberWords?: Partial<NumberWordTablesInput>
   date?: Partial<DateVocabPack>
@@ -55,16 +57,17 @@ matches BCP-47 aliases case-insensitively, and merges overlays such as `en-gb`
 onto `en`. Non-English Phase 0 packs extend English so untranslated grammar
 remains usable until each language graduates to a complete pack.
 
-`detectLocale(packs, input)` and `detectLanguageProfile(packs, input)` score only
-the packs already loaded by the instance. Scoring is deterministic: number words,
-grammar words, date vocabulary, and future CJK `numerals` all add fixed weights;
-ties keep pack order; no signal falls back to English.
+`detectLocale(packs, input)` and `detectLanguageProfile(packs, input)` score
+English plus the packs already loaded by the instance. Scoring is deterministic:
+number words, grammar words, date vocabulary, and CJK `numerals` all add fixed
+weights; ties keep candidate order, so inherited English grammar stays English
+unless the input contains pack-specific signal.
 
 Parser integration:
 
 1. `ParseOptions.locale?: string` chooses a loaded profile.
 2. `CreateLingoOptions.locales?: readonly LocalePack[]` installs opt-in packs on
-   an isolated instance.
+   an isolated instance, including any pack-owned unit aliases or fuzzy vocab.
 3. `ParserState.profile` is the single parser-facing locale object.
 4. Grammar reads from `p.profile.grammar`, not module-level English constants.
 5. `ValueCtx.profile` supplies number-word tables to `number/words.ts`.
@@ -90,12 +93,14 @@ Published packs:
 4. Tokenizer groundwork: Han, Hiragana, and Katakana runs emit word tokens;
    `LocalePack.numerals` reserves future CJK numeric parsing.
 5. Packaging: tree-shakeable locale entry points and exports.
-6. Tests: profile resolution, overlay merge, detector basics, parser locale
+6. Explicit unloaded locales return `LOCALE_NOT_LOADED` instead of silently using
+   English.
+7. Tests: profile resolution, overlay merge, detector basics, parser locale
    selection, CJK tokenization.
 
 ## Non-goals
 
-- Translating built-in unit aliases.
+- Translating the built-in English unit tables.
 - Shipping all locale packs through the default `.` entry.
 - Rewriting the date parser to consume `LanguageProfile.date` in Phase 0.
 - Full CJK segmentation or compound numeral grammar.

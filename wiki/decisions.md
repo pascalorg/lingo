@@ -411,3 +411,13 @@ BYO-registry callers get the same behavior. Budgets recalibrate for that engine 
 and `size.mjs` adds standalone + marginal gates for es/fr/pt/zh/ja/en-gb so future
 pack growth is visible. Revisit if locale support can move behind an async/plugin
 boundary without breaking the synchronous parser contract.
+
+**D63 · 2026-07-08 · Locale correctness beats silent fallback.** Locale overlays
+must not claim inherited English grammar during auto-detection, CJK unit/fuzzy
+vocabulary must only appear when the zh/ja packs are loaded, and an explicit
+unloaded locale must return a structured `LOCALE_NOT_LOADED` issue instead of
+silently parsing as English. The fix adds a small registry alias hook and one
+issue code; after trimming, the main-entry gate and `./complete` marginal gate
+move by ~0.1 kB to reflect the correctness path and gzip interaction. Locale pack
+standalone/marginal gates stay unchanged except the newly measured published
+`./locales/en` entry.

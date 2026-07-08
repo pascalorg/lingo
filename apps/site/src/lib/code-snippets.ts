@@ -9,6 +9,21 @@ if (height.ok) {
 const any = lingo("72 in to cm")
 const range = parseRange("between 5 and 10 kg", { kind: "mass" })`
 
+export const completionsSnippet = `import { completions } from "@pascal-app/lingo/complete"
+import { lingoInput } from "@pascal-app/lingo/dom"
+
+// Debounce in your UI (~120–150ms) — completions() re-parses on every call
+const items = completions("10 kg to 16", { kind: "mass", limit: 8 })
+// range tails fan out: 10–16 kg, 10–16 lb, …
+
+completions("10", { units: ["kg", "lb", "m", "ft"] }) // optimistic without kind
+
+lingoInput(input, {
+  kind: "mass",
+  complete: (text) => completions(text, { kind: "mass", limit: 8 }),
+  onComplete: (list) => renderGroupedDropdown(list),
+})`
+
 export const strictnessSnippet = `import { lingo } from "@pascal-app/lingo"
 
 const result = lingo("5 meterz", {
@@ -104,6 +119,20 @@ humanizeDateRange(slot)                          // "2:00 PM to 4:00 PM"
 
 parseDuration("1h30").duration.base              // 5400 (seconds)
 humanizeDuration(5400, { style: "natural" })     // "an hour and a half"`
+
+export const localeSnippet = `import { createLingo } from "@pascal-app/lingo"
+import { es } from "@pascal-app/lingo/locales/es"
+import { fr } from "@pascal-app/lingo/locales/fr"
+import { zh } from "@pascal-app/lingo/locales/zh"
+
+const lingo = createLingo({ locales: [es, fr, zh] })
+
+lingo.parseQuantity("dos kg")                    // auto-detected as es
+lingo.parseRange("entre 5 et 10 kg", { locale: "fr" })
+lingo.parseQuantity("5公斤", { locale: "zh" })
+
+// Success results expose the resolved profile.
+lingo.parse("dos kg").locale                      // "es"`
 
 export const extendSnippet = `import { registerUnits, defineFuzzyVocab, createLingo } from "@pascal-app/lingo"
 

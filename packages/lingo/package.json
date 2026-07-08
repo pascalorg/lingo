@@ -154,6 +154,86 @@
         "default": "./dist/react/index.cjs"
       }
     },
+    "./complete": {
+      "import": {
+        "types": "./dist/complete/index.d.ts",
+        "default": "./dist/complete/index.js"
+      },
+      "require": {
+        "types": "./dist/complete/index.d.cts",
+        "default": "./dist/complete/index.cjs"
+      }
+    },
+    "./locales/en": {
+      "import": {
+        "types": "./dist/locales/en.d.ts",
+        "default": "./dist/locales/en.js"
+      },
+      "require": {
+        "types": "./dist/locales/en.d.cts",
+        "default": "./dist/locales/en.cjs"
+      }
+    },
+    "./locales/en-gb": {
+      "import": {
+        "types": "./dist/locales/en-gb.d.ts",
+        "default": "./dist/locales/en-gb.js"
+      },
+      "require": {
+        "types": "./dist/locales/en-gb.d.cts",
+        "default": "./dist/locales/en-gb.cjs"
+      }
+    },
+    "./locales/es": {
+      "import": {
+        "types": "./dist/locales/es.d.ts",
+        "default": "./dist/locales/es.js"
+      },
+      "require": {
+        "types": "./dist/locales/es.d.cts",
+        "default": "./dist/locales/es.cjs"
+      }
+    },
+    "./locales/fr": {
+      "import": {
+        "types": "./dist/locales/fr.d.ts",
+        "default": "./dist/locales/fr.js"
+      },
+      "require": {
+        "types": "./dist/locales/fr.d.cts",
+        "default": "./dist/locales/fr.cjs"
+      }
+    },
+    "./locales/pt": {
+      "import": {
+        "types": "./dist/locales/pt.d.ts",
+        "default": "./dist/locales/pt.js"
+      },
+      "require": {
+        "types": "./dist/locales/pt.d.cts",
+        "default": "./dist/locales/pt.cjs"
+      }
+    },
+    "./locales/zh": {
+      "import": {
+        "types": "./dist/locales/zh.d.ts",
+        "default": "./dist/locales/zh.js"
+      },
+      "require": {
+        "types": "./dist/locales/zh.d.cts",
+        "default": "./dist/locales/zh.cjs"
+      }
+    },
+    "./locales/ja": {
+      "import": {
+        "types": "./dist/locales/ja.d.ts",
+        "default": "./dist/locales/ja.js"
+      },
+      "require": {
+        "types": "./dist/locales/ja.d.cts",
+        "default": "./dist/locales/ja.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "scripts": {

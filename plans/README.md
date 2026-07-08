@@ -11,7 +11,7 @@ and whose content is covered by wiki/code gets deleted, and its number retired
 ## Conventions
 
 - **Filename:** `NNN-kebab-title.md` — three digits, stable once assigned.
-  Next free number: **031**.
+  Next free number: **032**.
 - **Frontmatter:** `id`, `title`, `status`, `created`, `updated`. New plans
   (since 2026-07-04) also carry:
   - `goal:` — one-sentence done state.
@@ -86,7 +86,7 @@ Driver: <the user need, review finding, or decision that motivates this — link
 | 010 | [Testing strategy](010-testing-strategy.md) | approved |
 | 011 | [Packaging, DX & release](011-packaging-dx-and-release.md) | approved |
 | 012 | [Agent & LLM friendliness](012-agent-and-llm-friendliness.md) | done |
-| 013 | [i18n roadmap](013-i18n-roadmap.md) | draft |
+| 013 | [i18n roadmap](013-i18n-roadmap.md) | in-progress |
 | 014 | [Strictness, acceptance & error escalation](014-strictness-and-acceptance.md) | approved |
 | 018 | [Performance benchmarking](018-performance-benchmarking.md) | in-progress — browser suites + CI posture pending |
 | 019 | [AI structured output & agent form filling](019-ai-structured-output.md) | done |
@@ -99,6 +99,8 @@ Driver: <the user need, review finding, or decision that motivates this — link
 | 028 | [Resource-style output](028-resource-style-output.md) | done |
 | 029 | [Schema reference & adapters](029-schema-reference-and-adapters.md) | in-progress |
 | 030 | [Time-of-day, timezones & slots](030-time-of-day-timezone-and-slots.md) | done |
+| 031 | [Ranked completions (autocomplete anything)](031-completions.md) | approved |
+| 031 | [Locale packs](031-locale-packs.md) | in-progress |
 
 Retired numbers (plans deleted after shipping; content lives in wiki/code):
 015–017, 022–023.

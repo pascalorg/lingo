@@ -26,6 +26,7 @@ export const en: Record<IssueCode, string> = {
   SINGLE_VALUE_EXPECTED: 'This field needs a single value, not a range.',
   NUMBER_FORMAT: '"{text}" is not a valid number.',
   NONFINITE: 'That number is too large.',
+  LOCALE_NOT_LOADED: 'Locale "{locale}" is not loaded — pass its pack to createLingo({ locales }).',
   RANGE_MIN: 'Must be at least {min}.',
   RANGE_MAX: 'Must be at most {max}.',
   RANGE_OPEN_BOUND_NOT_ALLOWED: 'Include a {missing} value.',

@@ -1,10 +1,3 @@
-/**
- * `createLingo()` — isolated lingo instances. The main entry's top-level
- * `lingo`/`parseQuantity`/etc. are a `createLingo()` singleton bound to
- * `defaultRegistry`; this module holds the factory itself plus the instance
- * option/result types it defines.
- */
-
 import { convertDeltaValue, convertValue } from './core/convert'
 import { makeIssue } from './core/errors'
 import { Quantity } from './core/quantity'
@@ -12,6 +5,7 @@ import { createRegistry, type FuzzyVocab, type Registry } from './core/registry'
 import type { IssueCode, Kind, KindDef, LingoIssue, Messages, Span, UnitDef } from './core/types'
 import type { BuiltinKind, BuiltinUnitRef, KindOfUnit, UnitRefByKind } from './core/unit-refs'
 import { registerTemperatureVocabs } from './fuzzy/temperature'
+import type { LocalePack } from './locale'
 import { en } from './messages/en'
 import { type ParserState, prepare } from './parse/config'
 import { parsePreparedExpression } from './parse/finish'
@@ -51,7 +45,10 @@ const DEFAULT_FALLBACKS: NonNullable<ParseOptions['aliasFallbacks']> = byteishFa
  * lingo('5 meterz', opts)
  * ```
  */
-export type LingoOptions = Omit<ParseOptions, 'registry' | 'aliasFallbacks' | 'extract'> & {
+export type LingoOptions = Omit<
+  ParseOptions,
+  'registry' | 'aliasFallbacks' | 'extract' | 'localePacks'
+> & {
   registry?: Registry
 }
 
@@ -189,6 +186,7 @@ export type LingoFuzzyOption = false | Array<{ kind: Kind; vocab: FuzzyVocab }>
 export interface CreateLingoOptions {
   fuzzy?: LingoFuzzyOption
   kinds?: readonly KindDef[]
+  locales?: readonly LocalePack[]
   messages?: Messages
   registry?: Registry
 }
@@ -338,6 +336,28 @@ function installFuzzy(reg: Registry, fuzzy: LingoFuzzyOption | undefined): void 
   }
 }
 
+function installLocalePacks(
+  reg: Registry,
+  packs: readonly LocalePack[] | undefined,
+  includeFuzzy: boolean,
+): void {
+  for (const pack of packs ?? []) {
+    for (const { kind, unit, aliases } of pack.unitAliases ?? []) {
+      if (reg.unitByRef(kind, unit)) {
+        reg.registerUnitAliases(kind, unit, aliases)
+      }
+    }
+    if (!includeFuzzy) {
+      continue
+    }
+    for (const { kind, vocab } of pack.fuzzy ?? []) {
+      if (reg.unitByRef(kind, vocab.unit)) {
+        reg.defineFuzzyVocab(kind, vocab)
+      }
+    }
+  }
+}
+
 /**
  * One hit from `findQuantities()`: a parsed result plus where it sat in the
  * scanned text.
@@ -372,11 +392,14 @@ export function createLingo(options: CreateLingoOptions = {}): LingoInstance {
     installFuzzy(reg, options.fuzzy)
   }
   const instanceMessages = options.messages ? { ...en, ...options.messages } : en
+  const localePacks = options.locales
+  installLocalePacks(reg, localePacks, options.fuzzy !== false)
 
   const defaultOptions: ParseOptions = {
     aliasFallbacks: DEFAULT_FALLBACKS,
     messages: instanceMessages,
     registry: reg,
+    ...(localePacks && { localePacks }),
   }
   const defaultExtractOptions: ParseOptions = { ...defaultOptions, extract: true }
 
@@ -387,6 +410,7 @@ export function createLingo(options: CreateLingoOptions = {}): LingoInstance {
     return {
       aliasFallbacks: DEFAULT_FALLBACKS,
       ...opts,
+      ...(localePacks && { localePacks }),
       messages: opts.messages ?? instanceMessages,
       registry: opts.registry ?? reg,
       ...(extract && { extract }),

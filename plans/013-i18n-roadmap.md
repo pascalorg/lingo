@@ -1,14 +1,15 @@
 ---
 id: 013
 title: i18n roadmap
-status: draft
+status: in-progress
 created: 2026-07-03
 updated: 2026-07-03
 ---
 
 # i18n roadmap (post-0.1)
 
-Architecture reserves the seams now; implementation lands 0.2+.
+Architecture reserves the seams now; Phase 0 locale-pack infrastructure is
+specified in [`031-locale-packs.md`](031-locale-packs.md).
 
 ## Already-locale-aware in 0.1
 

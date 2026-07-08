@@ -1,5 +1,6 @@
 import { makeIssue } from '../core/errors'
 import type { Kind, LingoIssue, NumberFormatPolicy } from '../core/types'
+import type { LanguageProfile } from '../locale/types'
 import type { Normalized } from '../parse/normalize'
 import { toSourceSpan } from '../parse/normalize'
 import type { Token } from '../parse/tokenize'
@@ -16,6 +17,7 @@ export interface ValueCtx {
   n: Normalized
   numberFormat: NumberFormatPolicy
   numberWords?: boolean
+  profile?: LanguageProfile
   /** Original source (superscript-exponent detection reads it). */
   src: string
   tokens: Token[]
@@ -116,7 +118,7 @@ export function parseValue(ctx: ValueCtx, i: number, atStart = false): ValueNode
         }
       }
     }
-    const wn = parseNumberWords(tokens, i)
+    const wn = parseNumberWords(tokens, i, ctx.profile?.numberWords)
     if (!wn) {
       return null
     }
@@ -509,7 +511,7 @@ function withNumericTails(ctx: ValueCtx, node: ValueNode): ValueNode {
 }
 
 function withWordTail(ctx: ValueCtx, node: ValueNode): ValueNode {
-  const tail = parseAndFractionTail(ctx.tokens, node.next)
+  const tail = parseAndFractionTail(ctx.tokens, node.next, ctx.profile?.numberWords)
   if (tail) {
     node.value += tail.add
     node.next = tail.next

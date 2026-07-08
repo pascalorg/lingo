@@ -42,6 +42,14 @@ export interface UnitMatch {
   unit: UnitDef
 }
 
+/** One ranked alias expansion for prefix autocomplete (`aliasCompletions`). */
+export interface AliasCompletion {
+  alias: string
+  exact: boolean
+  kind: Kind
+  unit: UnitDef
+}
+
 const NO_ENTRIES: AliasEntry[] = []
 
 function charMask(text: string): number {
@@ -168,6 +176,17 @@ export class Registry {
       const copy = structuredClone(unit)
       this.addUnit(def, copy)
       def.units.push(copy)
+    }
+  }
+
+  registerUnitAliases(kind: Kind, unitRef: string, aliases: readonly string[]): void {
+    const unit = this.unitByRef(kind, unitRef)
+    if (!unit) {
+      throw new Error(`lingo: unknown unit "${unitRef}" in kind "${kind}"`)
+    }
+    unit.aliases = [...new Set([...(unit.aliases ?? []), ...aliases])]
+    for (const alias of aliases) {
+      this.insert(this.ci, alias.toLowerCase(), false, kind, unit)
     }
   }
 
@@ -475,6 +494,78 @@ export class Registry {
       }
     }
     return false
+  }
+
+  /**
+   * All unit aliases that strictly extend `prefix`, ranked for autocomplete.
+   * Dedupes by kind+unit id (shortest alias wins). `kind` biases sort order.
+   * @example
+   * ```ts
+   * import { defaultRegistry } from '@pascal-app/lingo'
+   * defaultRegistry.aliasCompletions('f').map((c) => c.alias)
+   * // ['f', 'ft', 'fahrenheit', …] — unique units, best-first
+   * ```
+   */
+  aliasCompletions(prefix: string, kind?: Kind, limit = 20): AliasCompletion[] {
+    const needle = prefix.toLowerCase()
+    if (!(prefix && needle[0])) {
+      return []
+    }
+    const rawHits: Array<{ entry: AliasEntry; exact: boolean }> = []
+    for (const e of this.ci.get(needle[0]!) ?? NO_ENTRIES) {
+      if (kind && e.kind !== kind) {
+        continue
+      }
+      if (e.key.length > needle.length && e.key.startsWith(needle)) {
+        rawHits.push({ entry: e, exact: false })
+      }
+    }
+    const rawFirst = prefix[0]!
+    for (const e of this.exact.get(rawFirst) ?? NO_ENTRIES) {
+      if (kind && e.kind !== kind) {
+        continue
+      }
+      if (e.key.length > prefix.length && e.key.startsWith(prefix)) {
+        rawHits.push({ entry: e, exact: true })
+      }
+    }
+    rawHits.sort((a, b) => {
+      if (kind) {
+        const ak = a.entry.kind === kind ? 0 : 1
+        const bk = b.entry.kind === kind ? 0 : 1
+        if (ak !== bk) {
+          return ak - bk
+        }
+      }
+      if (a.exact !== b.exact) {
+        return a.exact ? -1 : 1
+      }
+      const al = a.entry.key.length
+      const bl = b.entry.key.length
+      if (al !== bl) {
+        return al - bl
+      }
+      return 0
+    })
+    const seen = new Set<string>()
+    const out: AliasCompletion[] = []
+    for (const hit of rawHits) {
+      const key = `${hit.entry.kind}|${hit.entry.unit.id}`
+      if (seen.has(key)) {
+        continue
+      }
+      seen.add(key)
+      out.push({
+        alias: hit.exact ? hit.entry.key : hit.entry.key,
+        kind: hit.entry.kind,
+        unit: hit.entry.unit,
+        exact: hit.exact,
+      })
+      if (out.length >= limit) {
+        break
+      }
+    }
+    return out
   }
 
   /**

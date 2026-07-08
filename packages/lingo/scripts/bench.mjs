@@ -564,6 +564,7 @@ function unique(values) {
 async function runBackend() {
   const main = await import(`../dist/index.js?bench=${Date.now()}`)
   const date = await import(`../dist/date/index.js?bench=${Date.now()}`)
+  const complete = await import(`../dist/complete/index.js?bench=${Date.now()}`)
   const corpora = buildBackendCorpora(main.allKinds)
   const lengthMeters = { kind: 'length', unit: 'm' }
   const massKind = { kind: 'mass' }
@@ -592,6 +593,12 @@ async function runBackend() {
       group: 'backend/frontend-shared',
       samples: corpora.partial,
       fn: (input) => main.partialState(input, lengthMeters),
+    },
+    {
+      name: 'completions prefix',
+      group: 'backend/frontend-shared',
+      samples: corpora.partial,
+      fn: (input) => complete.completions(input, { kind: 'length', limit: 8 }),
     },
     {
       name: 'parseDate mixed',

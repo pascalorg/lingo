@@ -24,6 +24,17 @@ function isLetter(ch: string): boolean {
   return (c >= 97 && c <= 122) || (c >= 65 && c <= 90)
 }
 
+function isCjkWord(ch: string): boolean {
+  const c = ch.charCodeAt(0)
+  return (
+    (c >= 0x34_00 && c <= 0x4d_bf) ||
+    (c >= 0x4e_00 && c <= 0x9f_ff) ||
+    (c >= 0x30_40 && c <= 0x30_9f) ||
+    (c >= 0x30_a0 && c <= 0x30_ff) ||
+    (c >= 0xf9_00 && c <= 0xfa_ff)
+  )
+}
+
 /**
  * Scan normalized text into tokens. One subtlety: NFKC expands vulgar
  * fractions in place (`1½` → `11/2`), which would misread as eleven halves.
@@ -79,6 +90,13 @@ export function tokenize(n: Normalized): Token[] {
     } else if (isLetter(ch)) {
       let j = i + 1
       while (j < text.length && isLetter(text[j]!)) {
+        j++
+      }
+      tokens.push({ type: 'word', text: text.slice(i, j), start: tokenStart, end: j, spaceBefore })
+      i = j
+    } else if (isCjkWord(ch)) {
+      let j = i + 1
+      while (j < text.length && isCjkWord(text[j]!)) {
         j++
       }
       tokens.push({ type: 'word', text: text.slice(i, j), start: tokenStart, end: j, spaceBefore })

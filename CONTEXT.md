@@ -62,8 +62,13 @@ parse (ambiguity honesty, D4).
 **Suggestion:** a did-you-mean *string* riding on an issue (`UNKNOWN_UNIT`
 suggestions).
 
-Candidate / alternative / suggestion are three different things — never
-interchange them.
+**Completion:** a ranked, fully-parsed interpretation of a (possibly partial)
+input — canonical `text` plus a successful quantity/range/conversion result
+(`@pascal-app/lingo/complete`). Powers autocomplete UIs; distinct from candidate,
+alternative, and suggestion.
+
+Candidate / alternative / suggestion / completion are four different things —
+never interchange them.
 
 **Resource view:** an opt-in, self-explanatory object returned by
 `@pascal-app/lingo/describe` for docs, logs, debugging, or tool output. Resource
@@ -78,6 +83,18 @@ shapes. **Tolerance** tunes effort (`tolerance.typos: fix|suggest|off`,
 Four distinct mechanisms — don't describe one as another.
 
 **Profile:** a named fuzzy-vocabulary context (`weather`, `water`, `oven`).
+
+**Locale:** a BCP-47 language/region identifier (`en`, `en-GB`, `es-MX`) used
+to select parser vocabulary and defaults. It is not a unit system or currency.
+
+**Locale pack:** an additive, opt-in data module for one locale — grammar words,
+number-word tables, date vocabulary refs, defaults, and future numeral maps.
+Locale packs are passed to `createLingo({ locales })`; they are never all bundled
+by default.
+
+**Language profile:** the fully resolved runtime view of one locale pack after
+inheritance/overlays are merged. Parser code reads the language profile, not raw
+locale pack objects. *Avoid: profile (ambiguous with fuzzy Profile).*
 
 **Grain:** the precision of a parsed or humanized date (`day`, `hour`, …).
 Humanize output re-parses within one grain.
@@ -95,7 +112,7 @@ its value. Fields never rewrite text while typing (D6).
 ## Infrastructure nouns
 
 **Entry:** a published subpath — `.`, `./core`, `./date`, `./dom`, `./element`,
-`./describe`, `./catalog`, `./schema`, `./ai`, `./mcp`, `./react`.
+`./describe`, `./catalog`, `./schema`, `./ai`, `./mcp`, `./react`, `./complete`.
 *Avoid: subpackage, plugin.*
 
 **Catalog:** the read-only query surface (`./catalog`) over built-in

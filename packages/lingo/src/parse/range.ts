@@ -36,9 +36,11 @@ import { matchUnit } from './unit-match'
 
 export function parseRangeOrQty(p: ParserState, i: number, atStart: boolean): Parsed | null {
   // between A and B
-  if (wordAt(p, i) === 'between') {
+  const firstWord = wordAt(p, i)
+  if (firstWord && p.profile.grammar.rangeBetweenWords.has(firstWord)) {
     const a = parseQtyWithQuals(p, i + 1, false, { noAnd: true })
-    if (a && wordAt(p, a.nextToken) === 'and') {
+    const andWord = a ? wordAt(p, a.nextToken) : null
+    if (a && andWord && p.profile.grammar.rangeAndWords.has(andWord)) {
       const b = parseQtyWithQuals(p, a.nextToken + 1, false)
       if (b) {
         const range = buildRange(p, a, b, i)
@@ -51,7 +53,7 @@ export function parseRangeOrQty(p: ParserState, i: number, atStart: boolean): Pa
   }
 
   // from A to B  (symmetric to "between A and B")
-  if (wordAt(p, i) === 'from') {
+  if (firstWord && p.profile.grammar.rangeFromWords.has(firstWord)) {
     const a = parseQtyWithQuals(p, i + 1, false)
     if (a) {
       const sep = rangeSeparator(p, a.nextToken)
@@ -137,12 +139,12 @@ function rangeSeparator(p: ParserState, i: number): number {
   if (!t) {
     return -1
   }
-  if (t.type === 'word' && t.text.toLowerCase() === 'to') {
+  if (t.type === 'word' && p.profile.grammar.rangeSeparatorWords.has(t.text.toLowerCase())) {
     return i + 1
   }
   // "5 or 6 kg" — alternative range. The "5 kg or so" hedge is guarded: the
   // separator only fires when a value (never "so") follows.
-  if (t.type === 'word' && t.text.toLowerCase() === 'or') {
+  if (t.type === 'word' && p.profile.grammar.rangeAlternativeWords.has(t.text.toLowerCase())) {
     const next = p.tokens[i + 1]
     if (!next || (next.type === 'word' && next.text.toLowerCase() === 'so')) {
       return -1

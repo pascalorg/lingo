@@ -121,8 +121,44 @@ function check(label, size, budget) {
 // identity normalization + prepared-state reuse): free-text scan 3.6x, bulk
 // validation 2.5x, hostile latency 2.8x for +140 B. D17 suggestion pruning
 // (+228 B for 11.6x), strictness/idioms (22→23), D14 error copy.
+// 33.0 (was 32.9): D60 — `Registry.aliasCompletions()` for ranked prefix
+// autocomplete (+~100 B in the shared registry). `./complete` stays a separate
+// entry; the orchestrator does not ship in `.`.
+// 35.7 (was 33.0): D62 — locale-pack infrastructure: resolved language
+// profiles, optional auto-detection, diacritic folding, CJK token support, and
+// built-in hooks for tree-shakeable es/fr/pt/zh/ja/en-gb packs. English-only
+// parsing uses a prebuilt singleton, but the shared parser still carries the
+// public `createLingo({ locales })` / `locale` option machinery.
 const full = await bundleStdin(`export * from './src/index.ts'`)
-check('lingo (full)', full, 32_900)
+check('lingo (full)', full, 35_700)
+
+if (has('src/locales/es.ts')) {
+  const esLocale = await bundleStdin(`export * from './src/locales/es.ts'`)
+  check('./locales/es (standalone data)', esLocale, 1150)
+  const frLocale = await bundleStdin(`export * from './src/locales/fr.ts'`)
+  check('./locales/fr (standalone data)', frLocale, 1150)
+  const ptLocale = await bundleStdin(`export * from './src/locales/pt.ts'`)
+  check('./locales/pt (standalone data)', ptLocale, 1150)
+  const zhLocale = await bundleStdin(`export * from './src/locales/zh.ts'`)
+  check('./locales/zh (standalone data)', zhLocale, 700)
+  const jaLocale = await bundleStdin(`export * from './src/locales/ja.ts'`)
+  check('./locales/ja (standalone data)', jaLocale, 700)
+  const enGbLocale = await bundleStdin(`export * from './src/locales/en-gb.ts'`)
+  check('./locales/en-gb (standalone data)', enGbLocale, 250)
+
+  const withRomanceLocales = await bundleStdin(
+    `export * from './src/index.ts'; export { es } from './src/locales/es.ts'; export { fr } from './src/locales/fr.ts'; export { pt } from './src/locales/pt.ts'`,
+  )
+  check('./locales es+fr+pt (marginal over full)', withRomanceLocales - full, 2200)
+  const withCjkLocales = await bundleStdin(
+    `export * from './src/index.ts'; export { zh } from './src/locales/zh.ts'; export { ja } from './src/locales/ja.ts'`,
+  )
+  check('./locales zh+ja (marginal over full)', withCjkLocales - full, 850)
+  const withAllLocales = await bundleStdin(
+    `export * from './src/index.ts'; export { es } from './src/locales/es.ts'; export { fr } from './src/locales/fr.ts'; export { pt } from './src/locales/pt.ts'; export { zh } from './src/locales/zh.ts'; export { ja } from './src/locales/ja.ts'; export { enGb } from './src/locales/en-gb.ts'`,
+  )
+  check('./locales all loaded (marginal over full)', withAllLocales - full, 2900)
+}
 
 // 19.9 (was 19.6): D48 — shared parser recognizes GBP pence idioms and
 // explicit pence tolerance deltas while keeping currency JSON self-canonical
@@ -155,8 +191,11 @@ check('lingo (full)', full, 32_900)
 // product, not drift. Prior: D23 quality pass 2026-07-05 (plan-002 'several'
 // fuzzy amount, registerUnits defensive clone, contains() actionable error);
 // D19 hot-path structures, D17 perf indexes, D14 human error copy.
+// 23.2 (was 20.5): D62 — shared locale resolver/detector/profile merge and
+// diacritic/CJK tokenizer support live in the engine so BYO-registry users get
+// the same locale semantics without importing default unit data.
 const core = await bundleStdin(`export * from './src/core/index.ts'`)
-check('./core (engine, no unit data)', core, 20_400)
+check('./core (engine, no unit data)', core, 23_200)
 
 if (has('src/date/index.ts')) {
   const dateAlone = await bundleStdin(`export * from './src/date/index.ts'`)
@@ -193,7 +232,10 @@ if (has('src/date/index.ts')) {
   // results (date/serialize.ts): flat schemaVersion:3 shapes, ISO dates,
   // self-describing {start,end,text} spans. The date module previously had NO
   // wire serializer — JSON.stringify leaked the raw runtime shape.
-  check('./date (standalone, incl. engine)', dateAlone, 32_500)
+  // 36.2 (was 32.7): D62 — standalone date inherits the shared locale engine
+  // through parseDuration and now accepts caller-loaded locale packs for
+  // Romance/CJK relative date vocabulary.
+  check('./date (standalone, incl. engine)', dateAlone, 36_200)
   const withDate = await bundleStdin(
     `export * from './src/index.ts'; export * from './src/date/index.ts'`,
   )
@@ -206,7 +248,10 @@ if (has('src/date/index.ts')) {
   // entirely in the date module (absent from `full`), so the marginal carries
   // the full expanded-forms + zone + range parser growth.
   // 11.2 (was 10.8): D59 — date wire serialization (see standalone note).
-  check('./date (marginal over full)', withDate - full, 11_200)
+  // 12.2 (was 11.2): D62 — locale-aware date options and relative-date pack
+  // bridge live in `./date`, while the main entry already carries core locale
+  // infrastructure.
+  check('./date (marginal over full)', withDate - full, 12_200)
 }
 
 if (has('src/dom/index.ts')) {
@@ -264,6 +309,18 @@ if (has('src/catalog/index.ts')) {
   check('./catalog (marginal over full)', withCatalog - full, 1400)
 }
 
+if (has('src/complete/index.ts')) {
+  const withComplete = await bundleStdin(
+    `export * from './src/index.ts'; export * from './src/complete/index.ts'`,
+  )
+  // 2.25 (was 2.2): D61 — everyday-first prefix tiering asks for a slightly
+  // deeper alias pool so min/mi/mL beat obscure scientific shorthands.
+  // D60/D61 — ./complete: ranked autocomplete fan-out (unit ambiguity, prefix,
+  // range-tail implied units, curated suggest-units table). Marginal is the
+  // orchestrator + aliasCompletions index walk; not re-exported from `.`.
+  check('./complete (marginal over full)', withComplete - full, 2250)
+}
+
 if (has('src/schema/index.ts')) {
   const withSchema = await bundleStdin(
     `export * from './src/index.ts'; export * from './src/schema/index.ts'`,
@@ -299,7 +356,9 @@ if (has('src/ai/index.ts')) {
   // cascades here; dateRangeField itself is a thin field over parseDateRange.
   // 13.9 (was 13.6): D59 — the date wire serializer cascades through the
   // bundled date module (see the ./date standalone note).
-  check('./ai (marginal over full)', withAi - full, 13_900) // D30: +notation in shared renderNumber
+  // 14.9 (was 13.9): D62 — dateField/dateRangeField expose the locale-aware
+  // DateOptions surface, so the date locale bridge cascades through /ai.
+  check('./ai (marginal over full)', withAi - full, 14_900) // D30: +notation in shared renderNumber
   if (has('src/mcp/index.ts')) {
     const withMcp = await bundleStdin(
       `export * from './src/index.ts'; export * from './src/ai/index.ts'; export * from './src/mcp/index.ts'`,

@@ -16,21 +16,6 @@ import {
 } from './config'
 import { matchUnit, systemRemap, type UnitHit } from './unit-match'
 
-const APPROX_WORDS = new Set([
-  'about',
-  'around',
-  'approximately',
-  'approx',
-  'roughly',
-  'circa',
-  'ca',
-  'nearly',
-  'almost',
-  'some',
-  'like',
-  'maybe',
-])
-const EXACT_WORDS = new Set(['exactly', 'precisely', 'please'])
 const AMBIGUOUS_OUNCE_ALIASES = new Set(['oz', 'oz.', 'ounce', 'ounces'])
 const CENT_CURRENCY_CANDIDATES = ['USD', 'EUR', 'CAD', 'AUD', 'SGD', 'HKD', 'NZD', 'MXN']
 
@@ -38,28 +23,6 @@ export interface BoundQual {
   bound: 'min' | 'max'
   exclusive: boolean
 }
-
-const BOUND_PHRASES: Array<[string, BoundQual]> = [
-  ['at least', { bound: 'min', exclusive: false }],
-  ['no less than', { bound: 'min', exclusive: false }],
-  ['greater than or equal to', { bound: 'min', exclusive: false }],
-  ['more than', { bound: 'min', exclusive: true }],
-  ['greater than', { bound: 'min', exclusive: true }],
-  ['over', { bound: 'min', exclusive: true }],
-  ['above', { bound: 'min', exclusive: true }],
-  ['at most', { bound: 'max', exclusive: false }],
-  ['no more than', { bound: 'max', exclusive: false }],
-  ['no greater than', { bound: 'max', exclusive: false }],
-  ['less than or equal to', { bound: 'max', exclusive: false }],
-  ['up to', { bound: 'max', exclusive: false }],
-  ['max', { bound: 'max', exclusive: false }],
-  ['maximum', { bound: 'max', exclusive: false }],
-  ['min', { bound: 'min', exclusive: false }],
-  ['minimum', { bound: 'min', exclusive: false }],
-  ['less than', { bound: 'max', exclusive: true }],
-  ['under', { bound: 'max', exclusive: true }],
-  ['below', { bound: 'max', exclusive: true }],
-]
 
 export interface Quals {
   approximate: boolean
@@ -69,17 +32,27 @@ export interface Quals {
 
 /** True when a bound phrase ("under", "over", "at least"…) begins at `pos`. */
 function startsBound(p: ParserState, pos: number): boolean {
-  for (const [phrase] of BOUND_PHRASES) {
-    const nx = eatPhrase(p, pos, phrase)
+  for (const phrase of p.profile.grammar.boundPhrases) {
+    const nx = eatPhrase(p, pos, phrase.phrase)
     if (nx >= 0) {
       // "min"/"max" only count as bounds when a value follows.
-      if ((phrase === 'min' || phrase === 'max') && !valueStarts(p, nx)) {
+      if ((phrase.phrase === 'min' || phrase.phrase === 'max') && !valueStarts(p, nx)) {
         continue
       }
       return true
     }
   }
   return false
+}
+
+function eatAnyPhrase(p: ParserState, pos: number, phrases: Iterable<string>): number {
+  for (const phrase of phrases) {
+    const nx = eatPhrase(p, pos, phrase)
+    if (nx >= 0) {
+      return nx
+    }
+  }
+  return -1
 }
 
 export function parseQualifiers(p: ParserState, i: number): Quals {
@@ -112,12 +85,9 @@ export function parseQualifiers(p: ParserState, i: number): Quals {
       continue
     }
     if (w !== null) {
-      if (w === 'gimme') {
-        pos++
-        continue
-      }
-      if (w === 'give' && wordAt(p, pos + 1) === 'me') {
-        pos += 2
+      const filler = eatAnyPhrase(p, pos, p.profile.grammar.qualifierFillers)
+      if (filler >= 0) {
+        pos = filler
         continue
       }
       if (
@@ -131,21 +101,18 @@ export function parseQualifiers(p: ParserState, i: number): Quals {
       // Softeners before a bound word: "just under", "slightly over",
       // "a bit over", "a little under". Only a softener when a bound actually
       // follows, so "a bit" (= 1 bit) and bare "just"/"a little" are untouched.
-      if ((w === 'just' || w === 'slightly') && startsBound(p, pos + 1)) {
+      if (p.profile.grammar.qualifierSoftenerWords.has(w) && startsBound(p, pos + 1)) {
         approximate = true
         pos++
         continue
       }
-      if (
-        w === 'a' &&
-        (wordAt(p, pos + 1) === 'bit' || wordAt(p, pos + 1) === 'little') &&
-        startsBound(p, pos + 2)
-      ) {
+      const softener = eatAnyPhrase(p, pos, p.profile.grammar.qualifierSoftenerPhrases)
+      if (softener >= 0 && startsBound(p, softener)) {
         approximate = true
-        pos += 2
+        pos = softener
         continue
       }
-      if (APPROX_WORDS.has(w)) {
+      if (p.profile.grammar.approximateWords.has(w)) {
         approximate = true
         pos++
         if (w === 'approx' && symAt(p, pos) === '.' && !p.tokens[pos]!.spaceBefore) {
@@ -154,24 +121,25 @@ export function parseQualifiers(p: ParserState, i: number): Quals {
         if (w === 'ca' && symAt(p, pos) === '.' && !p.tokens[pos]!.spaceBefore) {
           pos++
         }
-        if (wordAt(p, pos) === 'the') {
+        const skipWord = wordAt(p, pos)
+        if (skipWord && p.profile.grammar.qualifierSkipAfterApprox.has(skipWord)) {
           pos++ // "around the"
         }
         continue
       }
-      if (EXACT_WORDS.has(w)) {
+      if (p.profile.grammar.exactWords.has(w)) {
         pos++
         continue
       }
       let matched = false
-      for (const [phrase, q] of BOUND_PHRASES) {
-        const nx = eatPhrase(p, pos, phrase)
+      for (const phrase of p.profile.grammar.boundPhrases) {
+        const nx = eatPhrase(p, pos, phrase.phrase)
         if (nx >= 0) {
           // "min"/"max" only count as qualifiers when a value follows.
-          if ((phrase === 'min' || phrase === 'max') && !valueStarts(p, nx)) {
+          if ((phrase.phrase === 'min' || phrase.phrase === 'max') && !valueStarts(p, nx)) {
             break
           }
-          bound = q
+          bound = { bound: phrase.bound, exclusive: phrase.exclusive }
           pos = nx
           matched = true
           break
@@ -271,7 +239,8 @@ function parseCurrencyPrefixQty(
   let unit = hit.unit
   const candidates =
     hit.alias === '$' ? 'USD CAD AUD SGD HKD NZD MXN' : hit.alias === '¥' ? 'JPY CNY' : ''
-  const preferred = p.opts.currency ? p.reg.unitByRef('currency', p.opts.currency) : undefined
+  const preferredCurrency = p.opts.currency ?? p.profile.defaults.currency
+  const preferred = preferredCurrency ? p.reg.unitByRef('currency', preferredCurrency) : undefined
   if (preferred && candidates.includes(preferred.id)) {
     unit = preferred
   } else if (candidates) {
@@ -417,7 +386,7 @@ export function parseQty(
   while (p.config.compounds) {
     let cursor = pos2
     // "and a half" after the unit: 1.5 of the last unit (delta semantics).
-    const fracTail = parseAndFractionTail(p.tokens, cursor)
+    const fracTail = parseAndFractionTail(p.tokens, cursor, p.profile.numberWords)
     if (fracTail) {
       base += fracTail.add * lastUnit.factor
       const lastPart = parts[parts.length - 1]!
@@ -438,13 +407,13 @@ export function parseQty(
       (p.tokens[cursor + 1]?.type === 'word' || p.tokens[cursor + 1]?.type === 'digits')
     ) {
       cursor++ // hyphen-joined compound ("5-foot-11" tail, "5ft-11in")
-    } else if (jw === 'and' && !flags?.noAnd) {
+    } else if (jw && p.profile.grammar.compoundJoinWords.has(jw) && !flags?.noAnd) {
       explicitJoin = true
       cursor++
-    } else if (jw === 'plus' || js === '+') {
+    } else if ((jw && p.profile.grammar.compoundPlusWords.has(jw)) || js === '+') {
       explicitJoin = true
       cursor++
-    } else if (jw === 'minus') {
+    } else if (jw && p.profile.grammar.compoundMinusWords.has(jw)) {
       explicitJoin = true
       sign = -1
       cursor++
@@ -613,7 +582,7 @@ export function matchCurrencyMinor(
   if (!unit) {
     return null
   }
-  if (!(pence || majorUnit || p.opts.currency)) {
+  if (!(pence || majorUnit || p.opts.currency || p.profile.defaults.currency)) {
     issue(
       p,
       'AMBIGUOUS_UNIT',
@@ -649,7 +618,8 @@ function minorCurrencyUnit(p: ParserState, majorUnit?: UnitDef): UnitDef | null 
   if (majorUnit && hasMinorCurrencyUnit(majorUnit)) {
     return majorUnit
   }
-  const preferred = p.opts.currency ? p.reg.unitByRef('currency', p.opts.currency) : undefined
+  const preferredCurrency = p.opts.currency ?? p.profile.defaults.currency
+  const preferred = preferredCurrency ? p.reg.unitByRef('currency', preferredCurrency) : undefined
   if (preferred && hasMinorCurrencyUnit(preferred)) {
     return preferred
   }

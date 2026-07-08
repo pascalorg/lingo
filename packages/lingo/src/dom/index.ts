@@ -1,3 +1,4 @@
+import type { Completion } from '../complete/types'
 import type {
   IssueCode,
   Kind,
@@ -64,6 +65,8 @@ export type LingoValidationBehavior = 'native' | 'aria'
  */
 export interface LingoInputOptions {
   accept?: LingoOptions['accept']
+  /** Ranked completion provider — inject from `@pascal-app/lingo/complete`. */
+  complete?: (text: string) => readonly Completion[]
   debounce?: number
   display?: LingoDisplayMode
   displayUnit?: string
@@ -81,6 +84,8 @@ export interface LingoInputOptions {
   name?: string
   numberFormat?: NumberFormatPolicy
   onCommit?: (field: LingoField) => void
+  /** Fires whenever ranked completions are recomputed (typing). */
+  onComplete?: (completions: readonly Completion[], field: LingoField) => void
   onError?: (issues: readonly LingoIssue[], field: LingoField) => void
   onParse?: (result: LingoResult, field: LingoField) => void
   onStateChange?: (state: LingoFieldState, field: LingoField) => void

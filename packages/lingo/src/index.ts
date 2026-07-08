@@ -341,6 +341,7 @@ export type {
 export type { ToBestOptions } from './format/best'
 export type { FormatOptions, RangeFormatOptions } from './format/format'
 export { describeTemperature, temperatureVocabs } from './fuzzy/temperature'
+export type { LanguageProfile, LocalePack } from './locale'
 export type {
   Alternative,
   ConversionResult,

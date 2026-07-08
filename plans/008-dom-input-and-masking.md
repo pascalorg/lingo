@@ -89,7 +89,9 @@ destroy, option updates via `field.update(opts)`).
 ## Non-goals v0.1
 
 Character-level as-you-type reformatting (caret math for prose = fighting users),
-dropdown suggestion UI (userland; we expose `suggestions` in results), shipping CSS.
+dropdown suggestion UI (userland; we expose `suggestions`, `alternatives`, and
+the `./complete` entry's ranked `completions` — inject via `complete`/
+`onComplete` on `lingoInput`), shipping CSS.
 
 ## Research addenda (masking study, 2026-07-03) — binding refinements
 

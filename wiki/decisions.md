@@ -380,3 +380,34 @@ actual wire. Cost: ~0.9 kB in the date module (budgets recalibrated for
 `./date` standalone/marginal and `./ai`, which bundles the date engine —
 self-evident output is product, not bloat, D14 pattern). Deferred: `./schema`
 JSON Schema coverage of the date shapes (backlog).
+
+**D60 · 2026-07-08 · Completions are a separate entry, not bundled into `.`.**
+Ranked autocomplete (`completions()`) fans out unit ambiguity and prefix matches
+into full parse results with canonical `text` — a fourth vocabulary noun distinct
+from candidate/alternative/suggestion. Shipped as `@pascal-app/lingo/complete` so
+the main entry budget stays untouched; DOM integration is injected hooks
+(`complete`/`onComplete`) with no library dropdown (plan 008 non-goal holds).
+Revisit if a `/full` convenience entry bundles completions. Registry
+`aliasCompletions()` recalibrated full/core/date standalone budgets (+~100 B each,
+see `size.mjs` D60 comment).
+
+**D61 · 2026-07-08 · Range-tail completions and `units` override.**
+Open ranges with a bare trailing bound (`10 kg to 16`, `5 to 10`) fan out to
+curated per-kind units (`range-implied` source); left-side unit kind wins over
+field `kind` when they differ so mass input in a length field still completes.
+`units?: string[]` lets callers pin optimistic suggestions without `kind`. `./complete`
+marginal budget recalibrated 1.8 → 2.2 kB (measured 2.15 kB; see `size.mjs`).
+Everyday-first prefix tiering later reused the same curated table with a deeper
+alias pool so duration/currency/common length readings beat obscure scientific
+symbols; the `./complete` gate moved to 2.25 kB (measured 2.21 kB).
+
+**D62 · 2026-07-08 · Locale packs are explicit data entries, shared locale
+infrastructure is product.** Multi-language parsing needs resolved language profiles,
+pack inheritance/merge, deterministic auto-detection, diacritic folding, CJK token
+support, and a date bridge for caller-loaded packs. English-only parsing now uses a
+prebuilt singleton and the English core tables no longer import date vocab, but the
+public `createLingo({ locales })` / `locale` API still lives in the shared parser so
+BYO-registry callers get the same behavior. Budgets recalibrate for that engine cost,
+and `size.mjs` adds standalone + marginal gates for es/fr/pt/zh/ja/en-gb so future
+pack growth is visible. Revisit if locale support can move behind an async/plugin
+boundary without breaking the synchronous parser contract.

@@ -50,6 +50,47 @@ const SPACES = new Set([
   0x20_09, 0x20_0a, 0x20_2f, 0x20_5f, 0x30_00,
 ])
 
+const ROMANCE_FOLDS = {
+  À: 'A',
+  Á: 'A',
+  Â: 'A',
+  Ã: 'A',
+  Ç: 'C',
+  È: 'E',
+  É: 'E',
+  Ê: 'E',
+  Ì: 'I',
+  Í: 'I',
+  Î: 'I',
+  Ñ: 'N',
+  Ò: 'O',
+  Ó: 'O',
+  Ô: 'O',
+  Õ: 'O',
+  Ù: 'U',
+  Ú: 'U',
+  Û: 'U',
+  à: 'a',
+  á: 'a',
+  â: 'a',
+  ã: 'a',
+  ç: 'c',
+  è: 'e',
+  é: 'e',
+  ê: 'e',
+  ì: 'i',
+  í: 'i',
+  î: 'i',
+  ñ: 'n',
+  ò: 'o',
+  ó: 'o',
+  ô: 'o',
+  õ: 'o',
+  ù: 'u',
+  ú: 'u',
+  û: 'u',
+} as const
+
 /** Single-code-point folds applied before NFKC. */
 function foldChar(cp: number): string | null {
   if (SPACES.has(cp)) {
@@ -94,7 +135,7 @@ function foldOut(ch: string): string {
   if (SPACES.has(cp)) {
     return ' '
   }
-  return ch
+  return ROMANCE_FOLDS[ch as keyof typeof ROMANCE_FOLDS] ?? ch
 }
 
 /**

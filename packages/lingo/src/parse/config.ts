@@ -12,6 +12,14 @@ import type {
   Span,
   UnitSystem,
 } from '../core/types'
+import { detectLanguageProfile } from '../locale/detect'
+import {
+  englishLanguageProfile,
+  hasNonEnglishLocalePacks,
+  isLocaleLoaded,
+  resolveLanguageProfile,
+} from '../locale/profile'
+import type { LanguageProfile, LocalePack } from '../locale/types'
 import { parseValue, type ValueCtx } from '../number/value'
 import { type Normalized, normalizeInput, toSourceSpan } from './normalize'
 import type { SerializedResult } from './serialize'
@@ -58,6 +66,10 @@ export interface ParseOptions {
   extract?: boolean
   /** Expected kind — biases unit resolution and enables kind validation. */
   kind?: Kind
+  /** BCP-47 locale id used to select a loaded language profile. */
+  locale?: string
+  /** Loaded locale packs for this parser instance. Wired by createLingo(). */
+  localePacks?: readonly LocalePack[]
   messages?: Messages
   numberFormat?: NumberFormatPolicy
   /** Fuzzy profile name to prefer ('weather', 'water', 'oven'). */
@@ -112,6 +124,8 @@ export type Alternative = QuantityAlternative
 interface OkBase {
   confidence: number
   issues: LingoIssue[]
+  /** Resolved language profile locale for this successful parse. */
+  locale?: string
   ok: true
   /** Parse-result wire schema version; serialized `lingo()` results are self-identifying. */
   schemaVersion: 3
@@ -244,6 +258,7 @@ export interface ParserState {
   lower: string
   n: Normalized
   opts: ParseOptions
+  profile: LanguageProfile
   reg: Registry
   src: string
   text: string
@@ -261,8 +276,6 @@ export interface ParserConfig {
   ranges: boolean
   typos: 'fix' | 'suggest' | 'off'
 }
-
-export const CONVERSION_WORDS = new Set(['to', 'into', 'as'])
 
 const PENALTY: Partial<Record<IssueCode, number>> = {
   TYPO_CORRECTED: 0.15,
@@ -313,6 +326,21 @@ export function prepare(input: string, opts: ParseOptions): ParserState {
   }
   const n = normalizeInput(input)
   const text = n.text
+  const localePacks = opts.localePacks
+  const localeNotLoaded =
+    opts.locale !== undefined && !isLocaleLoaded(localePacks, opts.locale)
+      ? makeIssue(
+          'LOCALE_NOT_LOADED',
+          { locale: opts.locale },
+          toSourceSpan(n, 0, text.length),
+          opts.messages,
+        )
+      : undefined
+  const profile = opts.locale
+    ? resolveLanguageProfile(localePacks, localeNotLoaded ? 'en' : opts.locale)
+    : hasNonEnglishLocalePacks(localePacks)
+      ? detectLanguageProfile(localePacks!, input)
+      : englishLanguageProfile
   return {
     src: input,
     n,
@@ -321,8 +349,9 @@ export function prepare(input: string, opts: ParseOptions): ParserState {
     tokens: tokenize(n),
     reg: opts.registry,
     opts,
+    profile,
     config: resolveConfig(opts),
-    issues: [],
+    issues: localeNotLoaded ? [localeNotLoaded] : [],
   }
 }
 
@@ -379,9 +408,10 @@ export function valueCtx(p: ParserState, kind: Kind | undefined = p.opts.kind): 
     tokens: p.tokens,
     n: p.n,
     src: p.src,
-    numberFormat: p.opts.numberFormat ?? 'auto',
+    numberFormat: p.opts.numberFormat ?? p.profile.defaults.numberFormat ?? 'auto',
     kind,
     numberWords: p.config.numberWords,
+    profile: p.profile,
   }
 }
 
@@ -441,7 +471,7 @@ export function fail(
   // An escalate map may downgrade every error — then this "fail" returns the
   // candidate as the success result.
   if (candidate && !hasError(finalIssues)) {
-    return withResultIssues(candidate, finalIssues)
+    return withResultIssues({ ...candidate, locale: p.profile.locale }, finalIssues)
   }
   return candidate
     ? { ok: false, schemaVersion: 3, type: 'failure', text: p.src, issues: finalIssues, candidate }

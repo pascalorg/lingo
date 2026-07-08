@@ -253,6 +253,18 @@ export class Controller implements LingoField {
     return this.opts.validationBehavior ?? (this.errorEl ? 'aria' : 'native')
   }
 
+  private emitCompletions(raw: string): void {
+    if (!(this.opts.complete || this.opts.onComplete)) {
+      return
+    }
+    if (raw.trim() === '') {
+      this.opts.onComplete?.([], this)
+      return
+    }
+    const list = this.opts.complete?.(raw) ?? []
+    this.opts.onComplete?.(list, this)
+  }
+
   private clearTimers(): void {
     if (this.parseTimer) {
       clearTimeout(this.parseTimer)
@@ -280,6 +292,7 @@ export class Controller implements LingoField {
       this.parseTimer = null
     }
     const raw = this.el.value
+    this.emitCompletions(raw)
     const partial = partialState(raw, toLingoOptions(this.opts))
     if (partial === 'empty') {
       this.updateState('idle', null, fromCommit)

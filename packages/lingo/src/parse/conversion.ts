@@ -1,16 +1,7 @@
 import { toBase } from '../core/convert'
 import { Quantity, type QuantityRange } from '../core/quantity'
 import type { Kind } from '../core/types'
-import {
-  CONVERSION_WORDS,
-  confidence,
-  fail,
-  issue,
-  type Parsed,
-  type ParserState,
-  symAt,
-  wordAt,
-} from './config'
+import { confidence, fail, issue, type Parsed, type ParserState, symAt, wordAt } from './config'
 import { toSourceSpan } from './normalize'
 import { resolveImplied } from './quantity'
 import { matchUnit, suggestUnits } from './unit-match'
@@ -49,7 +40,7 @@ export function tryConversion(p: ParserState, parsed: Parsed, normStart = 0): Pa
   const w = wordAt(p, i)
   const s = symAt(p, i)
   let keyword = false
-  if (w && (CONVERSION_WORDS.has(w) || w === 'in')) {
+  if (w && (p.profile.grammar.conversionWords.has(w) || w === 'in')) {
     keyword = true
     i++
   } else if (s === '=' || s === '→') {
@@ -68,7 +59,11 @@ export function tryConversion(p: ParserState, parsed: Parsed, normStart = 0): Pa
   const hit = matchUnit(p, i, sourceKind)
   if (!hit) {
     const t = p.tokens[i]
-    if (t && t.type === 'word' && (w === 'in' || CONVERSION_WORDS.has(w ?? ''))) {
+    if (
+      t &&
+      t.type === 'word' &&
+      (w === 'in' || (w !== null && p.profile.grammar.conversionWords.has(w)))
+    ) {
       const suggestions = suggestUnits(p, t.text, sourceKind)
       issue(p, 'UNKNOWN_UNIT', { unit: t.text, suggestions }, t.start, t.end)
       return { result: fail(p), nextToken: i + 1 }

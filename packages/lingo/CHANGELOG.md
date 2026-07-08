@@ -7,6 +7,29 @@ change**, even if the API is untouched.
 
 ## [Unreleased]
 
+### Added
+
+- Locale-pack infrastructure (plan 031): `createLingo({ locales })`,
+  `locale` parse option, resolved `LanguageProfile` parser state, deterministic
+  pack detection, CJK tokenizer groundwork, and tree-shakeable
+  `@pascal-app/lingo/locales/*` pack entry points for English, en-GB, Spanish,
+  French, Portuguese, Chinese, and Japanese.
+- Spanish, French, Portuguese, Chinese, Japanese, and en-GB packs now cover the
+  v0.1 locale examples: Romance number words/ranges/bounds (`dos kg`,
+  `entre 5 et 10 kg`, `al menos 2 m`), localized relative dates (`mañana`,
+  `il y a trois jours`, `há três dias`, `三天前`, `3日前`), CJK kg aliases
+  (`公斤`, `キロ`), CJK temperature words (`很热`, `暑い`), and en-GB defaults
+  for imperial/GBP parsing.
+- `@pascal-app/lingo/complete`: `completions()` returns ranked canonical
+  interpretations of partial or ambiguous quantity input (prefix fan-out, unit
+  ambiguity forks, number alternatives, implied units, range-tail unit fan-out).
+  `Registry.aliasCompletions()` powers prefix expansion. `units` option overrides
+  suggested units for bare numbers and open ranges; curated per-kind defaults
+  (m/ft/cm before nm) also re-rank prefix fan-out so everyday readings like
+  `min`, `mi`, and `mL` beat obscure scientific shorthands. DOM `lingoInput`
+  accepts injected `complete` / `onComplete` hooks (no library dropdown). Docs
+  showcase combobox demo.
+
 ## [0.1.0] - 2026-07-08
 
 ### Positioning

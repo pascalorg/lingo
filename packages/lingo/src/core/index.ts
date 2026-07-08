@@ -11,6 +11,7 @@ export {
   formatRange,
   type RangeFormatOptions,
 } from '../format/format'
+export type { LanguageProfile, LocalePack } from '../locale/types'
 export {
   type Alternative,
   type ConversionResult,
@@ -35,7 +36,13 @@ export {
   type QuantityRangeJSON,
   registryOf,
 } from './quantity'
-export { createRegistry, type FuzzyVocab, Registry, type UnitMatch } from './registry'
+export {
+  type AliasCompletion,
+  createRegistry,
+  type FuzzyVocab,
+  Registry,
+  type UnitMatch,
+} from './registry'
 export { approxEqual, roundDp, roundSig } from './round'
 export { editDistance, rankCandidates, typoBudget } from './suggest'
 export type {

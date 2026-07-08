@@ -220,6 +220,7 @@ export type IssueCode =
   | 'CONVERSION_NOT_ALLOWED'
   | 'NUMBER_FORMAT'
   | 'NONFINITE'
+  | 'LOCALE_NOT_LOADED'
   | 'RANGE_MIN'
   | 'RANGE_MAX'
   | 'RANGE_OPEN_BOUND_NOT_ALLOWED'
@@ -270,6 +271,7 @@ export interface IssueDataMap {
   CONVERSION_NOT_ALLOWED: Record<string, never>
   EMPTY: Record<string, never>
   KIND_MISMATCH: { found: string; expected: string; example: string }
+  LOCALE_NOT_LOADED: { locale: string }
   NO_VALUE: { example: string }
   NONFINITE: Record<string, never>
   NOW_REQUIRED: Record<string, never>

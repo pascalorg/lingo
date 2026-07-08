@@ -74,6 +74,13 @@ export const docsNavGroups: DocsNavGroup[] = [
         { depth: 3, markdownSectionId: 'parse' },
       ),
       page(
+        'parse-completions',
+        'Autocomplete anything',
+        'Ranked completions for every plausible canonical reading.',
+        ['completions', 'autocomplete', 'suggestions', 'prefix', 'ranked'],
+        { depth: 3, markdownSectionId: 'parse' },
+      ),
+      page(
         'strictness',
         'Strictness',
         'Forgiving, confirm, or strict — plus accept, tolerance, escalate.',
@@ -252,6 +259,18 @@ export const docsNavGroups: DocsNavGroup[] = [
         'range',
         'parseDateRange',
         'humanizeDateRange',
+      ]),
+      page('locales', 'Locales', 'Load tree-shakeable language packs for parsing.', [
+        'locale',
+        'i18n',
+        'language',
+        'spanish',
+        'french',
+        'portuguese',
+        'chinese',
+        'japanese',
+        'en-gb',
+        'createLingo',
       ]),
       page('coverage', 'Catalog', 'Browse kinds, units, aliases, and fuzzy vocab.', [
         'catalog',

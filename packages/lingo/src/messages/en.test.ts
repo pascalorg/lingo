@@ -21,6 +21,7 @@ const ISSUE_CODES = [
   'CONVERSION_NOT_ALLOWED',
   'NUMBER_FORMAT',
   'NONFINITE',
+  'LOCALE_NOT_LOADED',
   'RANGE_MIN',
   'RANGE_MAX',
   'RANGE_OPEN_BOUND_NOT_ALLOWED',
@@ -38,6 +39,7 @@ const ISSUE_CODES = [
   'WEEKDAY_ASSUMED_NEXT',
   'SLANG_UNIT',
   'TZ_IGNORED',
+  'AMBIGUOUS_TIMEZONE',
 ] as const satisfies readonly IssueCode[]
 
 describe('english message pack', () => {

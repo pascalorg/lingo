@@ -1,5 +1,6 @@
 import { makeIssue } from '../core/errors'
 import type { IssueCode, IssueInputData, LingoIssue, Severity, Span } from '../core/types'
+import type { LanguageProfile } from '../locale/types'
 import type { Normalized } from '../parse/normalize'
 import { toSourceSpan } from '../parse/normalize'
 import type { Token } from '../parse/tokenize'
@@ -12,6 +13,7 @@ export interface P {
   n: Normalized
   now: Date
   opts: DateOptions
+  profile: LanguageProfile
   src: string
   text: string
   tokens: Token[]

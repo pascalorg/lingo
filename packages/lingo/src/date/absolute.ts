@@ -2,7 +2,7 @@ import type { LingoIssue } from '../core/types'
 import { parseYear, sameDay, startOfDay, validDateTime } from './civil'
 import type { DateAlternative, DateGrain } from './parse'
 import { type CoreDate, core, issue, knownFor, needsNow, type P } from './state'
-import { MONTHS } from './vocab'
+import { MONTHS as EN_MONTHS } from './vocab'
 
 export function parseAbsolute(p: P, start: number, end: number): CoreDate | null {
   const source = p.text.slice(start, end)
@@ -39,13 +39,13 @@ export function parseAbsolute(p: P, start: number, end: number): CoreDate | null
   }
 
   const md = new RegExp(
-    `^(${monthAlternation()})\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:,?\\s+('?\\d{2}|\\d{4}))?$`,
+    `^(${monthAlternation(p)})\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:,?\\s+('?\\d{2}|\\d{4}))?$`,
     'i',
   ).exec(source)
   if (md) {
     return monthDayCore(
       p,
-      MONTHS[md[1]!.toLowerCase()]!,
+      dateMonths(p)[md[1]!.toLowerCase()]!,
       Number(md[2]),
       parseYear(md[3]),
       'day',
@@ -54,13 +54,13 @@ export function parseAbsolute(p: P, start: number, end: number): CoreDate | null
     )
   }
   const dm = new RegExp(
-    `^(\\d{1,2})(?:st|nd|rd|th)?(?:\\s+of)?\\s+(${monthAlternation()})(?:,?\\s+('?\\d{2}|\\d{4}))?$`,
+    `^(\\d{1,2})(?:st|nd|rd|th)?(?:\\s+of)?\\s+(${monthAlternation(p)})(?:,?\\s+('?\\d{2}|\\d{4}))?$`,
     'i',
   ).exec(source)
   if (dm) {
     return monthDayCore(
       p,
-      MONTHS[dm[2]!.toLowerCase()]!,
+      dateMonths(p)[dm[2]!.toLowerCase()]!,
       Number(dm[1]),
       parseYear(dm[3]),
       'day',
@@ -68,15 +68,15 @@ export function parseAbsolute(p: P, start: number, end: number): CoreDate | null
       end,
     )
   }
-  const my = new RegExp(`^(${monthAlternation()})\\s+('?\\d{2}|\\d{4})$`, 'i').exec(source)
+  const my = new RegExp(`^(${monthAlternation(p)})\\s+('?\\d{2}|\\d{4})$`, 'i').exec(source)
   if (my) {
     const year = parseYear(my[2])
     if (year === undefined) {
       return null
     }
-    return monthDayCore(p, MONTHS[my[1]!.toLowerCase()]!, 1, year, 'month', start, end)
+    return monthDayCore(p, dateMonths(p)[my[1]!.toLowerCase()]!, 1, year, 'month', start, end)
   }
-  const bareMonth = MONTHS[lower]
+  const bareMonth = dateMonths(p)[lower]
   if (bareMonth !== undefined) {
     return monthDayCore(p, bareMonth, 1, undefined, 'month', start, end)
   }
@@ -141,10 +141,14 @@ export function monthDayCore(
   return year === undefined ? needsNow(parsed) : parsed
 }
 
-function monthAlternation(): string {
-  return Object.keys(MONTHS)
+function monthAlternation(p: P): string {
+  return Object.keys(dateMonths(p))
     .sort((a, b) => b.length - a.length)
     .join('|')
+}
+
+function dateMonths(p: P): Record<string, number> {
+  return p.profile.date?.months ?? EN_MONTHS
 }
 
 function buildYearless(p: P, month: number, day: number, year: number | undefined): Date | null {

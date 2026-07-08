@@ -1,6 +1,6 @@
 import type { UnitMatch } from '../core/registry'
 import type { Kind, UnitDef } from '../core/types'
-import { CONVERSION_WORDS, issue, type ParserState, symAt, tokenAfter } from './config'
+import { issue, type ParserState, symAt, tokenAfter } from './config'
 
 export interface UnitHit {
   alias: string
@@ -251,11 +251,16 @@ function passesGates(
       return true
     }
     const w = t.type === 'word' ? t.text.toLowerCase() : null
-    if (w && (CONVERSION_WORDS.has(w) || w === 'in')) {
+    if (w && (p.profile.grammar.conversionWords.has(w) || w === 'in')) {
       return true
     }
     // additive joiners keep "in" a unit: "20in and 10cm", "3in + 2cm"
-    if (w === 'and' || w === 'plus' || w === 'minus') {
+    if (
+      w &&
+      (p.profile.grammar.compoundJoinWords.has(w) ||
+        p.profile.grammar.compoundPlusWords.has(w) ||
+        p.profile.grammar.compoundMinusWords.has(w))
+    ) {
       return true
     }
     if (
@@ -294,7 +299,7 @@ const IMPERIAL_REMAP: Record<string, string> = {
 }
 
 export function systemRemap(p: ParserState, unit: UnitDef, kind: Kind, hit: UnitHit): UnitDef {
-  const system = p.opts.system ?? 'us'
+  const system = p.opts.system ?? p.profile.defaults.system ?? 'us'
   if ((kind === 'volume' || kind === 'flow_rate') && system === 'imperial') {
     const remapped = IMPERIAL_REMAP[unit.id]
     if (remapped) {

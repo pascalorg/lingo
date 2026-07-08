@@ -1,3 +1,5 @@
+import { EN_NUMBER_WORDS } from '../locale/en-core'
+import type { NumberWordTables } from '../locale/types'
 import type { Token } from '../parse/tokenize'
 
 /**
@@ -6,68 +8,12 @@ import type { Token } from '../parse/tokenize'
  * hyphenated compounds arrive as word/sym/word triples.
  */
 
-export const ONES: Record<string, number> = {
-  zero: 0,
-  one: 1,
-  two: 2,
-  three: 3,
-  four: 4,
-  five: 5,
-  six: 6,
-  seven: 7,
-  eight: 8,
-  nine: 9,
-  ten: 10,
-  eleven: 11,
-  twelve: 12,
-  thirteen: 13,
-  fourteen: 14,
-  fifteen: 15,
-  sixteen: 16,
-  seventeen: 17,
-  eighteen: 18,
-  nineteen: 19,
-}
-
-export const TENS: Record<string, number> = {
-  twenty: 20,
-  thirty: 30,
-  forty: 40,
-  fourty: 40,
-  fifty: 50,
-  sixty: 60,
-  seventy: 70,
-  eighty: 80,
-  ninety: 90,
-}
-
-export const SCALES: Record<string, number> = {
-  hundred: 100,
-  thousand: 1000,
-  million: 1_000_000,
-  billion: 1_000_000_000,
-  trillion: 1_000_000_000_000,
-}
-
+export const ONES: Record<string, number> = EN_NUMBER_WORDS.ones
+export const TENS: Record<string, number> = EN_NUMBER_WORDS.tens
+export const SCALES: Record<string, number> = EN_NUMBER_WORDS.scales
 /** value + spread for approximate amount words. */
-export const FUZZY_AMOUNTS: Record<string, { value: number; spread: [number, number] }> = {
-  couple: { value: 2, spread: [2, 3] },
-  few: { value: 3, spread: [2, 4] },
-  several: { value: 5, spread: [4, 7] },
-  handful: { value: 5, spread: [3, 6] },
-  dozens: { value: 24, spread: [12, 60] },
-}
-
-const FRACTION_WORDS: Record<string, number> = {
-  half: 1 / 2,
-  halves: 1 / 2,
-  third: 1 / 3,
-  thirds: 1 / 3,
-  quarter: 1 / 4,
-  quarters: 1 / 4,
-  fourth: 1 / 4,
-  fourths: 1 / 4,
-}
+export const FUZZY_AMOUNTS: Record<string, { value: number; spread: [number, number] }> =
+  EN_NUMBER_WORDS.fuzzyAmounts
 
 export interface WordNumberResult {
   approximate?: boolean
@@ -91,16 +37,20 @@ const word = (t: Token | undefined): string | null =>
  * 'and', 'a'/'an' (needsUnit), 'a hundred', minus/negative, half/quarter
  * forms, 'X and a half', dozen forms, fuzzy amounts ('a few').
  */
-export function parseNumberWords(tokens: Token[], i: number): WordNumberResult | null {
+export function parseNumberWords(
+  tokens: Token[],
+  i: number,
+  tables: NumberWordTables = EN_NUMBER_WORDS,
+): WordNumberResult | null {
   let pos = i
   let negative = false
   const w0 = word(tokens[pos])
-  if (w0 === 'minus' || w0 === 'negative') {
+  if (w0 && tables.negativeWords.has(w0)) {
     negative = true
     pos++
   }
 
-  const result = parseCore(tokens, pos)
+  const result = parseCore(tokens, pos, tables)
   if (!result) {
     return null
   }
@@ -113,7 +63,7 @@ export function parseNumberWords(tokens: Token[], i: number): WordNumberResult |
   return result
 }
 
-function parseCore(tokens: Token[], i: number): WordNumberResult | null {
+function parseCore(tokens: Token[], i: number, tables: NumberWordTables): WordNumberResult | null {
   let pos = i
   const w = word(tokens[pos])
   if (w === null) {
@@ -121,64 +71,61 @@ function parseCore(tokens: Token[], i: number): WordNumberResult | null {
   }
 
   // "a"/"an" — one, but only meaningful before a scale, dozen/fraction, or unit.
-  if (w === 'a' || w === 'an') {
+  if (tables.articles.has(w)) {
     const nextW = word(tokens[pos + 1])
-    if (nextW && SCALES[nextW] !== undefined) {
-      return finishScaled(tokens, pos + 1, 1)
+    if (nextW && tables.scales[nextW] !== undefined) {
+      return finishScaled(tokens, pos + 1, 1, tables)
     }
-    if (nextW === 'dozen') {
-      return withHalfDozenTail(tokens, pos + 2, 12)
+    if (nextW && tables.dozenWords.has(nextW)) {
+      return withHalfDozenTail(tokens, pos + 2, 12, tables)
     }
-    if (nextW && FUZZY_AMOUNTS[nextW]) {
-      const fuzz = FUZZY_AMOUNTS[nextW]!
+    if (nextW && tables.fuzzyAmounts[nextW]) {
+      const fuzz = tables.fuzzyAmounts[nextW]!
       let next = pos + 2
-      if (word(tokens[next]) === 'of') {
+      const ofWord = word(tokens[next])
+      if (ofWord && tables.ofWords.has(ofWord)) {
         next++
       }
       return { value: fuzz.value, next, approximate: true, spread: fuzz.spread }
     }
-    if (nextW && FRACTION_WORDS[nextW] !== undefined) {
+    if (nextW && tables.fractionWords[nextW] !== undefined) {
       // "a half", "a quarter", "a quarter of a mile", "a third of an hour"
-      return fractionOfTail(tokens, FRACTION_WORDS[nextW]!, pos + 2)
+      return fractionOfTail(tokens, tables.fractionWords[nextW]!, pos + 2, tables)
     }
     return { value: 1, next: pos + 1, needsUnit: true }
   }
 
   // "half" / "half a(n)" / "half a dozen"
-  if (w === 'half') {
+  if (tables.fractionWords[w] === 1 / 2) {
     const nextW = word(tokens[pos + 1])
-    if (nextW === 'a' || nextW === 'an') {
-      if (word(tokens[pos + 2]) === 'dozen') {
-        return withHalfDozenTail(tokens, pos + 3, 6)
+    if (nextW && tables.articles.has(nextW)) {
+      const afterArticle = word(tokens[pos + 2])
+      if (afterArticle && tables.dozenWords.has(afterArticle)) {
+        return withHalfDozenTail(tokens, pos + 3, 6, tables)
       }
       return { value: 0.5, next: pos + 2, needsUnit: true }
     }
-    return { value: 0.5, next: pos + 1 }
+    return { value: tables.fractionWords[w]!, next: pos + 1 }
   }
 
   // "dozens of"
-  if (w === 'dozens') {
+  if (tables.fuzzyAmounts[w]) {
     let next = pos + 1
-    if (word(tokens[next]) === 'of') {
+    const ofWord = word(tokens[next])
+    if (ofWord && tables.ofWords.has(ofWord)) {
       next++
     }
-    const fuzz = FUZZY_AMOUNTS['dozens']!
+    const fuzz = tables.fuzzyAmounts[w]!
     return { value: fuzz.value, next, approximate: true, spread: fuzz.spread }
   }
 
-  // "several" — the one fuzzy amount plan 002 spells without an article.
-  if (w === 'several') {
-    const fuzz = FUZZY_AMOUNTS['several']!
-    return { value: fuzz.value, next: pos + 1, approximate: true, spread: fuzz.spread }
-  }
-
   // Fraction lead: "three quarters (of)"
-  const lead = ONES[w] ?? TENS[w]
+  const lead = tables.ones[w] ?? tables.tens[w]
   if (lead !== undefined) {
     const nextW = word(tokens[pos + 1])
-    if (nextW && FRACTION_WORDS[nextW] !== undefined && lead >= 1 && lead <= 99) {
+    if (nextW && tables.fractionWords[nextW] !== undefined && lead >= 1 && lead <= 99) {
       // "two thirds", "three quarters", "two thirds of a meter"
-      return fractionOfTail(tokens, lead * FRACTION_WORDS[nextW]!, pos + 2)
+      return fractionOfTail(tokens, lead * tables.fractionWords[nextW]!, pos + 2, tables)
     }
   }
 
@@ -193,46 +140,47 @@ function parseCore(tokens: Token[], i: number): WordNumberResult | null {
     if (tw === null) {
       break
     }
-    if (ONES[tw] !== undefined) {
-      current += ONES[tw]!
+    if (tables.ones[tw] !== undefined) {
+      current += tables.ones[tw]!
       pos++
       consumedAny = true
       // hyphenated tens handled below via TENS branch; ones ends a group
       continue
     }
-    if (TENS[tw] !== undefined) {
-      current += TENS[tw]!
+    if (tables.tens[tw] !== undefined) {
+      current += tables.tens[tw]!
       pos++
       consumedAny = true
       // optional hyphen + ones ("twenty-five" / "twenty five")
       const hyphen = tokens[pos]
       if (hyphen && hyphen.type === 'sym' && hyphen.text === '-') {
         const onesW = word(tokens[pos + 1])
-        if (onesW && ONES[onesW] !== undefined && ONES[onesW]! < 10) {
-          current += ONES[onesW]!
+        if (onesW && tables.ones[onesW] !== undefined && tables.ones[onesW]! < 10) {
+          current += tables.ones[onesW]!
           pos += 2
         }
       }
       continue
     }
-    if (tw === 'dozen' && consumedAny) {
+    if (tables.dozenWords.has(tw) && consumedAny) {
       current *= 12
       sawDozen = true
       pos++
       continue
     }
-    if (SCALES[tw] !== undefined && consumedAny) {
-      if (tw === 'hundred') {
+    if (tables.scales[tw] !== undefined && consumedAny) {
+      if (tables.scales[tw] === 100) {
         current = (current === 0 ? 1 : current) * 100
       } else {
-        total += (current === 0 ? 1 : current) * SCALES[tw]!
+        total += (current === 0 ? 1 : current) * tables.scales[tw]!
         current = 0
       }
       pos++
       // optional "and" ("one hundred and five")
-      if (word(tokens[pos]) === 'and') {
+      const join = word(tokens[pos])
+      if (join && tables.andWords.has(join)) {
         const after = word(tokens[pos + 1])
-        if (after && (ONES[after] !== undefined || TENS[after] !== undefined)) {
+        if (after && (tables.ones[after] !== undefined || tables.tens[after] !== undefined)) {
           pos++
         }
       }
@@ -245,10 +193,10 @@ function parseCore(tokens: Token[], i: number): WordNumberResult | null {
   }
   let value = total + current
   if (sawDozen) {
-    return withHalfDozenTail(tokens, pos, value)
+    return withHalfDozenTail(tokens, pos, value, tables)
   }
   // "two and a half"
-  const tail = parseAndFractionTail(tokens, pos)
+  const tail = parseAndFractionTail(tokens, pos, tables)
   if (tail) {
     value += tail.add
     pos = tail.next
@@ -256,14 +204,20 @@ function parseCore(tokens: Token[], i: number): WordNumberResult | null {
   return { value, next: pos }
 }
 
-function finishScaled(tokens: Token[], scalePos: number, multiplier: number): WordNumberResult {
+function finishScaled(
+  tokens: Token[],
+  scalePos: number,
+  multiplier: number,
+  tables: NumberWordTables,
+): WordNumberResult {
   const scaleWord = word(tokens[scalePos])!
-  let value = multiplier * SCALES[scaleWord]!
+  let value = multiplier * tables.scales[scaleWord]!
   let pos = scalePos + 1
-  if (word(tokens[pos]) === 'and') {
+  const join = word(tokens[pos])
+  if (join && tables.andWords.has(join)) {
     const after = word(tokens[pos + 1])
-    if (after && (ONES[after] !== undefined || TENS[after] !== undefined)) {
-      const rest = parseCore(tokens, pos + 1)
+    if (after && (tables.ones[after] !== undefined || tables.tens[after] !== undefined)) {
+      const rest = parseCore(tokens, pos + 1, tables)
       if (rest && !rest.needsUnit) {
         value += rest.value
         pos = rest.next
@@ -279,15 +233,21 @@ function finishScaled(tokens: Token[], scalePos: number, multiplier: number): Wo
  * hour"). When either is present the value points at a following unit, so
  * `needsUnit` is set — bare "a quarter"/"two thirds" stay plain numbers.
  */
-function fractionOfTail(tokens: Token[], value: number, next: number): WordNumberResult {
+function fractionOfTail(
+  tokens: Token[],
+  value: number,
+  next: number,
+  tables: NumberWordTables,
+): WordNumberResult {
   let pos = next
   let pointsAtUnit = false
-  if (word(tokens[pos]) === 'of') {
+  const ofWord = word(tokens[pos])
+  if (ofWord && tables.ofWords.has(ofWord)) {
     pos++
     pointsAtUnit = true
   }
   const article = word(tokens[pos])
-  if (article === 'a' || article === 'an') {
+  if (article && tables.articles.has(article)) {
     pos++
     pointsAtUnit = true
   }
@@ -295,11 +255,19 @@ function fractionOfTail(tokens: Token[], value: number, next: number): WordNumbe
 }
 
 /** "…dozen and a half" → +6. */
-function withHalfDozenTail(tokens: Token[], pos: number, value: number): WordNumberResult {
+function withHalfDozenTail(
+  tokens: Token[],
+  pos: number,
+  value: number,
+  tables: NumberWordTables,
+): WordNumberResult {
   if (
-    word(tokens[pos]) === 'and' &&
-    (word(tokens[pos + 1]) === 'a' || word(tokens[pos + 1]) === 'an') &&
-    word(tokens[pos + 2]) === 'half'
+    word(tokens[pos]) &&
+    tables.andWords.has(word(tokens[pos])!) &&
+    word(tokens[pos + 1]) &&
+    tables.articles.has(word(tokens[pos + 1])!) &&
+    word(tokens[pos + 2]) &&
+    tables.fractionWords[word(tokens[pos + 2])!] === 1 / 2
   ) {
     return { value: value + 6, next: pos + 3 }
   }
@@ -310,24 +278,26 @@ function withHalfDozenTail(tokens: Token[], pos: number, value: number): WordNum
 export function parseAndFractionTail(
   tokens: Token[],
   i: number,
+  tables: NumberWordTables = EN_NUMBER_WORDS,
 ): { add: number; next: number } | null {
-  if (word(tokens[i]) !== 'and') {
+  const join = word(tokens[i])
+  if (!(join && tables.andWords.has(join))) {
     return null
   }
   const pos = i + 1
   const a = word(tokens[pos])
-  if (a === 'a' || a === 'an') {
+  if (a && tables.articles.has(a)) {
     const frac = word(tokens[pos + 1])
-    if (frac && FRACTION_WORDS[frac] !== undefined) {
-      return { add: FRACTION_WORDS[frac]!, next: pos + 2 }
+    if (frac && tables.fractionWords[frac] !== undefined) {
+      return { add: tables.fractionWords[frac]!, next: pos + 2 }
     }
     return null
   }
-  const count = a === null ? undefined : ONES[a]
+  const count = a === null ? undefined : tables.ones[a]
   if (count !== undefined && count >= 1) {
     const frac = word(tokens[pos + 1])
-    if (frac && FRACTION_WORDS[frac] !== undefined) {
-      return { add: count * FRACTION_WORDS[frac]!, next: pos + 2 }
+    if (frac && tables.fractionWords[frac] !== undefined) {
+      return { add: count * tables.fractionWords[frac]!, next: pos + 2 }
     }
   }
   return null

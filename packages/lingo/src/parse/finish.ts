@@ -95,7 +95,7 @@ function finish(p: ParserState, r: LingoResult): LingoResult {
     const it = makeIssue('APPROX_NOT_ALLOWED', {}, r.span, p.opts.messages)
     return fail(p, r, [...issues, it])
   }
-  return hasError(issues) ? fail(p, r, issues) : { ...r, issues }
+  return hasError(issues) ? fail(p, r, issues) : { ...r, issues, locale: p.profile.locale }
 }
 
 function approximateResult(r: Exclude<LingoResult, FailResult>): boolean {
@@ -148,6 +148,7 @@ function suggestionCandidate(
     span: { start: r.span.start, end: issueSpan.end },
     issues,
     confidence: confidenceForIssues(issues, false),
+    locale: p.profile.locale,
   }
 }
 
@@ -186,35 +187,6 @@ function disabledInterpretation(p: ParserState): LingoResult | null {
 // ---------------------------------------------------------------------------
 // Fuzzy vocabulary ("hot", "freezing")
 
-const GLOBAL_FILLERS = new Set([
-  'it',
-  'its',
-  's',
-  'is',
-  'was',
-  'feels',
-  'feeling',
-  'like',
-  'kind',
-  'kinda',
-  'sort',
-  'sorta',
-  'of',
-  'pretty',
-  'really',
-  'quite',
-  'so',
-  'the',
-  'a',
-  'an',
-  'out',
-  'outside',
-  'weather',
-  'in',
-  'here',
-  'today',
-])
-
 function tryFuzzy(p: ParserState, i: number): Parsed | null {
   const vocabs = p.reg.fuzzyVocabs(p.opts.kind)
   if (vocabs.length === 0) {
@@ -224,7 +196,7 @@ function tryFuzzy(p: ParserState, i: number): Parsed | null {
   let pos = i
   while (pos < p.tokens.length) {
     const w = wordAt(p, pos)
-    if (w && (GLOBAL_FILLERS.has(w) || w === "'")) {
+    if (w && (p.profile.grammar.globalFillers.has(w) || w === "'")) {
       pos++
     } else if (symAt(p, pos) === "'" || symAt(p, pos) === ',') {
       pos++
@@ -286,7 +258,16 @@ function tryFuzzy(p: ParserState, i: number): Parsed | null {
 // Trailing input
 
 const TRAILING_OK = new Set(['.', '!', '?', ')', ','])
-const TRAILING_WORD_OK = new Set(['mark'])
+
+function eatAnyPhrase(p: ParserState, pos: number, phrases: Iterable<string>): number {
+  for (const phrase of phrases) {
+    const nx = eatPhrase(p, pos, phrase)
+    if (nx >= 0) {
+      return nx
+    }
+  }
+  return -1
+}
 
 function finishTrailing(p: ParserState, parsed: Parsed): LingoResult {
   if (!parsed.result.ok) {
@@ -300,21 +281,27 @@ function finishTrailing(p: ParserState, parsed: Parsed): LingoResult {
       break
     }
     const w = t.type === 'word' ? t.text.toLowerCase() : null
-    if (w === 'or' && wordAt(p, i + 1) === 'so') {
+    const approxPhrase = eatAnyPhrase(p, i, p.profile.grammar.trailingApproxPhrases)
+    if (approxPhrase >= 0) {
       approximate = true
-      i += 2
+      i = approxPhrase
       continue
     }
-    if (w === 'ish') {
+    if (w && p.profile.grammar.trailingApproxWords.has(w)) {
       approximate = true
       i++
       continue
     }
-    if (w && TRAILING_WORD_OK.has(w)) {
+    if (w && p.profile.grammar.trailingOkWords.has(w)) {
       i++
       continue
     }
-    if (t.type === 'sym' && t.text === '-' && wordAt(p, i + 1) === 'ish') {
+    if (
+      t.type === 'sym' &&
+      t.text === '-' &&
+      wordAt(p, i + 1) &&
+      p.profile.grammar.trailingApproxWords.has(wordAt(p, i + 1)!)
+    ) {
       approximate = true
       i += 2
       continue
@@ -426,6 +413,7 @@ export function parseQuantityExpr(
       span: r.span,
       issues: r.issues,
       confidence: r.confidence,
+      locale: r.locale,
     }
   }
   if (r.type === 'number') {
@@ -448,25 +436,6 @@ export function parseQuantityExpr(
  */
 export type PartialState = 'empty' | 'incomplete' | 'valid' | 'invalid'
 
-const PHRASE_WORDS = [
-  'between',
-  'and',
-  'to',
-  'into',
-  'about',
-  'around',
-  'approximately',
-  'under',
-  'over',
-  'at',
-  'least',
-  'most',
-  'up',
-  'more',
-  'less',
-  'than',
-  'roughly',
-]
 const OPEN_SYMS = new Set([
   '.',
   ',',
@@ -524,7 +493,7 @@ export function partialQuantityState(input: string, options: ParseOptions): Part
     if (reg.hasAliasPrefix(last.text, options.kind)) {
       return 'incomplete'
     }
-    if (PHRASE_WORDS.some((p) => p.startsWith(w))) {
+    if (p.profile.grammar.phraseWords.some((phrase) => phrase.startsWith(w))) {
       return 'incomplete'
     }
     if (w === 'e') {
@@ -535,7 +504,10 @@ export function partialQuantityState(input: string, options: ParseOptions): Part
   // unfinished phrase before it.
   if (last.type === 'digits' || last.type === 'vulgar') {
     const first = tokens[0]!
-    if (first.type === 'word' && first.text.toLowerCase() === 'between') {
+    if (
+      first.type === 'word' &&
+      p.profile.grammar.rangeBetweenWords.has(first.text.toLowerCase())
+    ) {
       return 'incomplete'
     }
   }
@@ -578,6 +550,7 @@ export function parseRangeExpr(input: string, options: ParseOptions): RangeResul
       span: r.span,
       issues: r.issues,
       confidence: r.confidence,
+      locale: r.locale,
     }
   }
   const it = makeIssue('NO_VALUE', { example: '"5–10 kg"' }, r.span, options.messages)

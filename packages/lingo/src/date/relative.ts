@@ -16,7 +16,14 @@ import {
 } from './civil'
 import type { DateAlternative, DateGrain } from './parse'
 import { type CoreDate, core, issue, knownFor, needsNow, type P, trimRange } from './state'
-import { MONTHS, type OffsetUnit, SUBUNIT, UNIT_WORDS, WEEKDAY_NAMES, WEEKDAYS } from './vocab'
+import {
+  MONTHS as EN_MONTHS,
+  SUBUNIT as EN_SUBUNIT,
+  UNIT_WORDS as EN_UNIT_WORDS,
+  WEEKDAY_NAMES as EN_WEEKDAY_NAMES,
+  WEEKDAYS as EN_WEEKDAYS,
+  type OffsetUnit,
+} from './vocab'
 
 interface OffsetPart {
   unit: OffsetUnit
@@ -76,6 +83,10 @@ function parseDeictic(p: P, start: number, end: number): CoreDate | null {
   if (source === 'today') {
     return core(today, 'day', knownFor('day'), start, end)
   }
+  const localeDayOffset = deicticDayOffset(p, source)
+  if (localeDayOffset !== null) {
+    return core(addCalendar(today, { days: localeDayOffset }), 'day', knownFor('day'), start, end)
+  }
   if (source === 'tonight' || source === 'tonite') {
     return core(withTime(today, 22), 'hour', [...knownFor('hour'), 'implied-hour'], start, end)
   }
@@ -122,6 +133,17 @@ function parseOffset(p: P, start: number, end: number): CoreDate | null {
   const last = tokenIndexBefore(p, end)
   if (first < 0 || last < first) {
     return null
+  }
+  const compact = parseCompactLocaleOffset(p, start, end)
+  if (compact) {
+    return needsNow(compact)
+  }
+  const pastPrefixEnd = eatPastPrefix(p, first)
+  if (pastPrefixEnd > first) {
+    const parts = parseOffsetParts(p, pastPrefixEnd, last + 1)
+    if (parts && parts.next === last + 1) {
+      return needsNow(offsetCore(p, p.now, parts.parts, -1, start, end))
+    }
   }
   if (wordAt(p, first) === 'in') {
     const parts = parseOffsetParts(p, first + 1, last + 1)
@@ -179,8 +201,10 @@ function parseOffsetParts(
         tokens: p.tokens,
         n: p.n,
         src: p.src,
-        numberFormat: 'auto',
+        numberFormat: p.profile.defaults.numberFormat ?? 'auto',
         kind: 'duration',
+        numberWords: true,
+        profile: p.profile,
       },
       pos,
       pos === startToken,
@@ -189,10 +213,10 @@ function parseOffsetParts(
       break
     }
     const unitToken = p.tokens[value.next]
-    const unit = unitFromToken(unitToken)
+    const unit = unitFromToken(p, unitToken)
     if (!unit) {
       const previous = parts[parts.length - 1]
-      const subunit = previous ? SUBUNIT[previous.unit] : undefined
+      const subunit = previous ? dateSubunit(p)[previous.unit] : undefined
       if (previous && subunit && value.value >= 0 && value.value < subunitLimit(subunit)) {
         parts.push({ unit: subunit, value: value.value })
         pos = value.next
@@ -206,13 +230,13 @@ function parseOffsetParts(
         ? value.value * 2
         : value.value
     pos = value.next + 1
-    const tail = parseAndFractionTail(p.tokens, pos)
+    const tail = parseAndFractionTail(p.tokens, pos, p.profile.numberWords)
     if (tail) {
       partValue += tail.add
       pos = tail.next
     }
     parts.push({ unit, value: partValue })
-    if (wordAt(p, pos) === 'and') {
+    if (isJoinWord(p, pos)) {
       pos++
       continue
     }
@@ -274,7 +298,7 @@ function parseWeekday(p: P, start: number, end: number): CoreDate | null {
   if (!dayWord) {
     return null
   }
-  const weekday = WEEKDAYS[dayWord]
+  const weekday = dateWeekdays(p)[dayWord]
   if (weekday === undefined) {
     return null
   }
@@ -307,7 +331,9 @@ function parseWeekday(p: P, start: number, end: number): CoreDate | null {
       ? forwardDiff(today.getDay(), weekday)
       : closestWeekdayDiff(today.getDay(), weekday)
     date = addCalendar(today, { days: diff })
-    issues.push(issue(p, 'WEEKDAY_ASSUMED_NEXT', { weekday: WEEKDAY_NAMES[weekday]! }, start, end))
+    issues.push(
+      issue(p, 'WEEKDAY_ASSUMED_NEXT', { weekday: dateWeekdayNames(p)[weekday]! }, start, end),
+    )
   }
   return core(date, 'day', [...knownFor('day'), 'weekday'], start, end, issues, alternatives)
 }
@@ -351,14 +377,14 @@ function parseCalendarPeriod(p: P, start: number, end: number): CoreDate | null 
       }
       return base
     }
-    const month = MONTHS[target]
+    const month = dateMonths(p)[target]
     if (month !== undefined && (kind === 'middle' || kind === 'mid')) {
       return monthDayCore(p, month, 15, undefined, 'day', start, end)
     }
   }
   const mid = /^mid-?\s*([a-z]+)$/.exec(source)
   if (mid) {
-    const month = MONTHS[mid[1]!]
+    const month = dateMonths(p)[mid[1]!]
     if (month !== undefined) {
       return monthDayCore(p, month, 15, undefined, 'day', start, end)
     }
@@ -448,11 +474,11 @@ function tokenIndexBefore(p: P, end: number): number {
   return -1
 }
 
-function unitFromToken(token: Token | undefined): OffsetUnit | null {
+function unitFromToken(p: P, token: Token | undefined): OffsetUnit | null {
   if (token?.type !== 'word') {
     return null
   }
-  return UNIT_WORDS[token.text.toLowerCase()] ?? null
+  return dateUnitWords(p)[token.text.toLowerCase()] ?? null
 }
 
 function valueStarts(p: P, i: number): boolean {
@@ -469,12 +495,145 @@ function valueStarts(p: P, i: number): boolean {
   if (t.type === 'word') {
     return (
       parseValue(
-        { tokens: p.tokens, n: p.n, src: p.src, numberFormat: 'auto', kind: 'duration' },
+        {
+          tokens: p.tokens,
+          n: p.n,
+          src: p.src,
+          numberFormat: p.profile.defaults.numberFormat ?? 'auto',
+          kind: 'duration',
+          numberWords: true,
+          profile: p.profile,
+        },
         i,
       ) !== null
     )
   }
   return false
+}
+
+function dateMonths(p: P): Record<string, number> {
+  return p.profile.date?.months ?? EN_MONTHS
+}
+
+function dateSubunit(p: P): Partial<Record<OffsetUnit, OffsetUnit>> {
+  return (p.profile.date?.subunit ?? EN_SUBUNIT) as Partial<Record<OffsetUnit, OffsetUnit>>
+}
+
+function dateUnitWords(p: P): Record<string, OffsetUnit> {
+  return (p.profile.date?.unitWords ?? EN_UNIT_WORDS) as Record<string, OffsetUnit>
+}
+
+function dateWeekdayNames(p: P): readonly string[] {
+  return p.profile.date?.weekdayNames ?? EN_WEEKDAY_NAMES
+}
+
+function dateWeekdays(p: P): Record<string, number> {
+  return p.profile.date?.weekdays ?? EN_WEEKDAYS
+}
+
+function deicticDayOffset(p: P, source: string): number | null {
+  if (p.profile.locale === 'es' && source === 'manana') {
+    return 1
+  }
+  if (p.profile.locale === 'fr' && source === 'demain') {
+    return 1
+  }
+  if (p.profile.locale === 'pt' && source === 'amanha') {
+    return 1
+  }
+  return null
+}
+
+function eatPastPrefix(p: P, first: number): number {
+  if (p.profile.locale === 'es' && wordAt(p, first) === 'hace') {
+    return first + 1
+  }
+  if (p.profile.locale === 'pt' && wordAt(p, first) === 'ha') {
+    return first + 1
+  }
+  if (
+    p.profile.locale === 'fr' &&
+    wordAt(p, first) === 'il' &&
+    wordAt(p, first + 1) === 'y' &&
+    wordAt(p, first + 2) === 'a'
+  ) {
+    return first + 3
+  }
+  return first
+}
+
+function parseCompactLocaleOffset(p: P, start: number, end: number): CoreDate | null {
+  const source = p.text.slice(start, end)
+  const locale = p.profile.locale
+  const zh =
+    locale === 'zh'
+      ? /^([0-9零〇一二两三四五六七八九十]+)(秒|分钟|分|小时|天|日|周|星期|个月|月|年)(前|后)$/.exec(
+          source,
+        )
+      : null
+  const ja =
+    locale === 'ja'
+      ? /^([0-9零〇一二三四五六七八九十]+)(秒|分|時間|日|週間|週|ヶ月|か月|月|年)(前|後)$/.exec(
+          source,
+        )
+      : null
+  const m = zh ?? ja
+  if (!m) {
+    return null
+  }
+  const value = parseCompactNumber(p, m[1]!)
+  const unit = compactUnit(m[2]!)
+  if (value === null || !unit) {
+    return null
+  }
+  const direction = m[3] === '前' ? -1 : 1
+  return offsetCore(p, p.now, [{ unit, value }], direction, start, end)
+}
+
+function parseCompactNumber(p: P, text: string): number | null {
+  if (/^\d+$/.test(text)) {
+    return Number(text)
+  }
+  if (text === '十') {
+    return 10
+  }
+  const ten = text.indexOf('十')
+  if (ten >= 0) {
+    const left = ten === 0 ? 1 : (p.profile.numerals?.[text.slice(0, ten)] ?? Number.NaN)
+    const right =
+      ten === text.length - 1 ? 0 : (p.profile.numerals?.[text.slice(ten + 1)] ?? Number.NaN)
+    const value = left * 10 + right
+    return Number.isFinite(value) ? value : null
+  }
+  const value = p.profile.numerals?.[text]
+  return value === undefined ? null : value
+}
+
+function compactUnit(text: string): OffsetUnit | null {
+  if (text === '秒') {
+    return 'second'
+  }
+  if (text === '分钟' || text === '分') {
+    return 'minute'
+  }
+  if (text === '小时' || text === '時間') {
+    return 'hour'
+  }
+  if (text === '天' || text === '日') {
+    return 'day'
+  }
+  if (text === '周' || text === '星期' || text === '週間' || text === '週') {
+    return 'week'
+  }
+  if (text === '个月' || text === 'ヶ月' || text === 'か月' || text === '月') {
+    return 'month'
+  }
+  return text === '年' ? 'year' : null
+}
+
+function isJoinWord(p: P, pos: number): boolean {
+  const w = wordAt(p, pos)
+  return w !== null && p.profile.numberWords.andWords.has(w)
 }
 
 function subunitLimit(unit: OffsetUnit): number {

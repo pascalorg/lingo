@@ -34,8 +34,19 @@ jobs:
         id: bump
         working-directory: packages/lingo
         run: |
-          npm version ${{ inputs.bump }} --no-git-tag-version
-          VERSION=$(node -p "require('./package.json').version")
+          # npm version walks up into the bun workspace root and rejects the
+          # `workspace:*` protocol — bump the version with plain node instead.
+          VERSION=$(BUMP="${{ inputs.bump }}" node -e '
+            const fs = require("node:fs")
+            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"))
+            const [major, minor, patch] = pkg.version.split(".").map(Number)
+            pkg.version =
+              process.env.BUMP === "major" ? `${major + 1}.0.0`
+              : process.env.BUMP === "minor" ? `${major}.${minor + 1}.0`
+              : `${major}.${minor}.${patch + 1}`
+            fs.writeFileSync("package.json", `${JSON.stringify(pkg, null, 2)}\n`)
+            process.stdout.write(pkg.version)
+          ')
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           # Promote the [Unreleased] section to a dated version heading, leaving
           # a fresh empty [Unreleased] on top (conventions.md docs-surface rule).

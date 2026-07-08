@@ -7,6 +7,8 @@ change**, even if the API is untouched.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-07-08
+
 ### Positioning
 
 - **"Make forms easier, LLM tools safer."** is the tagline and the product

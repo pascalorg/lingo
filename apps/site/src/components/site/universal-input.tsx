@@ -313,6 +313,7 @@ function FloatingInputCard({
   const focusedRef = useRef(false)
   const timerRef = useRef<number | null>(null)
   const fixTimerRef = useRef<number | null>(null)
+  const animatingRef = useRef(false)
 
   const stopTyping = useCallback(() => {
     if (timerRef.current !== null) {
@@ -320,6 +321,12 @@ function FloatingInputCard({
       timerRef.current = null
     }
   }, [])
+
+  const cancelTyping = useCallback(() => {
+    stopTyping()
+    animatingRef.current = false
+    setTyping(false)
+  }, [stopTyping])
 
   const stopFix = useCallback(() => {
     if (fixTimerRef.current !== null) {
@@ -351,6 +358,7 @@ function FloatingInputCard({
     }
 
     timerRef.current = window.setTimeout(() => {
+      animatingRef.current = true
       setTyping(true)
       setValue('')
       let index = 0
@@ -361,6 +369,7 @@ function FloatingInputCard({
 
         if (index >= example.value.length) {
           timerRef.current = window.setTimeout(() => {
+            animatingRef.current = false
             setTyping(false)
             setFixReady(example.autoFix === true)
             timerRef.current = null
@@ -373,7 +382,19 @@ function FloatingInputCard({
 
       timerRef.current = window.setTimeout(tick, typingDelayFor(example.value, 0))
     }, TYPE_START_DELAY_MS)
-    return stopTyping
+
+    // Throttled background-tab timers can let the parent cycle deactivate the
+    // card mid-animation; settle to the full value so it never sticks on
+    // "Typing...". Skipped when the animation already finished, so a manual or
+    // auto-fixed value is never clobbered.
+    return () => {
+      stopTyping()
+      if (animatingRef.current) {
+        animatingRef.current = false
+        setTyping(false)
+        setValue(example.value)
+      }
+    }
   }, [active, example.autoFix, example.value, manual, reduceMotion, stopFix, stopTyping])
 
   const result = useMemo(
@@ -400,7 +421,10 @@ function FloatingInputCard({
       }, FIX_CURSOR_SETTLE_DELAY_MS)
     }, FIX_REVEAL_DELAY_MS)
 
-    return stopFix
+    return () => {
+      stopFix()
+      setAutoFixing(false)
+    }
   }, [active, fixReady, fixValue, manual, reduceMotion, stopFix])
 
   const applyFix = () => {
@@ -408,9 +432,8 @@ function FloatingInputCard({
       return
     }
 
-    stopTyping()
+    cancelTyping()
     stopFix()
-    setTyping(false)
     setAutoFixing(false)
     setFixReady(false)
     setManual(true)
@@ -470,9 +493,8 @@ function FloatingInputCard({
             }
           }}
           onChange={(event) => {
-            stopTyping()
+            cancelTyping()
             stopFix()
-            setTyping(false)
             setAutoFixing(false)
             setFixReady(false)
             setManual(true)
@@ -480,9 +502,8 @@ function FloatingInputCard({
           }}
           onFocus={() => {
             focusedRef.current = true
-            stopTyping()
+            cancelTyping()
             stopFix()
-            setTyping(false)
             setAutoFixing(false)
             setFixReady(false)
           }}

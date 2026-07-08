@@ -10,6 +10,7 @@ import { SectionHeading, SubHeading } from '@/components/site/anchor-heading'
 import { CodeBlock } from '@/components/site/code-block'
 import { CodeTabs } from '@/components/site/code-tabs'
 import { CommandBlock } from '@/components/site/command-block'
+import { CompletionsDemo } from '@/components/site/completions-demo'
 import { CoverageExplorer } from '@/components/site/coverage-explorer'
 import { DocsNav } from '@/components/site/docs-nav'
 import { DocsPageActions } from '@/components/site/docs-page-actions'
@@ -32,6 +33,7 @@ import {
 } from '@/components/ui/table'
 import {
   aiSnippets,
+  completionsSnippet,
   convertSnippet,
   currencySnippet,
   datesSnippet,
@@ -40,11 +42,12 @@ import {
   findSnippet,
   formSnippet,
   integrationSnippets,
+  localeSnippet,
   schemaTabs,
   strictnessSnippet,
   typeSafetySnippet,
 } from '@/lib/code-snippets'
-import { docsMarkdown, getDocsMarkdownSection } from '@/lib/docs.md'
+import { docsMarkdown, getDocsMarkdownSection, getDocsMarkdownSectionUrl } from '@/lib/docs.md'
 import { docsNavGroups, docsTopLevelPages } from '@/lib/docs-catalog'
 import { formUxExampleRows } from '@/lib/form-ux-examples'
 import { highlightCode } from '@/lib/highlight'
@@ -60,6 +63,10 @@ const apiRows = [
   ['parseRange(text, opts?)', 'Parse ranges; single values become degenerate ranges.'],
   ['partialState(text, opts?)', 'As-you-type state: empty, incomplete, valid, invalid.'],
   ['findQuantities(text, opts?)', 'Best-effort free-text scan with span offsets.'],
+  [
+    'completions(text, opts?)',
+    'Ranked canonical readings for autocomplete (`@pascal-app/lingo/complete`).',
+  ],
   ['quantity(value, unitRef, kind?)', 'Create a Quantity programmatically.'],
   ['convert(value, from, to)', 'Convert a plain number between units.'],
   ['convertDelta(value, from, to)', 'Convert differences without temperature offsets.'],
@@ -95,6 +102,7 @@ const optionRows = [
   ['unit', 'Assume a unit for bare numbers and set canonical field unit.'],
   ['system', 'Choose US, imperial, or metric unit families.'],
   ['numberFormat', 'Resolve ambiguous decimal and grouping separators.'],
+  ['locale', 'Select a loaded language profile; omit it to auto-detect loaded packs.'],
   ['strictness', 'forgiving, confirm, or strict.'],
   [
     'accept',
@@ -299,7 +307,7 @@ function Section({
             copiedLabel="Copied Section"
             copyLabel="Copy Section"
             markdown={markdown}
-            markdownHref={`/llms.md?section=${id}`}
+            markdownHref={getDocsMarkdownSectionUrl(id)}
           />
         ) : null}
       </div>
@@ -397,7 +405,7 @@ export default async function Home() {
                 <DocsPageActions
                   className="hidden shrink-0 sm:inline-flex"
                   markdown={docsMarkdown}
-                  markdownHref="/llms.md"
+                  markdownHref="/llms-full.txt"
                 />
               </div>
               <div className="flex max-w-3xl flex-col gap-3 text-muted-foreground">
@@ -464,6 +472,18 @@ export default async function Home() {
             title="Parse"
           >
             <ParsePlayground />
+            <div className="flex min-w-0 flex-col gap-3">
+              <SubHeading id="parse-completions">Autocomplete anything</SubHeading>
+              <p className="text-muted-foreground text-sm">
+                <code className="rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-foreground text-sm">
+                  completions()
+                </code>{' '}
+                returns every plausible canonical reading ranked by confidence — prefix matches,
+                unit ambiguity forks, and number alternatives — not just the single best parse.
+              </p>
+              <CodeBlock code={completionsSnippet} filename="complete.ts" lang="ts" />
+            </div>
+            <CompletionsDemo />
             <SystemNumberFormatVariantWall />
             <div className="flex min-w-0 flex-col gap-3">
               <SubHeading id="parse-find">Find values in text</SubHeading>
@@ -719,7 +739,7 @@ export default async function Home() {
             </div>
             <CodeTabs tabs={aiSnippets} />
             <AiEvalReadout />
-            <div className="grid gap-3 text-sm sm:grid-cols-2">
+            <div className="grid gap-3 text-sm sm:grid-cols-3">
               <a
                 className={docsMiniSurfaceLinkClassName}
                 data-surface="llm-resource-link"
@@ -727,17 +747,27 @@ export default async function Home() {
               >
                 <span className="font-mono text-foreground text-xs">/llms.txt</span>
                 <span className="mt-1 block text-muted-foreground">
-                  Concise API map and canonical examples.
+                  Agent index — links to every section and tier.
                 </span>
               </a>
               <a
                 className={docsMiniSurfaceLinkClassName}
                 data-surface="llm-resource-link"
-                href="/llms.md"
+                href="/llms-full.txt"
               >
-                <span className="font-mono text-foreground text-xs">/llms.md</span>
+                <span className="font-mono text-foreground text-xs">/llms-full.txt</span>
                 <span className="mt-1 block text-muted-foreground">
-                  Markdown mirror with the AI recipe included.
+                  Full docs narrative as markdown.
+                </span>
+              </a>
+              <a
+                className={docsMiniSurfaceLinkClassName}
+                data-surface="llm-resource-link"
+                href="/llms-small.txt"
+              >
+                <span className="font-mono text-foreground text-xs">/llms-small.txt</span>
+                <span className="mt-1 block text-muted-foreground">
+                  Compressed API reference from the npm package.
                 </span>
               </a>
             </div>
@@ -866,6 +896,21 @@ export default async function Home() {
                 Time slots
               </a>
               .
+            </p>
+          </Section>
+
+          <Section
+            explainer="Load only the language packs you need. English stays the default; pass a locale for a known field or omit it to detect among loaded packs."
+            id="locales"
+            kicker="i18n"
+            title="Locales"
+          >
+            <CodeBlock code={localeSnippet} filename="locales.ts" lang="ts" />
+            <p className="text-muted-foreground text-sm">
+              Locale packs are data-only subpath entries: <Code>@pascal-app/lingo/locales/es</Code>,{' '}
+              <Code>fr</Code>, <Code>pt</Code>, <Code>zh</Code>, <Code>ja</Code>, and{' '}
+              <Code>en-gb</Code>. Successful parses expose <Code>result.locale</Code>, which the
+              playground above shows beside the parse state.
             </p>
           </Section>
 

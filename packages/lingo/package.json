@@ -248,7 +248,7 @@
     "bench:backend": "node scripts/bench.mjs --backend",
     "bench:browser": "node scripts/bench.mjs --browser --open",
     "demo": "node scripts/demo.mjs",
-    "check": "bun run typecheck && bun run test && bun run build && bun run size && node scripts/corpus-diff.mjs && node scripts/check-docs-sync.mjs && node scripts/check-zero-deps.mjs && node scripts/gen-schemas.mjs --check",
+    "check": "bun run typecheck && bun run test && bun run build && bun run size && node scripts/corpus-diff.mjs && node scripts/check-docs-sync.mjs && bun scripts/check-llms-index.mjs && node scripts/check-zero-deps.mjs && node scripts/gen-schemas.mjs --check",
     "prepublishOnly": "bun run check"
   },
   "devDependencies": {

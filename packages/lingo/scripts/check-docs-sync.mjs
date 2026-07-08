@@ -2,7 +2,10 @@ import { existsSync, readFileSync } from 'node:fs'
 import { allKinds } from '../dist/index.js'
 
 const ROOT = new URL('../../..', import.meta.url)
-const files = [new URL('packages/lingo/llms.txt', ROOT), new URL('apps/site/public/llms.txt', ROOT)]
+const files = [
+  new URL('packages/lingo/llms.txt', ROOT),
+  new URL('apps/site/public/llms-small.txt', ROOT),
+]
 const expectedKinds = allKinds.map((kind) => kind.kind).join(' ')
 let failed = false
 

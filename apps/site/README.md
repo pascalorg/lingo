@@ -8,10 +8,11 @@ dogfood.
 - `/` — landing: hero universal input + bento demos.
 - `/docs` — single-page docs with anchor nav (Parse, Strictness, Forms,
   For AI, Coverage, Integrations, Performance, API).
-- `/llms.txt` — concise agent-facing API map (synced from `packages/lingo` by
-  `bun run site:sync` at the repo root).
-- `/llms.md` — the docs narrative as Markdown (`src/lib/docs.md.ts`), also
-  advertised via `<link rel="alternate" type="text/markdown">`.
+- `/llms.txt` — spec-compliant agent index (links to every section and tier).
+- `/llms-full.txt` — complete docs narrative as markdown (`src/lib/docs.md.ts`).
+- `/llms-small.txt` — compressed API reference synced from `packages/lingo/llms.txt`.
+- `/docs/<section>.md` — per-topic markdown slices for coding agents.
+- `/llms.md` — legacy full markdown export (compat).
 - SEO/social: `metadataBase` + OpenGraph/Twitter cards (`src/app/opengraph-image.tsx`),
   `robots.ts`, `sitemap.ts`, JSON-LD on `/` and `/docs`.
 
@@ -36,8 +37,7 @@ directory before debugging source.
 The site consumes the library as a live workspace link — after changing
 library source, `bun run build` in `packages/lingo` (or `bun dev` at the repo
 root, which runs the watcher) is enough; `bun run site:sync` at the root also
-refreshes `llms.txt` and bench/eval data.
+refreshes `llms-small.txt` and bench/eval data.
 
-Gotcha: link to `/llms.txt` and `/llms.md` with plain `<a>`, not `next/link` —
-they are a static asset and a route handler, and client-side navigation 404s
-on them.
+Gotcha: link to `/llms.txt`, `/llms-full.txt`, and `/docs/*.md` with plain `<a>`, not `next/link` —
+they are route handlers, and client-side navigation 404s on them.

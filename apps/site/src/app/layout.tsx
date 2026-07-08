@@ -42,6 +42,7 @@ export const metadata: Metadata = {
   alternates: {
     types: {
       'text/markdown': '/llms.md',
+      'text/plain': '/llms.txt',
     },
   },
   openGraph: {
@@ -112,8 +113,7 @@ export default function RootLayout({
                     <BrandIcon brand="npm" className="opacity-65" data-icon="inline-start" />
                     npm
                   </a>
-                  {/* Plain <a>: /llms.txt is a static asset, not an app route.
-                    next/link client navigation 404s on it. */}
+                  {/* Plain <a>: agent routes are served as route handlers, not client-nav pages. */}
                   <a
                     className="transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:text-foreground"
                     href="/llms.txt"

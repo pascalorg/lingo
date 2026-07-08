@@ -29,6 +29,19 @@ change**, even if the API is untouched.
   `min`, `mi`, and `mL` beat obscure scientific shorthands. DOM `lingoInput`
   accepts injected `complete` / `onComplete` hooks (no library dropdown). Docs
   showcase combobox demo.
+- Agent docs tiers: site `/llms.txt` is now a spec-compliant index (llmstxt.org);
+  `/llms-full.txt` serves the complete docs narrative; `/llms-small.txt` mirrors
+  the npm-shipped compressed reference; `/docs/<section>.md` serves self-contained
+  per-topic markdown slices. Enriched `packages/lingo/llms.txt` with nested
+  headings, fenced examples per entry, and issue-code remedies.
+
+### Fixed
+
+- Locale auto-detection now keeps inherited English grammar as English, so
+  English inputs do not get mislabeled as Spanish/French when only overlay packs
+  are loaded. Explicit unloaded locales now return `LOCALE_NOT_LOADED`.
+- CJK kg aliases and temperature fuzzy words are pack-owned (`zh`/`ja`) instead
+  of leaking into the default English unit and fuzzy vocabularies.
 
 ## [0.1.0] - 2026-07-08
 

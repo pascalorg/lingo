@@ -45,8 +45,12 @@ const appLingo = createLingo({
 
 appLingo.parseQuantity('3 cases', { kind: 'package_count', unit: 'item' })`
 
+const docsIndexPointer = 'Full index of agent-readable pages: https://lingo.pascal.app/llms.txt'
+
 export const docsMarkdown = [
   '# lingo',
+  '',
+  docsIndexPointer,
   '',
   'Make forms easier, LLM tools safer. People type `180cm` or `5ft 11`; models emit `"1½ cups"` or `"twenty-five kg"`; your database wants canonical values: one number in one unit, one ISO date. The parser turns both into validated data and humanizes it back.',
   '',
@@ -224,7 +228,7 @@ export const docsMarkdown = [
   '',
   'Eval framing: `Canonicalization-rate demo on a recorded corpus, not an end-to-end LLM benchmark.` When `site/src/data/ai-eval.json` exists at build time, the docs render acceptance rate and silent-wrong rate per category for naive vs. lingo. The two metrics are separate and never blended. When the file is absent, the eval readout renders nothing.',
   '',
-  'The site exposes `/llms.txt` as a concise package reference and `/llms.md` as the `/docs` page in markdown. Coding agents should fetch `/llms.txt` first, follow `/llms.md` when they need the complete narrative, and keep user quantities as strings until lingo validates them.',
+  'The site exposes `/llms.txt` as the agent index, `/docs/<section>.md` for per-topic markdown, `/llms-full.txt` for the complete narrative, and `/llms-small.txt` as the npm-shipped compressed reference. Coding agents should fetch `/llms.txt` first, follow section `.md` URLs for the topic they need, and keep user quantities as strings until lingo validates them.',
   '',
   '## MCP tools',
   '',
@@ -289,6 +293,25 @@ useForm({ resolver: standardSchemaResolver(shipment) })`,
   'Times of day read the way people write them — `17h`, `5 o’clock`, `quarter past 5`, `5.30pm`, `midi`/`minuit`, `0900 hours`. A trailing timezone is detected and exposed on `.zone` while the civil wall-clock is kept; pass `applyZone: true` to resolve the real UTC instant (offsets, abbreviations, and IANA names resolve DST-correctly via `Intl`). `parseDateRange` turns a slot like `2pm to 4pm`, `between 9am and 5pm`, or the `9-5` workday shift into `{ start, end }` endpoints, and `humanizeDateRange` renders it back.',
   '',
   'Reference-dependent input needs an explicit `now`, so a queued job parses the same date every time. Fully absolute dates never require it. Browse the shorthand it reads under Catalog → Date shorthand and Time slots.',
+  '',
+  '## Locales',
+  '',
+  'Locale packs are opt-in and tree-shakeable. English is built in; load overlays with `createLingo({ locales })` and pass `locale` when a field is known, or omit it for auto-detection among loaded packs plus English.',
+  '',
+  fenced(
+    'ts',
+    `import { createLingo } from '@pascal-app/lingo'
+import { es } from '@pascal-app/lingo/locales/es'
+import { fr } from '@pascal-app/lingo/locales/fr'
+
+const lingo = createLingo({ locales: [es, fr] })
+lingo.parse('dos kg') // locale: 'es'
+lingo.parse('72 in to cm') // locale: 'en'`,
+  ),
+  '',
+  'Published packs: `@pascal-app/lingo/locales/en`, `en-gb`, `es`, `fr`, `pt`, `zh`, and `ja`. Pack-owned CJK unit aliases and fuzzy words are only registered when their pack is loaded. Passing an explicit locale that was not loaded returns `LOCALE_NOT_LOADED` instead of silently falling back to English.',
+  '',
+  'Date parsing accepts the same packs directly: `parseDate("mañana", { now, locale: "es", localePacks: [es] })`.',
   '',
   '## Catalog',
   '',
@@ -365,6 +388,7 @@ useForm({ resolver: standardSchemaResolver(shipment) })`,
   '- `currency`: Disambiguate bare currency symbols and ambiguous minor-unit words such as `$`, `¥`, and `cents`; explicit GBP pence forms such as `50p` and `3 quid 50` parse as GBP.',
   '- `system`: Choose US, imperial, or metric unit families.',
   '- `numberFormat`: Resolve ambiguous decimal and grouping separators.',
+  '- `locale`: Select a loaded language profile; omit for auto-detection among loaded packs plus English.',
   '- `strictness`: forgiving, confirm, or strict.',
   '- `accept`: Switch ranges, conversions, compounds, fuzzy, numberWords, approximations, bareNumbers.',
   '- `tolerance`: typos fix/suggest/off and ambiguity assume/confirm.',
@@ -373,7 +397,7 @@ useForm({ resolver: standardSchemaResolver(shipment) })`,
   '',
   'Parse results are versioned discriminated unions: `{ schemaVersion: 3, ok, type, text, issues }`; successes add `span`, `confidence`, and the parsed value, while failures use `type: "failure"` and may include a full `candidate` result. Success `alternatives` are also discriminated (`type: "quantity"` or `type: "date"`). Built-in `createLingo()` instances keep the same literal-unit checks as top-level `quantity`/`convert`/`tryConvert`; custom registry instances keep broad string refs. `tryConvert()` mirrors absolute `convert()` but returns `{ ok: true, type: "conversion", value, unit, kind }` or `{ ok: false, type: "failure", issues }` instead of throwing. Quantity instances expose `.value`, `.base`, `.unit`, `.kind`, `.to(unitRef)`, `.valueIn(unitRef)`, `.convertDelta(unitRef)`, `.toMinor()` for currencies, `.format(opts?)`, `.toBest(opts?)`, and `.toJSON()`. Format defaults are parseable; `localizedUnits: true` is display-only for Intl unit words. Quantity JSON is self-describing: `{ schemaVersion: 3, type, kind, value, unit, base, baseUnit }`; `@pascal-app/lingo/describe` adds unit labels and formatted strings for values, `describeResource()` returns direct `lingo.quantity` / `lingo.range` resources with grouped `value` and `canonical` amounts, and `describeResult()` returns an opt-in resource-style parse-result view with `object`, `resourceSchemaVersion`, grouped `value`/`canonical` amounts, range `canonicalUnit`, source text spans including full-input failure spans, rich issues, alternatives, candidates, conversion `{ source, target: { unit }, converted }` data, `lingo.date` `{ value: { iso, epochMilliseconds }, calendar, grain, known }`, and `lingo.duration` `{ value, canonical, formatted, parts? }`. Quantity ranges expose `.minBase`, `.maxBase`, `.min()`, `.max()`, `.plusMinus`, `.fuzzy`, `.contains(q)`, `.widthIn(unitRef)`, `.to(unitRef)`, and `.format()`.',
   '',
-  'Issues are `{ code, severity, message, span, suggestions?, data? }`; parse-path spans are `{ start, end }` half-open offsets into the original input. Issue codes documented by the package: `EMPTY`, `NO_VALUE`, `UNKNOWN_UNIT`, `KIND_MISMATCH`, `RANGE_KIND_MISMATCH`, `CONVERSION_KIND_MISMATCH`, `RATE_REQUIRED`, `TRAILING_INPUT`, `SINGLE_VALUE_EXPECTED`, `APPROX_NOT_ALLOWED`, `UNIT_REQUIRED`, `CONVERSION_NOT_ALLOWED`, `NUMBER_FORMAT`, `NONFINITE`, `RANGE_MIN`, `RANGE_MAX`, `RANGE_OPEN_BOUND_NOT_ALLOWED`, `REQUIRED`, `UNSUPPORTED_DATE`, `NOW_REQUIRED`, `TYPO_CORRECTED`, `AMBIGUOUS_NUMBER`, `AMBIGUOUS_UNIT`, `AMBIGUOUS_DATE`, `RANGE_REVERSED`, `COMPOUND_OVERFLOW`, `CIVIL_AVERAGE`, `UNIT_ASSUMED`, `WEEKDAY_ASSUMED_NEXT`, `SLANG_UNIT`, `TZ_IGNORED`.',
+  'Issues are `{ code, severity, message, span, suggestions?, data? }`; parse-path spans are `{ start, end }` half-open offsets into the original input. Issue codes documented by the package: `EMPTY`, `NO_VALUE`, `UNKNOWN_UNIT`, `KIND_MISMATCH`, `RANGE_KIND_MISMATCH`, `CONVERSION_KIND_MISMATCH`, `RATE_REQUIRED`, `TRAILING_INPUT`, `SINGLE_VALUE_EXPECTED`, `APPROX_NOT_ALLOWED`, `UNIT_REQUIRED`, `CONVERSION_NOT_ALLOWED`, `NUMBER_FORMAT`, `NONFINITE`, `LOCALE_NOT_LOADED`, `RANGE_MIN`, `RANGE_MAX`, `RANGE_OPEN_BOUND_NOT_ALLOWED`, `REQUIRED`, `UNSUPPORTED_DATE`, `NOW_REQUIRED`, `TYPO_CORRECTED`, `AMBIGUOUS_NUMBER`, `AMBIGUOUS_UNIT`, `AMBIGUOUS_DATE`, `RANGE_REVERSED`, `COMPOUND_OVERFLOW`, `CIVIL_AVERAGE`, `UNIT_ASSUMED`, `WEEKDAY_ASSUMED_NEXT`, `SLANG_UNIT`, `TZ_IGNORED`, `AMBIGUOUS_TIMEZONE`.',
   '',
   '### Data schemas',
   '',
@@ -402,6 +426,7 @@ const markdownHeadings: Record<string, string> = {
   convert: 'Convert & format',
   currency: 'Currency',
   dates: 'Dates & durations',
+  locales: 'Locales',
   coverage: 'Catalog',
   performance: 'Performance',
   extend: 'Extend',
@@ -426,16 +451,44 @@ function getIntroMarkdown() {
   return docsMarkdown.slice(0, next < 0 ? undefined : next).trim()
 }
 
-export function getDocsMarkdownSection(id: string) {
-  const sectionId = getMarkdownSectionId(id)
-  if (sectionId === 'introduction') {
-    return getIntroMarkdown()
-  }
+// Every id that resolves to a `##` slice of docsMarkdown (plus the intro).
+export const markdownSectionIds = ['introduction', ...Object.keys(markdownHeadings)]
 
-  const heading = markdownHeadings[sectionId]
-  if (!heading) {
+export function isMarkdownSectionId(id: string) {
+  return markdownSectionIds.includes(id)
+}
+
+const sectionContextHeader =
+  'Part of the lingo docs (natural-language quantities, units, dates parser) — index: https://lingo.pascal.app/llms.txt'
+
+function withSectionContext(markdown: string, sectionId: string) {
+  return [
+    sectionContextHeader,
+    '',
+    markdown,
+    '',
+    `Human docs: https://lingo.pascal.app/docs#${sectionId}`,
+  ]
+    .join('\n')
+    .trimEnd()
+}
+
+export function getDocsMarkdownSectionUrl(id: string) {
+  return `/docs/${getMarkdownSectionId(id)}.md`
+}
+
+export function getDocsMarkdownSection(id: string, { context = false } = {}) {
+  const sectionId = getMarkdownSectionId(id)
+  const body =
+    sectionId === 'introduction'
+      ? getIntroMarkdown()
+      : markdownHeadings[sectionId]
+        ? sliceMarkdownSection(markdownHeadings[sectionId])
+        : null
+
+  if (!body) {
     return null
   }
 
-  return sliceMarkdownSection(heading)
+  return context ? withSectionContext(body, sectionId) : body
 }

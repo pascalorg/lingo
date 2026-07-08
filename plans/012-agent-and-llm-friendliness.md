@@ -3,7 +3,7 @@ id: 012
 title: Agent & LLM friendliness
 status: done
 created: 2026-07-03
-updated: 2026-07-07
+updated: 2026-07-08
 ---
 
 # Agent & LLM friendliness
@@ -29,12 +29,20 @@ coding agent should be able to learn the whole API from one file.
   language of kind length, canonical unit m") — browser agents can discover
   capabilities from the DOM alone.
 
-## llms.txt
+## llms.txt tiers
 
-Ship `llms.txt` at repo root (and referenced from README): compressed API reference —
-all functions with signatures, option tables, issue codes, 30 canonical examples of
-input → JSON output, designed to fit in one model context comfortably (< 4k tokens).
-Generated from TSDoc + corpus at release time (script), never hand-drifted.
+Two roles, split intentionally:
+
+| Surface | Role |
+|---------|------|
+| `packages/lingo/llms.txt` (npm) | Self-contained compressed API reference with nested headings, fenced examples per entry, issue-code remedies, and canonical input→output examples. Shipped in the tarball; also mirrored at `/llms-small.txt`. |
+| `https://lingo.pascal.app/llms.txt` | Spec-compliant index ([llmstxt.org](https://llmstxt.org/)): H1 + blockquote + H2 link lists to `/docs/<section>.md`, `/llms-full.txt`, schema artifacts, and an `## Optional` section. Generated from `docs-catalog.ts` at build time. |
+| `/llms-full.txt` | Complete `/docs` narrative as markdown (from `docs.md.ts`). |
+| `/docs/<section>.md` | Self-contained per-topic slices with context headers (Mintlify-style append-`.md` convention). |
+
+Agent fetch order: index → section `.md` or full narrative → keep measurements as strings in tool schemas until lingo validates.
+
+Maintenance: hand-edit the npm reference when public API changes; the site index is generated; CI gates the `Kinds:` line and index link integrity.
 
 ## Docs for agent builders
 

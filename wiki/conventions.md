@@ -89,7 +89,9 @@ the docs, enforcement in the gate:
 |---------|------|
 | TSDoc `@example` | every new/changed public symbol |
 | `packages/lingo/README.md` | anything a user would evaluate the library by |
-| `packages/lingo/llms.txt` | new entries, options, codes, canonical examples |
+| `packages/lingo/llms.txt` | new entries, options, codes, canonical examples (npm compressed reference; site mirrors at `/llms-small.txt`) |
+| Site `/llms.txt` index | auto-generated from `docs-catalog.ts` when nav/sections change |
+| `apps/site/src/lib/docs.md.ts` | human docs markdown export; per-section `/docs/<id>.md` slices |
 | `packages/lingo/CHANGELOG.md` | every notable change, under `[Unreleased]` |
 | `packages/lingo/docs/recipes.md` + site docs | new field shapes / integration patterns |
 | `wiki/decisions.md` | choices that pass the offer-gate (same change) |

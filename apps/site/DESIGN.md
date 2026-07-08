@@ -56,9 +56,9 @@ workflow.
 
 ## Agent readiness
 
-- `public/llms.txt` synced from the package by `scripts/sync-site.mjs`.
-- `/llms.md` serves the whole docs page as markdown
-  (`src/lib/docs.md.ts` is the source of truth — keep it in sync with page
-  content); header offers "Copy page as Markdown".
-- `<link rel="alternate" type="text/markdown">`, JSON-LD, stable heading
-  anchors with hover links.
+- `/llms.txt` — spec-compliant agent index (generated from `docs-catalog.ts`).
+- `/llms-full.txt` — complete docs narrative as markdown (`src/lib/docs.md.ts`).
+- `/llms-small.txt` — npm-shipped compressed reference (synced by `scripts/sync-site.mjs`).
+- `/docs/<section>.md` — self-contained per-topic markdown slices.
+- `/llms.md` — legacy full markdown export (compat); prefer `/llms-full.txt`.
+- `<link rel="alternate" type="text/markdown">` and `text/plain` for `/llms.txt`.

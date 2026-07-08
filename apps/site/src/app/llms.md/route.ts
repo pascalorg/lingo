@@ -2,7 +2,7 @@ import { docsMarkdown, getDocsMarkdownSection } from '@/lib/docs.md'
 
 export function GET(request: Request) {
   const section = new URL(request.url).searchParams.get('section')
-  const markdown = section ? getDocsMarkdownSection(section) : docsMarkdown
+  const markdown = section ? getDocsMarkdownSection(section, { context: true }) : docsMarkdown
 
   if (!markdown) {
     return new Response('Section not found.\n', {

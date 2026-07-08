@@ -48,7 +48,7 @@ appLingo.parseQuantity('3 cases', { kind: 'package_count', unit: 'item' })`
 export const docsMarkdown = [
   '# lingo',
   '',
-  'Make forms easier, LLM tools safer. People type `5\'11"`; models emit `"12 lbs"`; your database wants canonical values: one number in one unit, one ISO date. The parser turns both into validated data and humanizes it back.',
+  'Make forms easier, LLM tools safer. People type `180cm` or `5ft 11`; models emit `"1½ cups"` or `"twenty-five kg"`; your database wants canonical values: one number in one unit, one ISO date. The parser turns both into validated data and humanizes it back.',
   '',
   'On the web, one text field can replace a value box plus a unit dropdown. It stays quiet mid-typing and puts a stable code, original-input span, and did-you-mean candidate on every issue. At the tool boundary, the same parser validates what models emit: ambiguity fails with an actionable candidate instead of a silent guess.',
   '',

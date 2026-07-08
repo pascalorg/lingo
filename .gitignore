@@ -28,3 +28,4 @@ packages/lingo/bench/ai-eval.json
 # os / logs
 *.log
 .DS_Store
+.vercel

@@ -30,12 +30,13 @@ lingo('5 meterz', { kind: 'length' })
                                  // 5 m + warning TYPO_CORRECTED ("meterz" → m)
 ```
 
-People write `2 ft`, `5'11"`, `1m80`, `72 in`, `1½ cups`, `twenty-five kg`,
-`3×10⁵ m`, `500 KB`, `5 Mbps`, `5 gpm`, `10 inH₂O`, `1 kgf/cm²`, `5 uM`,
-`500 mAh`, `9.8 m/s²`, `10 Nm`, `500 lux`, `20 mSv`, `$1,234.50`,
-`fifty cents`, `50p`, `about 20°C`, and `under 10 minutes`. Your database wants one number
-in one unit. The library is the layer in between: **forgiving in, canonical through,
-human out.**
+People type it quick and abbreviated: `180cm`, `5ft 11`, `1m80`, `72 in`,
+`1.5 cups`, `500 KB`, `5 Mbps`, `5 gpm`, `500 mAh`, `$1,234.50`, `50p`,
+`about 20C`, `under 10 minutes`. Models and pasted text bring the fluent,
+typographic forms: `5'11"`, `1½ cups`, `twenty-five kg`, `3×10⁵ m`,
+`10 inH₂O`, `1 kgf/cm²`, `5 uM`, `9.8 m/s²`, `10 Nm`, `500 lux`, `20 mSv`,
+`fifty cents`. Your database wants one number in one unit. The library is the
+layer in between: **forgiving in, canonical through, human out.**
 
 ## Why lingo
 

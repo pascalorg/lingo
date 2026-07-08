@@ -403,8 +403,12 @@ export default async function Home() {
               <div className="flex max-w-3xl flex-col gap-3 text-muted-foreground">
                 <p>
                   Make forms easier, LLM tools safer. People type{' '}
-                  <span className="font-mono text-foreground text-sm">5&apos;11&quot;</span>; models
-                  emit <span className="font-mono text-foreground text-sm">&quot;12 lbs&quot;</span>
+                  <span className="font-mono text-foreground text-sm">180cm</span> or{' '}
+                  <span className="font-mono text-foreground text-sm">5ft 11</span>; models emit{' '}
+                  <span className="font-mono text-foreground text-sm">&quot;1½ cups&quot;</span> or{' '}
+                  <span className="font-mono text-foreground text-sm">
+                    &quot;twenty-five kg&quot;
+                  </span>
                   ; your database wants canonical values: one number in one unit, one ISO date. The
                   parser turns both into validated data and humanizes it back.
                 </p>

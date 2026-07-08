@@ -2,17 +2,20 @@
 
 **Make forms easier, LLM tools safer.**
 
-People type `5'11"`, `1m80`, `twenty-five kg`, `1½ cups`, `next friday`. Models
-emit `"12 lbs"`, `"3pm EST"`, `"1,234 kg"`. Your database wants canonical
-values: one number in one unit, one ISO date. The library is the layer in between:
-natural-language quantities, units, dates, and ranges parsed into validated
-values, then humanized back. Zero dependencies; English-first parsing with
-locale-aware formatting (locale packs are on the roadmap, plan 013).
+People type fast and loose: `180cm`, `5ft 11`, `1.5 cups`, `90 min`,
+`next friday`, `1,5 kg`, typos included. Models emit fluent, over-formatted
+strings: `"5'11\""`, `"1½ cups"`, `"twenty-five kg"`, `"3pm EST"`,
+`"1,234 kg"`. Your database wants canonical values: one number in one unit,
+one ISO date. The library is the layer in between: natural-language
+quantities, units, dates, and ranges parsed into validated values, then
+humanized back. Zero dependencies; English-first parsing with locale-aware
+formatting (locale packs are on the roadmap, plan 013).
 
 **For the web.** Use one text field instead of a value box plus a unit dropdown:
 
-- Accepts how people actually write: `5'11"`, `180cm`, `2 lb 3 oz`,
-  `an hour and a half`, and fuzzy words (`it's hot`) where a field opts in.
+- Accepts how people actually type: `180cm`, `5ft 11`, `2 lb 3 oz`,
+  `an hour and a half`, typos with did-you-mean (`5 meterz`), and fuzzy words
+  (`it's hot`) where a field opts in.
 - Validation UX ships as data: fields are never yelled at mid-typing (`2 f` is
   *incomplete*, not invalid), and every issue carries a stable code, a human
   message you can override, a span into the original input, and did-you-mean

@@ -7,6 +7,8 @@ change**, even if the API is untouched.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-08
+
 ### Added
 
 - Locale-pack infrastructure (plan 031): `createLingo({ locales })`,

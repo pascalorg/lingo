@@ -137,6 +137,10 @@ change**, even if the API is untouched.
 
 ### Fixed
 
+- The AI-eval gate is host-timezone-independent: the corpus's expected date
+  instants are civil times recorded in Europe/Paris, so the test now pins that
+  zone before the date engine loads (it previously failed on UTC CI runners).
+
 - llms.txt drift: the entries list now includes `@pascal-app/lingo/ai`; the
   `"3min from tmrw"` canonical example now matches the implementation
   (tomorrow, same time-of-day +3 min — the corpus-locked behavior), and the

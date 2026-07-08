@@ -1,3 +1,10 @@
+// The corpus's expected date instants were recorded in Europe/Paris: date
+// fixtures resolve to LOCAL midnight/civil time, so their ISO expectations are
+// only reproducible in the recording zone. Pin TZ BEFORE the date engine loads
+// (same pattern and caveat as src/date/dst.test.ts — vitest per-file isolation
+// keeps this process-global assignment contained).
+process.env.TZ = 'Europe/Paris'
+
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { CATEGORY_ORDER, evaluateCorpus, validateCorpus } from '../scripts/ai-eval.mjs'

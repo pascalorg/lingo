@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { humanizeDuration, parseDate, parseDuration } from './index'
+import type { LocalePack } from '../locale/types'
+import { humanizeDate, humanizeDuration, parseDate, parseDuration } from './index'
 
 const NOW = new Date(2026, 6, 3, 14, 30, 0)
 const MONTH_NAMES = [
@@ -36,8 +37,12 @@ function expectOkDate(
   return result
 }
 
-function expectDuration(input: string, seconds: number) {
-  const result = parseDuration(input)
+function expectDuration(
+  input: string,
+  seconds: number,
+  opts: Parameters<typeof parseDuration>[1] = {},
+) {
+  const result = parseDuration(input, opts)
   if (!result.ok) {
     throw new Error(`parseDuration("${input}") failed: ${JSON.stringify(result.issues)}`)
   }
@@ -258,6 +263,205 @@ describe('parseDate weekdays and calendar periods', () => {
     expectDateRoundTrip(last, julyNow)
     expectDateRoundTrip(next, julyNow)
   })
+
+  it('parses day-part compounds from day offsets and weekdays', () => {
+    expectOkDate('tomorrow morning', new Date(2026, 6, 4, 9), 'hour')
+    expectOkDate('yesterday evening', new Date(2026, 6, 2, 19), 'hour')
+    expectOkDate('Friday morning', new Date(2026, 6, 3, 9), 'hour', {
+      now: new Date(2026, 6, 2, 12),
+    })
+
+    const noNow = parseDate('tomorrow morning')
+    expect(noNow.ok).toBe(false)
+    expect(!noNow.ok && noNow.issues.some((issue) => issue.code === 'NOW_REQUIRED')).toBe(true)
+  })
+
+  it('keeps English humanize output parseable for newly accepted English idioms', () => {
+    for (const input of ['tomorrow morning', 'Monday week']) {
+      const parsed = parseDate(input, { now: NOW })
+      expect(parsed.ok, input).toBe(true)
+      if (!parsed.ok) {
+        continue
+      }
+      const phrase = humanizeDate(parsed.date, { now: NOW })
+      const reparsed = parseDate(phrase, { now: NOW })
+      expect(reparsed.ok, `${input} -> ${phrase}`).toBe(true)
+    }
+  })
+
+  it('parses weekday-offset phrases from pack data', () => {
+    expectOkDate('Monday week', new Date(2026, 6, 13), 'day')
+    expectOkDate('a week Monday', new Date(2026, 6, 13), 'day')
+    expectOkDate('week on Tuesday', new Date(2026, 6, 14), 'day')
+    expectOkDate('Tuesday fortnight', new Date(2026, 6, 21), 'day')
+    const noNow = parseDate('Monday week')
+    expect(noNow.ok).toBe(false)
+    expect(!noNow.ok && noNow.issues.some((issue) => issue.code === 'NOW_REQUIRED')).toBe(true)
+
+    const frWeekdayOffset: LocalePack = {
+      locale: 'fr-weekday-offset',
+      extends: 'en',
+      date: {
+        weekdayOffsetPhrases: { 'en huit': 7, 'en quinze': 14 },
+        weekdayNames: ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'],
+        weekdays: { lundi: 1, mardi: 2 },
+      },
+    }
+    expectOkDate('lundi en huit', new Date(2026, 6, 13), 'day', {
+      locale: 'fr-weekday-offset',
+      localePacks: [frWeekdayOffset],
+    })
+    expectOkDate('mardi en quinze', new Date(2026, 6, 21), 'day', {
+      locale: 'fr-weekday-offset',
+      localePacks: [frWeekdayOffset],
+    })
+  })
+
+  it('parses after-next and before-last period modifiers from pack data', () => {
+    expectOkDate('the week after next', new Date(2026, 6, 13), 'week')
+    expectOkDate('the week before last', new Date(2026, 5, 15), 'week')
+    const noNow = parseDate('the week after next')
+    expect(noNow.ok).toBe(false)
+    expect(!noNow.ok && noNow.issues.some((issue) => issue.code === 'NOW_REQUIRED')).toBe(true)
+
+    const jaDoubleStep: LocalePack = {
+      locale: 'ja-double-step',
+      extends: 'en',
+      date: {
+        calendarPeriodPhrases: {
+          再来週: { modifier: 'afterNext', period: 'week' },
+          先々週: { modifier: 'beforeLast', period: 'week' },
+          再来月: { modifier: 'afterNext', period: 'month' },
+        },
+      },
+    }
+    expectOkDate('再来週', new Date(2026, 6, 20), 'week', {
+      now: new Date(2026, 6, 8, 12),
+      locale: 'ja-double-step',
+      localePacks: [jaDoubleStep],
+    })
+    expectOkDate('先々週', new Date(2026, 5, 22), 'week', {
+      now: new Date(2026, 6, 8, 12),
+      locale: 'ja-double-step',
+      localePacks: [jaDoubleStep],
+    })
+    expectOkDate('再来月', new Date(2026, 8, 1), 'month', {
+      now: new Date(2026, 6, 8, 12),
+      locale: 'ja-double-step',
+      localePacks: [jaDoubleStep],
+    })
+  })
+
+  it('parses localized period-edge phrases and month composition', () => {
+    const esEdges: LocalePack = {
+      locale: 'es-edges',
+      extends: 'en',
+      date: {
+        fillerWords: ['de'],
+        months: { julio: 6 },
+        periodEdgePhrases: {
+          'a finales': { period: 'month', edge: 'end' },
+          'a mediados': { period: 'month', edge: 'mid' },
+          'a principios': { period: 'month', edge: 'start' },
+        },
+        periodWords: { month: ['mes'] },
+      },
+    }
+    expectOkDate('a finales de mes', new Date(2026, 6, 31), 'day', {
+      now: new Date(2026, 6, 8, 12),
+      locale: 'es-edges',
+      localePacks: [esEdges],
+    })
+    expectOkDate('a principios de mes', new Date(2026, 6, 1), 'day', {
+      now: new Date(2026, 6, 8, 12),
+      locale: 'es-edges',
+      localePacks: [esEdges],
+    })
+    expectOkDate('a mediados de julio', new Date(2026, 6, 15), 'day', {
+      now: new Date(2026, 6, 8, 12),
+      locale: 'es-edges',
+      localePacks: [esEdges],
+    })
+
+    const frEdges: LocalePack = {
+      locale: 'fr-edges',
+      extends: 'en',
+      date: {
+        months: { juillet: 6 },
+        periodEdgePhrases: {
+          debut: { period: 'month', edge: 'start' },
+          fin: { period: 'month', edge: 'end' },
+          mi: { period: 'month', edge: 'mid' },
+        },
+      },
+    }
+    for (const [input, date] of [
+      ['début juillet', new Date(2027, 6, 1)],
+      ['mi-juillet', new Date(2026, 6, 15)],
+      ['fin juillet', new Date(2026, 6, 31)],
+    ] as const) {
+      expectOkDate(input, date, 'day', {
+        now: new Date(2026, 6, 8, 12),
+        locale: 'fr-edges',
+        localePacks: [frEdges],
+      })
+    }
+
+    const ptEdges: LocalePack = {
+      locale: 'pt-edges',
+      extends: 'en',
+      date: {
+        fillerWords: ['de', 'do'],
+        months: { julho: 6 },
+        periodEdgePhrases: {
+          fim: { period: 'month', edge: 'end' },
+          inicio: { period: 'month', edge: 'start' },
+          meio: { period: 'month', edge: 'mid' },
+          'no comeco': { period: 'month', edge: 'start' },
+        },
+        periodWords: { month: ['mes'] },
+      },
+    }
+    for (const [input, date] of [
+      ['início de julho', new Date(2027, 6, 1)],
+      ['fim de julho', new Date(2026, 6, 31)],
+      ['meio de julho', new Date(2026, 6, 15)],
+      ['no começo do mês', new Date(2026, 6, 1)],
+    ] as const) {
+      expectOkDate(input, date, 'day', {
+        now: new Date(2026, 6, 8, 12),
+        locale: 'pt-edges',
+        localePacks: [ptEdges],
+      })
+    }
+
+    const zhEdges: LocalePack = {
+      locale: 'zh-edges',
+      extends: 'en',
+      date: {
+        periodEdgePhrases: {
+          月初: { period: 'month', edge: 'start' },
+          月底: { period: 'month', edge: 'end' },
+          年底: { period: 'year', edge: 'end' },
+        },
+      },
+    }
+    expectOkDate('月底', new Date(2026, 6, 31), 'day', {
+      now: new Date(2026, 6, 8, 12),
+      locale: 'zh-edges',
+      localePacks: [zhEdges],
+    })
+    expectOkDate('月初', new Date(2026, 6, 1), 'day', {
+      now: new Date(2026, 6, 8, 12),
+      locale: 'zh-edges',
+      localePacks: [zhEdges],
+    })
+    expectOkDate('年底', new Date(2026, 11, 31), 'day', {
+      now: new Date(2026, 6, 8, 12),
+      locale: 'zh-edges',
+      localePacks: [zhEdges],
+    })
+  })
 })
 
 describe('parseDate absolute dates and times', () => {
@@ -340,6 +544,69 @@ describe('parseDate absolute dates and times', () => {
     }
   })
 
+  it('parses localized spoken-clock forms from DateVocabPack clock tables', () => {
+    expectOkDate('quarter of five', new Date(2026, 6, 4, 4, 45), 'minute')
+    expectOkDate('half seven', new Date(2026, 6, 4, 7, 30), 'minute')
+    expectOkDate("five o'clock", new Date(2026, 6, 4, 5), 'hour')
+
+    const esClock: LocalePack = {
+      locale: 'es-clock',
+      extends: 'en',
+      numberWords: { ones: { dos: 2, tres: 3, quince: 15 } },
+      date: {
+        clockMinuteWords: { cuarto: 15, media: 30 },
+        clockPastWords: ['y'],
+        clockToWords: ['menos'],
+        fillerWords: ['las'],
+      },
+    }
+    expectOkDate('las tres menos cuarto', new Date(2026, 6, 4, 2, 45), 'minute', {
+      locale: 'es-clock',
+      localePacks: [esClock],
+    })
+
+    const frClock: LocalePack = {
+      locale: 'fr-clock',
+      extends: 'en',
+      numberWords: { ones: { deux: 2, trois: 3 } },
+      date: {
+        clockMinuteWords: { demi: 30, demie: 30, quart: 15 },
+        clockPastWords: ['et'],
+        clockToWords: ['moins'],
+        fillerWords: ['le'],
+        unitWords: { heure: 'hour', heures: 'hour' },
+      },
+    }
+    expectOkDate('deux heures et quart', new Date(2026, 6, 4, 2, 15), 'minute', {
+      locale: 'fr-clock',
+      localePacks: [frClock],
+    })
+    expectOkDate('trois heures moins le quart', new Date(2026, 6, 4, 2, 45), 'minute', {
+      locale: 'fr-clock',
+      localePacks: [frClock],
+    })
+
+    const ptClock: LocalePack = {
+      locale: 'pt-clock',
+      extends: 'en',
+      numberWords: { ones: { duas: 2, tres: 3, quinze: 15 } },
+      date: {
+        clockMinuteWords: { meia: 30 },
+        clockPastWords: ['e'],
+        clockToWords: ['para as', 'para'],
+        fillerWords: ['as'],
+      },
+    }
+    expectOkDate('duas e meia', new Date(2026, 6, 4, 2, 30), 'minute', {
+      locale: 'pt-clock',
+      localePacks: [ptClock],
+    })
+    expectOkDate('quinze para as três', new Date(2026, 6, 4, 2, 45), 'minute', {
+      locale: 'pt-clock',
+      localePacks: [ptClock],
+    })
+  })
+
   it('does not misread bare "N to M" as a relative-minute time (that is a range)', () => {
     // "5 to 6" is 5:55 grammatically but almost always a time SLOT — leave it to
     // parseDateRange rather than misreading it. Bare 4-digit and decimals too.
@@ -419,6 +686,44 @@ describe('parseDuration', () => {
     expect(primeSeconds.issues.some((i) => i.code === 'SLANG_UNIT')).toBe(true)
     const month = expectDuration('1 month', 2_629_800)
     expect(month.issues.some((i) => i.code === 'CIVIL_AVERAGE')).toBe(true)
+  })
+
+  it('parses localized duration unit words from DateVocabPack tables', () => {
+    const esDuration: LocalePack = {
+      locale: 'es-duration',
+      extends: 'en',
+      numberWords: {
+        andWords: ['y'],
+        fractionWords: { cuarto: 1 / 4, media: 1 / 2, medio: 1 / 2 },
+        ofWords: ['de'],
+        ones: { dos: 2, un: 1, una: 1 },
+      },
+      date: {
+        fillerWords: ['de'],
+        unitWords: { hora: 'hour', horas: 'hour' },
+      },
+    }
+    const esOpts = { locale: 'es-duration', localePacks: [esDuration] }
+    expectDuration('2 horas', 7200, esOpts)
+    expectDuration('dos horas', 7200, esOpts)
+    expectDuration('media hora', 1800, esOpts)
+    expectDuration('un cuarto de hora', 900, esOpts)
+
+    const ptDuration: LocalePack = {
+      locale: 'pt-duration',
+      extends: 'en',
+      numberWords: {
+        andWords: ['e'],
+        fractionWords: { meia: 1 / 2, meio: 1 / 2 },
+        ones: { duas: 2, uma: 1, um: 1 },
+      },
+      date: {
+        unitWords: { hora: 'hour', horas: 'hour' },
+      },
+    }
+    const ptOpts = { locale: 'pt-duration', localePacks: [ptDuration] }
+    expectDuration('duas horas', 7200, ptOpts)
+    expectDuration('meia hora', 1800, ptOpts)
   })
 
   it('humanized duration output parses back', () => {

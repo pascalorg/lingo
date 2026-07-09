@@ -8,6 +8,7 @@ export const ja: LocalePack = {
     numberFormat: 'auto',
   },
   units: {
+    currency: [['JPY', '円']],
     length: [
       ['m', 'メートル'],
       ['cm', 'センチ センチメートル'],
@@ -62,9 +63,12 @@ export const ja: LocalePack = {
     rangeBetweenWords: ['間'],
     rangeFromWords: ['から'],
     rangeSeparatorWords: ['から', 'まで', 'へ', 'に'],
+    trailingApproxWords: ['ぐらい', 'くらい', 'ほど', '前後'],
+    trailingOkWords: ['個', '本', '匹'],
   },
   numberWords: {
     andWords: ['と'],
+    decimalWords: ['点'],
     fractionWords: {
       半: 1 / 2,
     },
@@ -89,14 +93,21 @@ export const ja: LocalePack = {
       万: 10_000,
       億: 100_000_000,
     },
+    tens: {
+      十: 10,
+    },
   },
   date: {
     calendarPeriodPhrases: {
       来週: { modifier: 'next', period: 'week' },
       来月: { modifier: 'next', period: 'month' },
       来年: { modifier: 'next', period: 'year' },
+      再来週: { modifier: 'afterNext', period: 'week' },
+      再来月: { modifier: 'afterNext', period: 'month' },
       先週: { modifier: 'last', period: 'week' },
       先月: { modifier: 'last', period: 'month' },
+      先々週: { modifier: 'beforeLast', period: 'week' },
+      先々月: { modifier: 'beforeLast', period: 'month' },
       去年: { modifier: 'last', period: 'year' },
     },
     compactOffset: {
@@ -118,11 +129,23 @@ export const ja: LocalePack = {
     dayOffsets: {
       今日: 0,
       明日: 1,
+      明後日: 2,
+      あさって: 2,
+      しあさって: 3,
       昨日: -1,
+      一昨日: -2,
+      おととい: -2,
     },
     dayTimePhrases: {
+      今朝: { dayOffset: 0, hour: 8 },
+      今晩: { dayOffset: 0, hour: 19 },
+      今夜: { dayOffset: 0, hour: 21 },
       正午: { dayOffset: 0, hour: 12 },
       明日の正午: { dayOffset: 1, hour: 12 },
+    },
+    periodEdgePhrases: {
+      月末: { edge: 'end', period: 'month' },
+      週末: { edge: 'end', period: 'week' },
     },
     timeAliases: {
       正午: { hour: 12 },

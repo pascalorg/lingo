@@ -15,9 +15,18 @@ import {
 import type { Registry } from './registry'
 import { approxEqual, roundDp } from './round'
 import type { Kind, UnitDef } from './types'
+import type { BuiltinKind, UnitRefByKind } from './unit-refs'
 
 /** Registry attachment kept out of enumerable state (clean console/JSON). */
 const REG = new WeakMap<Quantity | QuantityRange, Registry>()
+
+type UnitRefForKind<K extends Kind, Unit extends string> = string extends Unit
+  ? Unit
+  : [K] extends [BuiltinKind]
+    ? Unit extends UnitRefByKind<K>
+      ? Unit
+      : UnitRefByKind<K>
+    : Unit
 
 function assertFinite(value: number, field: string): void {
   if (!Number.isFinite(value)) {
@@ -260,7 +269,7 @@ export class Quantity<K extends Kind = Kind> {
    * quantity(72, 'in').to('cm').value // 182.88
    * ```
    */
-  to(unitId: string): Quantity<K> {
+  to<const Unit extends string>(unitId: Unit & UnitRefForKind<K, Unit>): Quantity<K> {
     const reg = registryOf(this)
     const unit = reg.unitByRef(this.kind, unitId)
     if (!unit) {
@@ -476,8 +485,8 @@ export interface QuantityRangeJSON {
  * r.ok && [r.range.min()?.value, r.range.max()?.value] // [5, 10]
  * ```
  */
-export class QuantityRange {
-  readonly kind: Kind
+export class QuantityRange<K extends Kind = Kind> {
+  readonly kind: K
   readonly minBase: number | null
   readonly maxBase: number | null
   readonly minUnit: string | null
@@ -492,7 +501,7 @@ export class QuantityRange {
 
   constructor(
     reg: Registry,
-    kind: Kind,
+    kind: K,
     bounds: {
       min?: RangeBound
       max?: RangeBound
@@ -534,14 +543,14 @@ export class QuantityRange {
    * r.ok && r.range.min()?.value // 5
    * ```
    */
-  min(): Quantity | null {
+  min(): Quantity<K> | null {
     return this.minBase === null
       ? null
       : new Quantity(registryOf(this), this.kind, this.minBase, this.minUnit!)
   }
 
   /** The upper bound, or `null` for an open-ended range ("at most 10 kg"). */
-  max(): Quantity | null {
+  max(): Quantity<K> | null {
     return this.maxBase === null
       ? null
       : new Quantity(registryOf(this), this.kind, this.maxBase, this.maxUnit!)
@@ -556,7 +565,7 @@ export class QuantityRange {
    * r.ok && r.range.center()?.value // 7.5
    * ```
    */
-  center(): Quantity | null {
+  center(): Quantity<K> | null {
     if (this.plusMinus) {
       return new Quantity(
         registryOf(this),
@@ -643,7 +652,7 @@ export class QuantityRange {
    * r.ok && r.range.to('lb').min()?.value // 11.023113109243878
    * ```
    */
-  to(unitId: string): QuantityRange {
+  to<const Unit extends string>(unitId: Unit & UnitRefForKind<K, Unit>): QuantityRange<K> {
     const reg = registryOf(this)
     const unit = reg.unitByRef(this.kind, unitId)
     if (!unit) {

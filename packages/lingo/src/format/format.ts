@@ -86,10 +86,46 @@ export interface RangeLike {
   plusMinus?: { centerBase: number; deltaBase: number; unit: string }
 }
 
+// --- Intl.NumberFormat cache (keyed on serialized locale + options) ---
+const NFCache = new Map<string, Intl.NumberFormat>()
+
+function cachedNF(locale: string, options: Intl.NumberFormatOptions): Intl.NumberFormat {
+  const key = [
+    locale,
+    options.style,
+    options.currency,
+    options.currencyDisplay,
+    options.unit,
+    options.unitDisplay,
+    options.useGrouping,
+    options.maximumFractionDigits,
+    options.minimumFractionDigits,
+  ].join()
+  let nf = NFCache.get(key)
+  if (nf) {
+    return nf
+  }
+  if (NFCache.size > 15) {
+    // Evict oldest (first inserted)
+    NFCache.delete(NFCache.keys().next().value!)
+  }
+  nf = new Intl.NumberFormat(locale, options)
+  NFCache.set(key, nf)
+  return nf
+}
+
 /** Units whose symbol hugs the number: 5°C, 11″, 15%. */
 function tightSymbol(symbol: string): boolean {
   return (
     symbol.startsWith('°') || symbol === '′' || symbol === '″' || symbol === '%' || symbol === '‰'
+  )
+}
+
+function tightUnit(unit: UnitDef, style: FormatOptions['style']): boolean {
+  return (
+    style !== 'long' &&
+    (style === 'narrow' || tightSymbol(unit.symbol)) &&
+    !' K M ft2 ft3 kΩ '.includes(` ${unit.id} `)
   )
 }
 
@@ -129,7 +165,7 @@ function renderNumber(value: number, opts: FormatOptions): string {
     return `${coefficientText}e${exponent}`
   }
   if (opts.locale) {
-    return new Intl.NumberFormat(opts.locale, {
+    return cachedNF(opts.locale, {
       useGrouping: opts.grouping ?? false,
       maximumFractionDigits: opts.precision ?? 20,
       minimumFractionDigits: opts.precision,
@@ -161,7 +197,7 @@ function intlWhole(unit: UnitDef, value: number, opts: FormatOptions): string | 
   if (opts.locale.toLowerCase().startsWith('en')) {
     return null
   }
-  return new Intl.NumberFormat(opts.locale, {
+  return cachedNF(opts.locale, {
     style: 'unit',
     unit: unit.intl,
     unitDisplay: style === 'long' ? 'long' : 'narrow',
@@ -189,7 +225,9 @@ function formatCurrency(unit: UnitDef, value: number, opts: FormatOptions): stri
   if (opts.precision !== undefined) {
     formatOptions.minimumFractionDigits = opts.precision
   }
-  return new Intl.NumberFormat(locale, formatOptions).format(value).replace(/[\u00a0\u202f]/g, ' ')
+  return cachedNF(locale, formatOptions)
+    .format(value)
+    .replace(/[\u00a0\u202f]/g, ' ')
 }
 
 /**
@@ -236,8 +274,7 @@ export function formatQuantity(reg: Registry, q: QuantityLike, opts: FormatOptio
   const num = renderNumber(value, opts)
   const label = unitText(unit, roundForPlural(value, opts), opts)
   const style = opts.style ?? 'symbol'
-  const tight = style !== 'long' && (style === 'narrow' || tightSymbol(unit.symbol))
-  return tight ? `${num}${label}` : `${num} ${label}`
+  return tightUnit(unit, style) ? `${num}${label}` : `${num} ${label}`
 }
 
 function roundForPlural(value: number, opts: FormatOptions): number {
@@ -342,8 +379,7 @@ export function formatCompound(
       pieces.push(`${value}${i === 0 ? '′' : '″'}`)
     } else {
       const label = unitText(unit, value, opts)
-      const tight = style === 'narrow' || (style !== 'long' && tightSymbol(unit.symbol))
-      pieces.push(tight ? `${value}${label}` : `${value} ${label}`)
+      pieces.push(tightUnit(unit, style) ? `${value}${label}` : `${value} ${label}`)
     }
   }
   const body = primes ? pieces.join('') : pieces.join(' ')
@@ -384,8 +420,7 @@ function formatMixedParts(reg: Registry, q: QuantityLike, opts: FormatOptions): 
     const value = Math.abs(part.value)
     const num = renderNumber(i === 0 ? part.value : value, numOpts)
     const label = unitText(unit, value, opts)
-    const tight = style === 'narrow' || (style !== 'long' && tightSymbol(unit.symbol))
-    const piece = tight ? `${num}${label}` : `${num} ${label}`
+    const piece = tightUnit(unit, style) ? `${num}${label}` : `${num} ${label}`
     if (i === 0) {
       out = piece
     } else if (part.value < 0) {

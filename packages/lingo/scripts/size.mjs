@@ -138,37 +138,72 @@ function check(label, size, budget) {
 // 36.9 (was 36.4): D66 — locale date vocab tables/frames are pack-owned
 // (deictics, day parts, relative offset markers, period words, compact CJK
 // offsets) and the shared profile merger/detector knows those optional fields.
+// 38.3 (was 36.9): D68 — wave-1 idiom engine: Romance number composition
+// (tens+and+ones, bareScales, composed table incl. vigesimal, decimalWords,
+// approximatePhrases) + CJK number engine (sub-token segmentation, 万/亿
+// grouping, elliptical/mixed forms, wave-dash + adjacent ranges, post-unit 半).
+// Measured 38.19 after golfing; capability is product (D14 pattern).
 const full = await bundleStdin(`export * from './src/index.ts'`)
-check('lingo (full)', full, 36_900)
+check('lingo (full)', full, 38_300)
 
 if (has('src/locales/es.ts')) {
   const enLocale = await bundleStdin(`export * from './src/locales/en.ts'`)
   check('./locales/en (standalone data)', enLocale, 2100)
+  // 1.9 (was 1.8): D69 — plan 033 locale idiom coverage: composed table
+  // (veintiuno-veintinueve fused forms + doscientos-novecientos compound
+  // hundreds), bareScales, decimalWords, approximatePhrases, trailingApproxPhrases,
+  // rangeAlternativeWords, rangeFromWords 'de', dayOffsets, fuzzyAmounts, approxWords.
+  // (raised again for restored breadth entries — coverage beats pack-byte golf, D14)
   const esLocale = await bundleStdin(`export * from './src/locales/es.ts'`)
-  check('./locales/es (standalone data)', esLocale, 1600)
+  check('./locales/es (standalone data)', esLocale, 1900)
+  // 2.1 (was 1.9): D69 — plan 033: exhaustive vigesimal composed table
+  // (soixante-dix..quatre-vingt-dix-neuf per CLDR RBNF), bareScales,
+  // decimalWords, approximatePhrases, trailingApproxPhrases/Words,
+  // rangeAlternativeWords, fuzzyAmounts (dizaine/vingtaine/centaine/millier),
+  // dayOffsets, dayTimePhrases.
+  // (raised again for restored breadth entries — coverage beats pack-byte golf, D14)
   const frLocale = await bundleStdin(`export * from './src/locales/fr.ts'`)
-  check('./locales/fr (standalone data)', frLocale, 1600)
+  check('./locales/fr (standalone data)', frLocale, 2100)
+  // 1.9 (was 1.7): D69 — plan 033: composed table (duzentos-novecentos
+  // compound hundreds + PT/BR regional teen variants), bareScales, decimalWords,
+  // approximatePhrases, trailingApproxPhrases, rangeAlternativeWords,
+  // dayOffsets, fuzzyAmounts, approxWords.
+  // (raised again for restored breadth entries — coverage beats pack-byte golf, D14)
   const ptLocale = await bundleStdin(`export * from './src/locales/pt.ts'`)
-  check('./locales/pt (standalone data)', ptLocale, 1600)
+  check('./locales/pt (standalone data)', ptLocale, 1900)
+  // 1.3 (was 1.2): D69 — plan 033: CJK number tables for the D68 walker
+  // (两/幺/点/半, scales), duration unit aliases (个小时/時間), trailing approx
+  // (左右/上下), day offsets (前天/一昨日), period edges, 円/JPY.
   const zhLocale = await bundleStdin(`export * from './src/locales/zh.ts'`)
-  check('./locales/zh (standalone data)', zhLocale, 1200)
+  check('./locales/zh (standalone data)', zhLocale, 1300)
+  // 1.4 (was 1.2): D69 — see zh note; ja adds 再来週/先々週 modifiers and
+  // 今朝/今晩 day-part phrases.
   const jaLocale = await bundleStdin(`export * from './src/locales/ja.ts'`)
-  check('./locales/ja (standalone data)', jaLocale, 1200)
+  check('./locales/ja (standalone data)', jaLocale, 1400)
   const enGbLocale = await bundleStdin(`export * from './src/locales/en-gb.ts'`)
   check('./locales/en-gb (standalone data)', enGbLocale, 250)
 
   const withRomanceLocales = await bundleStdin(
     `export * from './src/index.ts'; export { es } from './src/locales/es.ts'; export { fr } from './src/locales/fr.ts'; export { pt } from './src/locales/pt.ts'`,
   )
-  check('./locales es+fr+pt (marginal over full)', withRomanceLocales - full, 3100)
+  // 4.3 (was 3.9): D69 — plan 033 romance idiom composed tables; composed
+  // vigesimal (FR, 30 entries) + compound hundreds (ES 28, PT 16) + bareScales +
+  // decimal/approx/range/date fields across all three packs. Low cross-locale gzip
+  // deduplication because each language has unique words.
+  // (raised again for restored breadth entries — coverage beats pack-byte golf, D14)
+  check('./locales es+fr+pt (marginal over full)', withRomanceLocales - full, 4300)
   const withCjkLocales = await bundleStdin(
     `export * from './src/index.ts'; export { zh } from './src/locales/zh.ts'; export { ja } from './src/locales/ja.ts'`,
   )
-  check('./locales zh+ja (marginal over full)', withCjkLocales - full, 1600)
+  // 2.0 (was 1.6): D69 — plan 033 CJK idiom pack data (see zh/ja standalone
+  // notes); low zh/ja gzip dedup because the scripts differ.
+  check('./locales zh+ja (marginal over full)', withCjkLocales - full, 2000)
   const withAllLocales = await bundleStdin(
     `export * from './src/index.ts'; export { es } from './src/locales/es.ts'; export { fr } from './src/locales/fr.ts'; export { pt } from './src/locales/pt.ts'; export { zh } from './src/locales/zh.ts'; export { ja } from './src/locales/ja.ts'; export { enGb } from './src/locales/en-gb.ts'`,
   )
-  check('./locales all loaded (marginal over full)', withAllLocales - full, 4500)
+  // 6.3 (was 5.8): D69 — plan 033 romance idiom packs (see above).
+  // (raised again for restored breadth entries — coverage beats pack-byte golf, D14)
+  check('./locales all loaded (marginal over full)', withAllLocales - full, 6300)
 }
 
 // 19.9 (was 19.6): D48 — shared parser recognizes GBP pence idioms and
@@ -210,8 +245,11 @@ if (has('src/locales/es.ts')) {
 // fails. Keeps auto mode robust without importing locale data into core.
 // 24.2 (was 23.8): D66 — the shared locale profile merge/detection layer knows
 // the optional date-vocab fields; the actual language strings remain in packs.
+// 25.6 (was 24.2): D68 — wave-1 idiom engine mechanisms live in the shared
+// number/parse layer (Romance composition fields + CJK number walker), so
+// BYO-registry cores get them too. Measured 25.46 after golfing.
 const core = await bundleStdin(`export * from './src/core/index.ts'`)
-check('./core (engine, no unit data)', core, 24_200)
+check('./core (engine, no unit data)', core, 25_600)
 
 if (has('src/date/index.ts')) {
   const dateAlone = await bundleStdin(`export * from './src/date/index.ts'`)
@@ -256,7 +294,15 @@ if (has('src/date/index.ts')) {
   // 37.6 (was 37.3): D64 — locale unit-vocab detection cascade; the standalone
   // date build inherits the shared alias-aware detector.
   // 38.2 (was 37.6): D66 — locale date vocab readers plus pack-owned date frames.
-  check('./date (standalone, incl. engine)', dateAlone, 38_200)
+  // 38.3 (was 38.2): D67 — anchored-range two-way fix (time-grain "N hours
+  // starting <anchor>" humanize phrasing) + range-zone threading through the
+  // anchored path (measured 38.26 after golfing; correctness is product, D14).
+  // 39.7 (was 38.3): D68 — standalone date inherits the wave-1 idiom engine
+  // through the shared number/parse layer (measured 39.51 after golfing).
+  // 41.0 (was 39.7): D69 — localized date grammar seams (clock past/to/minute
+  // words, period edges, weekday offsets, afterNext/beforeLast, day-part
+  // compounds, localized durations). Measured 40.85 after golfing.
+  check('./date (standalone, incl. engine)', dateAlone, 41_000)
   const withDate = await bundleStdin(
     `export * from './src/index.ts'; export * from './src/date/index.ts'`,
   )
@@ -276,7 +322,9 @@ if (has('src/date/index.ts')) {
   // 12.9 (was 12.6): D64 — locale unit-vocab detection cascade (see the
   // standalone note above).
   // 13.1 (was 12.9): D66 — date-only parser readers for locale date vocab.
-  check('./date (marginal over full)', withDate - full, 13_100)
+  // 14.4 (was 13.1): D69 — localized date grammar consumers live entirely in
+  // the date module (see standalone note). Measured 14.29 after golfing.
+  check('./date (marginal over full)', withDate - full, 14_400)
 }
 
 if (has('src/dom/index.ts')) {
@@ -395,7 +443,9 @@ if (has('src/ai/index.ts')) {
   // machinery still tree-shakes out of /ai. The D64 detector grows `full`, so it
   // cancels in this marginal — the growth here is date-grammar weight only.
   // 16.1 (was 15.7): D66 — /ai date fields bundle the locale-aware date parser.
-  check('./ai (marginal over full)', withAi - full, 16_100) // D30: +notation in shared renderNumber
+  // 17.4 (was 16.1): D69 — the localized date grammar cascades through the
+  // bundled date module (see ./date notes). Measured 17.27 after golfing.
+  check('./ai (marginal over full)', withAi - full, 17_400) // D30: +notation in shared renderNumber
   if (has('src/mcp/index.ts')) {
     const withMcp = await bundleStdin(
       `export * from './src/index.ts'; export * from './src/ai/index.ts'; export * from './src/mcp/index.ts'`,

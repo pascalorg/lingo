@@ -2,6 +2,7 @@ import { toBase } from '../core/convert'
 import { hasError, makeIssue } from '../core/errors'
 import { Quantity, QuantityRange } from '../core/quantity'
 import type { Kind } from '../core/types'
+import { consumeCjkPostUnitHalf, prepareCjkValueTokens } from '../number/cjk'
 import { parseValue } from '../number/value'
 import {
   type Alternative,
@@ -25,9 +26,9 @@ import {
   isCurrencyPrefixHit,
   matchCurrencyMinor,
   minorCurrencyScale,
-  parseQty,
-  parseQtyWithQuals,
+  parseQty as parseQtyBase,
   parseQualifiers,
+  type QtyFlags,
   type QtyNode,
   type QualifiedQty,
   resolveImplied,
@@ -118,6 +119,11 @@ export function parseRangeOrQty(p: ParserState, i: number, atStart: boolean): Pa
     }
   }
 
+  const adjacent = tryAdjacentCjkRange(p, a, i)
+  if (adjacent) {
+    return adjacent
+  }
+
   // Spread from fuzzy amounts ("a few minutes" → 2–4 min).
   if (a.spread && a.kind && a.headUnit) {
     const unit = p.reg.unit(a.kind, a.headUnit)!
@@ -131,6 +137,71 @@ export function parseRangeOrQty(p: ParserState, i: number, atStart: boolean): Pa
 
   // Single quantity / bare number.
   return singleResult(p, a, quals.approximate)
+}
+
+function parseQty(
+  p: ParserState,
+  i: number,
+  atStart: boolean,
+  expectKind?: Kind,
+  flags?: QtyFlags,
+): QtyNode | null {
+  prepareCjkValueTokens(p.tokens, i, p.profile.numberWords)
+  const q = parseQtyBase(p, i, atStart, expectKind, flags)
+  return q ? withCjkPostUnitHalf(p, q) : null
+}
+
+function parseQtyWithQuals(
+  p: ParserState,
+  i: number,
+  atStart: boolean,
+  flags?: QtyFlags,
+): QualifiedQty | null {
+  const quals = parseQualifiers(p, i)
+  const q = parseQty(p, quals.next, atStart, undefined, flags)
+  if (!q) {
+    return null
+  }
+  const qualified = q as QualifiedQty
+  qualified.quals = quals
+  if (quals.approximate) {
+    qualified.approximate = true
+  }
+  return qualified
+}
+
+function withCjkPostUnitHalf(p: ParserState, q: QtyNode): QtyNode {
+  const half =
+    q.kind && q.headUnit && consumeCjkPostUnitHalf(p.tokens, q.nextToken, p.profile.numberWords)
+  if (!half) {
+    return q
+  }
+  const part = q.parts[q.parts.length - 1]
+  const unit = p.reg.unit(q.kind!, part?.unit ?? q.headUnit!)
+  if (!unit) {
+    return q
+  }
+  q.base += 0.5 * unit.factor
+  if (part?.unit === unit.id) {
+    part.value += 0.5
+  } else {
+    q.parts.push({ unit: unit.id, value: 0.5 })
+  }
+  q.normEnd = half.end
+  q.nextToken = half.next
+  return q
+}
+
+function tryAdjacentCjkRange(p: ParserState, a: QtyNode, exprStart: number): Parsed | null {
+  const next = p.tokens[a.nextToken]
+  if (!next || next.spaceBefore || a.value.value < 1 || a.value.value >= 9) {
+    return null
+  }
+  const b = parseQty(p, a.nextToken, false)
+  if (!b || b.value.value !== a.value.value + 1) {
+    return null
+  }
+  return buildRange(p, a as QualifiedQty, b as QualifiedQty, exprStart)
 }
 
 /** "-", "–", "—", "to", "..", "..." between two values. */

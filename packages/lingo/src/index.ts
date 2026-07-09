@@ -244,7 +244,7 @@ export function fromJSON(json: QuantityJSON | QuantityRangeJSON): Quantity | Qua
 }
 
 // Result helpers are registry-free module functions; their docs live in result.ts.
-export { candidateOf, firstError, isConversion, isQuantity, isRange } from './result'
+export { candidateOf, firstError, isConversion, isNumber, isQuantity, isRange } from './result'
 /**
  * Render an issue's message against a different `messages` pack than the one
  * it was created with.

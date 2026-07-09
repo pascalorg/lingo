@@ -4,6 +4,7 @@ import {
   firstError,
   formatIssue,
   isConversion,
+  isNumber,
   isQuantity,
   isRange,
   lingo,
@@ -28,6 +29,7 @@ describe('result helpers', () => {
     const quantity = lingo('2 ft')
     const range = lingo('5-10 kg')
     const conversion = lingo('72 in to cm')
+    const bareNumber = lingo('72')
 
     expect(isQuantity(quantity)).toBe(true)
     if (isQuantity(quantity)) {
@@ -42,6 +44,11 @@ describe('result helpers', () => {
     expect(isConversion(conversion)).toBe(true)
     if (isConversion(conversion) && 'value' in conversion.converted) {
       expect(conversion.converted.value).toBeCloseTo(182.88, 9)
+    }
+
+    expect(isNumber(bareNumber)).toBe(true)
+    if (isNumber(bareNumber)) {
+      expect(bareNumber.value).toBe(72)
     }
   })
 

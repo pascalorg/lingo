@@ -8,9 +8,11 @@ humanizes them back. Zero runtime dependencies. The size gate lives in
 `scripts/size.mjs`, and the package includes thirty-three built-in kinds
 (chrono-node needs 35 kB for dates alone). English is the default; opt-in locale
 packs (`createLingo({ locales })`, `@pascal-app/lingo/locales/*`) add number words,
-grammar, units, and relative dates for Spanish, French, Portuguese, Chinese,
-Japanese, and en-GB (plan 031). Number *formatting* is locale-aware via `Intl` in
-every locale; `humanizeDate()` output stays English for now.
+grammar, units, and relative-date idioms for Spanish, French, Portuguese,
+Chinese, Japanese, and en-GB. Wave-1 packs cover Romance number composition,
+CJK number tokens, localized date grammar, and per-locale corpus gates. Number
+*formatting* is locale-aware via `Intl` in every locale; `humanizeDate()` output
+stays English for now.
 
 ```ts
 import { lingo, parseQuantity, convert, tryConvert } from '@pascal-app/lingo'
@@ -259,6 +261,9 @@ lingo('1 kgf/cm²').quantity.to('kPa').value      // 98.0665 — use kgf/cm²; k
 quantity(3e5, 'm').format({ notation: 'scientific' })   // "3e5 m" (also 'engineering'; every style re-parses)
 ```
 
+Literal `Quantity.to()` / `QuantityRange.to()` targets are same-kind checked
+too; dynamic strings still validate at runtime.
+
 Bare `bps` is finance shorthand for basis points. Use `bit/s`, `kbit/s`, or
 network spellings such as `Mbps` when you mean bits per second.
 Untyped glued `1M` stays rejected because `M` is a future multiplier hazard;
@@ -447,7 +452,9 @@ completions('5', { kind: 'length' }).map((c) => c.text)
 
 The DOM field is headless about this too: `lingoInput` accepts injected
 `complete` / `onComplete` hooks, so you render your own dropdown — the library ships
-no UI.
+no UI. When completions are enabled it wires the combobox side of the ARIA
+contract (`role="combobox"`, `aria-autocomplete="list"`, `aria-expanded`), and
+`listboxId` sets `aria-controls` for your listbox.
 
 ## Extending
 
@@ -487,18 +494,37 @@ Parse non-English input by loading packs on an instance — English stays the de
 
 ```ts
 import { createLingo } from '@pascal-app/lingo'
+import { parseDate } from '@pascal-app/lingo/date'
 import { es } from '@pascal-app/lingo/locales/es'
+import { zh } from '@pascal-app/lingo/locales/zh'
 
-const app = createLingo({ locales: [es] })
-app.parse('dos kg', { locale: 'es' })          // 2 kg
+const app = createLingo({ locales: [es, zh] })
+app.parse('dos kg', { locale: 'es' })           // 2 kg
 app.parse('al menos 2 m', { locale: 'es' })     // ≥ 2 m  (open range)
 app.parse('entre 5 y 10 kg', { locale: 'es' })  // 5–10 kg
+
+const spanish = app.parseQuantity('treinta y cinco kilos', { locale: 'es' })
+spanish.ok && spanish.quantity.to('kg').value   // 35
+
+const chinese = app.parseQuantity('三十五公斤', { locale: 'zh' })
+chinese.ok && chinese.quantity.to('kg').value   // 35
+
+const clock = parseDate('las tres menos cuarto', {
+  locale: 'es',
+  localePacks: [es],
+  now: new Date(2026, 6, 3, 14, 30),
+})
+clock.ok && [clock.date.getHours(), clock.date.getMinutes()] // [2, 45]
+
 // omit `locale` to auto-detect among the loaded packs
 ```
 
 Packs (`en`, `en-gb`, `es`, `fr`, `pt`, `zh`, `ja`) are additive and tree-shakeable;
 they add number words, units, ranges, and relative dates (through
-`@pascal-app/lingo/date`) for their language. Requesting an unloaded locale returns
+`@pascal-app/lingo/date`) for their language. The first idiom wave includes
+Romance tens/hundreds/decimal words, CJK scale/grouped numbers and post-unit
+half, localized clock phrases, period edges, weekday offsets, and locale unit
+words in date/duration parsing. Requesting an unloaded locale returns
 `LOCALE_NOT_LOADED` rather than silently parsing as English; `humanizeDate()` output
 stays English for now.
 
@@ -784,7 +810,7 @@ NONFINITE · LOCALE_NOT_LOADED · RANGE_MIN · RANGE_MAX · REQUIRED · UNSUPPOR
 RANGE_OPEN_BOUND_NOT_ALLOWED · TYPO_CORRECTED · AMBIGUOUS_NUMBER ·
 AMBIGUOUS_UNIT · AMBIGUOUS_DATE · RANGE_REVERSED · COMPOUND_OVERFLOW ·
 CIVIL_AVERAGE · UNIT_ASSUMED · WEEKDAY_ASSUMED_NEXT · SLANG_UNIT · TZ_IGNORED ·
-AMBIGUOUS_TIMEZONE · LOCALE_NOT_LOADED`
+AMBIGUOUS_TIMEZONE`
 
 Every issue carries a typed `data` payload (`LingoIssue<'UNKNOWN_UNIT'>` knows
 `data.unit` and `data.suggestions`). `NOW_REQUIRED` fires when a date input
@@ -796,10 +822,11 @@ Override any message: `parseQuantity(text, { messages: { UNKNOWN_UNIT: 'Try cm o
 Result helpers, so you never hand-roll the same narrowing twice:
 
 ```ts
-import { firstError, isQuantity, candidateOf, formatIssue } from '@pascal-app/lingo'
+import { firstError, isQuantity, isNumber, candidateOf, formatIssue } from '@pascal-app/lingo'
 
 const r = lingo(input, opts)
 if (isQuantity(r)) save(r.quantity.to('m').value)
+else if (isNumber(r)) save(r.value) // bare number, no unit ("72")
 else showError(formatIssue(firstError(r)!), candidateOf(r)?.quantity)
 ```
 

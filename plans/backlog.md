@@ -159,3 +159,142 @@ surfaces mid-task, add it here and keep going — don't act on it.
 - **CHANGELOG contributor attribution** — adopt a
   `**title** — description ([#PR](url)) by [@handle]` format once external
   contributions exist.
+
+## From research pass 2026-07-09 (deferred)
+
+Items surfaced by the multi-agent library/competitive research pass. Each is
+recorded here as a parking-lot idea, not a commitment. See
+`wiki/research/library-craft.md`, `wiki/research/competitive-landscape.md`,
+`wiki/research/base-ui-headless-patterns.md` for full context.
+
+- **chrono-node-style known/implied component certainty model** — add a
+  `certainty` map per date component (`'explicit'|'inferred'|'default'`) to
+  `DateResult`. Helps LLM tool consumers distinguish what the user said from what
+  was assumed. (competitive-landscape.md, lesson 0)
+- **Confidence scores on parse results** — a numeric `confidence: 0-1` field on
+  `QuantityResult`/`DateResult`, computed from exact-vs-fuzzy match, typo
+  distance, and alternatives presence. Helps tool callers decide accept-vs-clarify.
+  (competitive-landscape.md, lesson 8)
+- **AI SDK cookbook recipe + `lingoSchema()` adapter docs** — submit an MDX recipe
+  to `github.com/vercel/ai` showing `quantityField` as `tool()` inputSchema,
+  `lingoObject` composing fields, and `repairToolCallWith`. Highest-leverage
+  external discovery surface. (ai-structured-output.md addendum, 2026-07-09)
+- **`repairToolCallWith` v7 signature alignment check** — verify and document
+  that `repairToolCallWith()` can be passed directly as
+  `experimental_repairToolCall` on `ToolLoopAgent` without an adapter function.
+  (ai-structured-output.md addendum, 2026-07-09)
+- **Telemetry metadata for `lingoTool`** — emit which fields were canonicalized,
+  corrections applied, and parse duration into AI SDK tool `metadata` for
+  OpenTelemetry `execute_tool` spans. (ai-structured-output.md addendum,
+  2026-07-09)
+- **Locale message packs inside LocalePack** — bundle issue-code copy per locale
+  inside the locale pack data module so non-English fields get localized error
+  messages without a separate message-pack import. (library-craft.md, Drizzle
+  multi-bridge pattern)
+- **Cross-kind alias collision whitelist validation** — plan 003 spec gap:
+  validate at `registerKind`/`registerUnits` time that new aliases do not collide
+  with existing aliases in other kinds, unless explicitly whitelisted. Currently
+  silent; `registerUnitAliases` also silently drops unknown unitRefs.
+  (audit: extensibility, finding 3)
+- **`defineLocalePack` type-checking helper** — an identity function
+  `defineLocalePack<const T extends LocalePack>(pack: T): T` (same pattern as
+  `defineKind`) for type-safe locale pack authoring with literal preservation.
+  (audit: extensibility, finding 4)
+- **React peerDependency range widening** (`^19` to `>=18.2.0 || ^19`) — the
+  hook uses only React 16.8+ APIs (`useRef`, `useState`, `useCallback`,
+  `useEffect`). The `^19` constraint excludes React 18 users (still widely
+  deployed). Needs owner decision on whether to support 18's `RefObject` type
+  shape. (audit: integration, finding 2)
+- **Vue/Svelte/Solid adapters** — the DOM controller is framework-agnostic; thin
+  adapter hooks for Vue (`useLingoInput` composable), Svelte (action), and Solid
+  (directive) would expand reach without new core deps. Low urgency until React
+  adoption proves the pattern. (competitive-landscape.md, positioning)
+- **Per-function docs pages** — evolve `docs-catalog.ts` to generate individual
+  routes (`/docs/parseQuantity`, `/docs/convert`, etc.) from existing JSDoc
+  `@example` blocks. Top-20 exports first. (library-craft.md, lodash lesson 1)
+- **Competitor benchmark comparisons** (`bench-compare`) — measure lingo parse
+  operations against chrono-node (dates), convert-units (conversion), and ms
+  (durations) on shared inputs; publish in docs. (library-craft.md, es-toolkit
+  lesson 0; competitive-landscape.md throughput section)
+- **DOM paste handling** — detect `inputType === 'insertFromPaste'` in `onInput`,
+  skip debounce, strip newlines/formatting, parse immediately. Currently pasted
+  text is debounced like typing. (audit: integration, finding 4)
+- **React hook completions integration** — expose `completions[]` and
+  `highlightedIndex` in `UseLingoInputResult` so React consumers can render a
+  combobox popup with the ARIA contract from Base UI research.
+  (base-ui-headless-patterns.md)
+- **`partialState` double-parse** — the DOM controller parses once for
+  `partialState` classification and again on commit; if the debounced parse
+  result is still current at commit time, reuse it. (audit: performance, implied)
+- **IssueCode extensibility for third-party kinds** — add `| (string & {})` to
+  `IssueCode` (matching the `Kind` pattern) so custom kinds can define
+  domain-specific issue codes without forking. Adjust `Messages` type to allow
+  partial mapping. (audit: extensibility, finding 0)
+- **`lingoMiddleware` for AI SDK** — a `wrapLanguageModel()` middleware that
+  runs `canonicalizeValues` on tool call arguments before `execute()`, giving
+  infrastructure-level quantity/date normalization without per-tool boilerplate.
+  (ai-structured-output.md addendum, 2026-07-09)
+- **`assertStrictSafe(field)` utility** — walk a LingoField's emitted JSON
+  Schema and throw if any object has `additionalProperties:true` or missing
+  `required`; catches the `passthrough:true` footgun at definition time for
+  OpenAI/Anthropic strict mode. (ai-structured-output.md addendum, 2026-07-09)
+
+## From locale idiom research pass 2026-07-09 (wave 2, deferred)
+
+Items deferred from plan 033 wave 1. See `wiki/research/locale-idioms.md` for
+full context.
+
+- **New locales de/it/nl/ko/ar + RTL/Eastern-Arabic numerals** — the five
+  highest-demand missing locales after the shipped six. Arabic requires RTL text
+  handling in spans and Eastern-Arabic digit normalization (٠-٩ -> 0-9). German
+  needs 'halb sieben' = 6:30 (half-before semantics). Korean shares CJK scale
+  structure. (competitive-landscape.md: chrono has 14 locales vs lingo's 7)
+- **CLDR-generated unit-alias packs at scale** — use `cldr-units-full` JSON to
+  auto-generate unitAliases entries (singular + plural + gender variants) for all
+  locale packs instead of manual curation. Requires a build-time script and a
+  decision on which CLDR unit subset to include per pack (all ~300 units is too
+  large for size budgets).
+- **Localized humanize/format output** — `humanizeDate` and `format` currently
+  emit English text regardless of locale. Producing locale-appropriate output
+  ("hace 3 dias", "il y a 3 jours") requires either CLDR pattern templates or
+  per-locale format strings in the date vocab pack. Deferred by D66; the two-way
+  guarantee means locale humanize output must also re-parse in that locale.
+- **Height/weight elliptical speech** — 'uno ochenta' (es, 1.80m), 'one eighty'
+  (en, 180), 'un metre quatre-vingts' (fr, 1.80m). Implied-unit compound numbers
+  where the speaker drops the unit and uses a decimal-shorthand convention. Deeply
+  ambiguous without domain context (height vs generic number); needs a
+  context-hint or dedicated compound-height mode.
+- **Currency slang multipliers** — 'a grand' / 'five grand' (en, x1000), '5
+  lucas' (es-CL, x1000 CLP), 'un baton' (fr slang, x10000). These are
+  kind-scoped scale words that only apply to currency. The current
+  numberWords.scales is kind-agnostic; needs either kind-scoped scales or
+  dedicated currency-multiplier entries.
+- **Counters/classifiers as first-class concept** — Japanese 個/人/本/匹 and
+  Chinese 个/只/条 are mandatory between numbers and nouns. Currently treated as
+  unknown tokens or fillers. Elevating them to a `classifierWords` pack field
+  consumed by the quantity parser would let CJK expressions with counters parse
+  cleanly (三個, 五人, 二匹).
+- **`excludePatterns` / ambiguity-filter pack field** — per-locale list of
+  strings where numeral characters appear in non-numeric words (Chinese: 十足,
+  大陆, 放肆; Japanese: 一応, 二度手間). Prevents false-positive number matches
+  in free text. Pattern from Microsoft/Recognizers-Text AmbiguityFiltersDict.
+- **Script to mine duckling Corpus.hs into corpus rows** — a build-time tool
+  that parses Duckling's Haskell corpus files and emits TypeScript
+  `tests/corpus/locale-<id>-source.mjs` arrays. Priority: ZH/JA Numeral, FR
+  Time, EN Quantity. BSD-3 requires copyright notice in generated files.
+
+## Wave-1 idiom deferrals (2026-07-09, D69)
+
+- **No-space CJK trailing approx** — `五公斤左右` / `五キロぐらい` still fail:
+  the suffix particle merges into the unit token; the unit matcher needs
+  approx-suffix stripping for CJK word tokens (spaced forms work today).
+- **CJK spoken clock** — `午後3時半` / `三点一刻` need the D69 clock fields to
+  compose with the CJK tokenizer path; deferred from the date-grammar package.
+- **Unit-first implied-1 quantities** — `kilo y medio`, `hora y media`,
+  `metro e meio`: unit-before-number with implied quantity 1; needs a
+  quantity-grammar seam, was cut from D69 for size.
+- **CJK decimal-word composition** — `三点五公斤` (3.5 kg): the 点 decimal word
+  needs to work inside the CJK number walker, not just as a spaced token.
+- **`个` classifier before duration units in ranges** — `三四个小时` composes
+  adjacent-number range + classifier + unit; blocked on the classifier field
+  (see counters/classifiers item above).

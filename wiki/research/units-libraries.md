@@ -69,3 +69,35 @@ Factors are uncopyrightable facts; attribute alias lists borrowed from Apache-2.
 **Steal**: libphonenumber DX shape (rich value object, lenient extract + strict mode, isPossible/isValid tiers, reason codes, findInText offsets, AsYouType, metadata tiers); js-quantities alias craft + temp delta split; UnitMath config discipline + formatPrefixes; mathjs splitUnit + exact-rational habit; convert-units toBest knobs + describe(); Intl as display backend.
 
 **Avoid**: rounded anchors; silent binary/decimal switches; context-free single-letter aliases; case-insensitive symbol matching; alias collisions without build-time rejection; arithmetic on absolute temp scales; mixed regional conventions in one table; undocumented calendar averages; mutable global registries. None of the six libs parse `5'11"`, ′/″/℃ codepoints, `1½ cups`, decimal commas, spaced `sq ft`, `cbm`, troy oz, or ranges — that surface is ours.
+
+## Competitive positioning update (2026-07-09)
+
+Multi-agent web research pass 2026-07-09, cross-referencing download numbers and
+feature matrices across the units/measurement ecosystem. Claims are
+agent-reported and worth re-verifying.
+
+**Download context (npm weekly, agent-reported 2026-07-09)**: convert-units ~194K,
+js-quantities (not separately tracked, bundled in projects), mathjs ~1.6M (full
+math suite, not just units). None parses natural-language text; all require exact
+programmatic keys.
+
+**Exclusive lingo differentiators vs the units ecosystem**:
+
+1. Spans on every result — no units library ships character offsets.
+2. Two-way guarantee — none guarantees `parse(format(x)) === x`.
+3. Standard Schema implementation — no units library is a Standard Schema
+   validator, so none plugs into AI SDK, TanStack Form, or react-hook-form
+   without adapter code.
+4. Size: lingo full (36.9 kB gz, 0 deps) is comparable to convert-units alone
+   (~8 kB gz, conversion only) while covering parsing + conversion + formatting +
+   fuzzy + completions.
+5. NL parsing of compound forms (`5'11"`, `1½ cups`, spaced `sq ft`, decimal
+   commas, primes/smart quotes) — surface no competitor handles.
+
+**Gaps to close**: convert-units' `toBest()` `exclude`/`cutOff` options are not
+yet matched in lingo's `pickBestUnit`; js-quantities' troy-oz coverage shows a
+real-world demand lingo now serves (D-entry exists). The `(string & {})` escape
+hatch on Kind should extend to field options (`QuantityFieldOptions.unit`) for
+autocomplete-with-fallback.
+
+(agent-researched, 2026-07-09; see also `wiki/research/competitive-landscape.md`)

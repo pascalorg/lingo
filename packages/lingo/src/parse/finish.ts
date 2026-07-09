@@ -4,6 +4,7 @@ import { Quantity, QuantityRange } from '../core/quantity'
 import {
   applySeverity,
   confidenceForIssues,
+  eatAnyPhrase,
   eatPhrase,
   exampleFor,
   type FailResult,
@@ -265,16 +266,6 @@ function tryFuzzy(p: ParserState, i: number): Parsed | null {
 // Trailing input
 
 const TRAILING_OK = new Set(['.', '!', '?', ')', ','])
-
-function eatAnyPhrase(p: ParserState, pos: number, phrases: Iterable<string>): number {
-  for (const phrase of phrases) {
-    const nx = eatPhrase(p, pos, phrase)
-    if (nx >= 0) {
-      return nx
-    }
-  }
-  return -1
-}
 
 function finishTrailing(p: ParserState, parsed: Parsed): LingoResult {
   if (!parsed.result.ok) {

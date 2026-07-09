@@ -33,10 +33,10 @@ export const zh: LocalePack = {
     duration: [
       ['s', '秒'],
       ['min', '分钟'],
-      ['h', '小时'],
+      ['h', '小时 个小时'],
       ['d', '天'],
       ['wk', '周 星期'],
-      ['mo', '月'],
+      ['mo', '月 个月'],
       ['yr', '年'],
     ],
   },
@@ -47,7 +47,7 @@ export const zh: LocalePack = {
     },
   ],
   grammar: {
-    approximateWords: ['约', '大约', '大概', '左右', '很热'],
+    approximateWords: ['约', '大约', '大概', '差不多', '左右', '很热'],
     boundPhrases: [
       { phrase: '至少', bound: 'min', exclusive: false },
       { phrase: '不少于', bound: 'min', exclusive: false },
@@ -58,13 +58,17 @@ export const zh: LocalePack = {
     ],
     conversionWords: ['到', '为', '成'],
     phraseWords: ['从', '到', '至', '约', '大约', '至少', '最多'],
+    rangeAlternativeWords: ['或'],
     rangeAndWords: ['和', '与'],
     rangeBetweenWords: ['介于'],
     rangeFromWords: ['从'],
     rangeSeparatorWords: ['到', '至'],
+    trailingApproxWords: ['左右', '上下'],
+    trailingOkWords: ['个'],
   },
   numberWords: {
     andWords: ['和'],
+    decimalWords: ['点'],
     fractionWords: {
       半: 1 / 2,
     },
@@ -73,6 +77,7 @@ export const zh: LocalePack = {
       零: 0,
       〇: 0,
       一: 1,
+      幺: 1,
       二: 2,
       两: 2,
       三: 3,
@@ -90,6 +95,9 @@ export const zh: LocalePack = {
       万: 10_000,
       亿: 100_000_000,
     },
+    tens: {
+      十: 10,
+    },
   },
   date: {
     calendarPeriodPhrases: {
@@ -101,12 +109,13 @@ export const zh: LocalePack = {
       去年: { modifier: 'last', period: 'year' },
     },
     compactOffset: {
-      futureSuffixes: ['后'],
+      futureSuffixes: ['后', '以后'],
       pastSuffixes: ['前'],
       unitWords: {
         秒: 'second',
         分钟: 'minute',
         分: 'minute',
+        个小时: 'hour',
         小时: 'hour',
         天: 'day',
         日: 'day',
@@ -120,11 +129,23 @@ export const zh: LocalePack = {
     dayOffsets: {
       今天: 0,
       明天: 1,
+      后天: 2,
+      大后天: 3,
       昨天: -1,
+      前天: -2,
+      大前天: -3,
     },
     dayTimePhrases: {
       中午: { dayOffset: 0, hour: 12 },
       明天中午: { dayOffset: 1, hour: 12 },
+    },
+    periodEdgePhrases: {
+      月初: { edge: 'start', period: 'month' },
+      月中: { edge: 'mid', period: 'month' },
+      月底: { edge: 'end', period: 'month' },
+      年初: { edge: 'start', period: 'year' },
+      年底: { edge: 'end', period: 'year' },
+      周末: { edge: 'end', period: 'week' },
     },
     timeAliases: {
       中午: { hour: 12 },
@@ -135,6 +156,7 @@ export const zh: LocalePack = {
     零: 0,
     〇: 0,
     一: 1,
+    幺: 1,
     二: 2,
     两: 2,
     三: 3,

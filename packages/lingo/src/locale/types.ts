@@ -8,7 +8,7 @@ export type WordSetInput = ReadonlySet<string> | readonly string[]
 export type DateOffsetUnit = 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year'
 export type DateGrainUnit = 'hour' | 'minute' | 'second'
 export type DatePeriodUnit = 'week' | 'month' | 'year'
-export type DateRelativeModifier = 'this' | 'next' | 'last'
+export type DateRelativeModifier = 'this' | 'next' | 'last' | 'afterNext' | 'beforeLast'
 
 export interface GrammarBoundPhrase {
   bound: 'min' | 'max'
@@ -17,6 +17,12 @@ export interface GrammarBoundPhrase {
 }
 
 export interface GrammarWords {
+  /**
+   * Multi-word leading approximate phrases matched longest-first before
+   * single-word approximateWords. E.g. "más o menos", "à peu près",
+   * "mais ou menos", "por volta de". Sorted longest-first at resolve time.
+   */
+  approximatePhrases: readonly string[]
   approximateWords: ReadonlySet<string>
   boundPhrases: readonly GrammarBoundPhrase[]
   compoundJoinWords: ReadonlySet<string>
@@ -59,6 +65,26 @@ export interface FuzzyAmountWord {
 export interface NumberWordTables {
   andWords: ReadonlySet<string>
   articles: ReadonlySet<string>
+  /**
+   * Scale words that may open a number expression without a preceding multiplier.
+   * E.g. Spanish "cien" (100), "mil" (1000); Portuguese "cem" (100).
+   * English "hundred"/"thousand" require "a hundred" — they stay out of this table.
+   */
+  bareScales?: Record<string, number>
+  /**
+   * Single- or multi-word exact number compounds resolved via longest-match
+   * before general word composition. Handles vigesimal French
+   * (quatre-vingts→80), Spanish hundreds (quinientos→500), etc.
+   * Multi-word entries are space-separated; matching uses the same folded text
+   * as other word tables.
+   */
+  composed?: Record<string, number>
+  /**
+   * Words meaning "decimal point" spoken between integer and fractional parts.
+   * E.g. Spanish "coma", French "virgule", Portuguese "vírgula", English "point".
+   * "dos coma cinco" → 2.5, "two point five" → 2.5.
+   */
+  decimalWords?: ReadonlySet<string>
   dozenWords: ReadonlySet<string>
   fractionWords: Record<string, number>
   fuzzyAmounts: Record<string, FuzzyAmountWord>
@@ -73,7 +99,9 @@ export type NumberWordTablesInput = Omit<
   {
     [K in keyof NumberWordTables]: NumberWordTables[K] extends ReadonlySet<string>
       ? WordSetInput
-      : NumberWordTables[K]
+      : NumberWordTables[K] extends ReadonlySet<string> | undefined
+        ? WordSetInput
+        : NumberWordTables[K]
   },
   never
 >
@@ -115,6 +143,18 @@ export interface DateCalendarPeriodPhrase {
   period: DatePeriodUnit
 }
 
+export interface DatePeriodEdgePhrase {
+  edge: 'start' | 'mid' | 'end'
+  /**
+   * Deterministic anchor for edge phrases. `start` resolves to the first day of
+   * the period, `mid` to the existing midpoint convention (week +3, month day
+   * 15, year July 2), and `end` to the last day of the period. Month-name
+   * composition is parser-owned (`fin juillet`); pack values do not carry month
+   * names.
+   */
+  period: DatePeriodUnit
+}
+
 export interface DateCompactOffsetVocab {
   futureSuffixes?: readonly string[]
   pastSuffixes?: readonly string[]
@@ -130,13 +170,18 @@ export interface DateRelativeVocab {
 
 export interface DateVocabPack {
   calendarPeriodPhrases?: Record<string, DateCalendarPeriodPhrase>
+  clockMinuteWords?: Record<string, number>
+  clockPastWords?: readonly string[]
+  clockToWords?: readonly string[]
   compactOffset?: DateCompactOffsetVocab
   dayOffsets?: Record<string, number>
+  dayPartWords?: Record<string, { grain?: 'hour'; hour: number }>
   dayTimePhrases?: Record<string, DateDayTimePhrase>
   durationUnitSeconds?: Record<string, number>
   fillerWords?: readonly string[]
   modifiers?: Partial<Record<DateRelativeModifier, readonly string[]>>
   months: Record<string, number>
+  periodEdgePhrases?: Record<string, DatePeriodEdgePhrase>
   periodWords?: Partial<Record<DatePeriodUnit, readonly string[]>>
   relative?: DateRelativeVocab
   subunit: Partial<Record<DateOffsetUnit, DateOffsetUnit>>
@@ -145,6 +190,7 @@ export interface DateVocabPack {
   timePattern?: string
   unitWords: Record<string, DateOffsetUnit>
   weekdayNames: readonly string[]
+  weekdayOffsetPhrases?: Record<string, number>
   weekdays: Record<string, number>
 }
 

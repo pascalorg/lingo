@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { setDefaultMessages } from '../core/errors'
+import { makeIssue, setDefaultMessages } from '../core/errors'
 import { createRegistry } from '../core/registry'
 import type { IssueCode } from '../core/types'
 import { parseExpression } from '../parse/grammar'
@@ -85,5 +85,14 @@ describe('english message pack', () => {
       expect(issue?.severity).toBe('error')
       expect(issue?.message).toContain('Assuming centimeters')
     }
+  })
+
+  it('points locale and relative-date setup errors at the fix', () => {
+    expect(makeIssue('LOCALE_NOT_LOADED', { locale: 'es' }, undefined, en).message).toBe(
+      'Import @pascal-app/lingo/locales/<locale>; use createLingo({ locales }).',
+    )
+    expect(makeIssue('NOW_REQUIRED', {}, undefined, en).message).toBe(
+      'Pass now for relative dates or use an absolute date.',
+    )
   })
 })

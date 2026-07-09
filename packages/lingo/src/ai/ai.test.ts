@@ -446,7 +446,7 @@ describe('AI Standard Schema fields', () => {
     expect(richRange['~standard'].jsonSchema.output({ target: 'draft-07' })).toMatchObject({
       type: 'object',
       properties: {
-        schemaVersion: { type: 'number', enum: [2] },
+        schemaVersion: { type: 'number', enum: [3] },
         type: { type: 'string', enum: ['range'] },
         kind: { type: 'string' },
         baseUnit: { type: 'string' },

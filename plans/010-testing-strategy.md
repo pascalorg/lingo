@@ -3,7 +3,7 @@ id: 010
 title: Testing strategy
 status: approved
 created: 2026-07-03
-updated: 2026-07-07
+updated: 2026-07-09
 ---
 
 # Testing strategy
@@ -22,7 +22,10 @@ Vitest, colocated `src/**/*.test.ts` + shared corpora in `tests/corpus/`.
    emoji, SQL-ish strings, `-0`, `1e309`.
 2. **Round-trip properties** (seeded PRNG, no deps): ∀ kind, ∀ unit, random magnitudes:
    `parse(format(q, style)) ≈ q` for all three styles + compound; date humanize→parse
-   within grain; duration decompose→format→parse exact.
+   within grain; duration decompose→format→parse exact. *Implemented 2026-07-09:
+   `src/format/roundtrip-property.test.ts` (mulberry32, all kinds × units ×
+   10 styles × 5 magnitude regimes, 41k+ cases; found and fixed the
+   scientific-coefficient and narrow-gluing round-trip bugs on landing).*
 3. **Conversion truth table** — authoritative factor spot-checks (NIST/agreement
    values): 1 in = 2.54 cm exact, 72 in = 6 ft = 1.8288 m, 100 °C = 212 °F = 373.15 K,
    −40 °C = −40 °F, ΔT 5 °C = ΔT 9 °F, 1 US gal = 3.785411784 L, 1 imp gal = 4.54609 L,

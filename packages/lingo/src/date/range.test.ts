@@ -216,3 +216,189 @@ describe('humanizeDateRange round-trips', () => {
     })
   }
 })
+
+describe('parseAnchoredDurationRange offset correctness', () => {
+  it('parses correctly when normalization shifts offsets (zero-width space before phrase)', () => {
+    const now = new Date(2026, 6, 8, 9, 0, 0)
+    const input = '​3 days starting tomorrow'
+    const r = parseDateRange(input, { now })
+    expect(r.ok).toBe(true)
+    if (!r.ok) {
+      return
+    }
+    expect(r.start?.date).toEqual(new Date(2026, 6, 9))
+    expect(r.end?.date).toEqual(new Date(2026, 6, 12))
+    expect(r.span).toEqual({ start: 1, end: input.length })
+  })
+
+  it('handles multiple invisible chars before the anchor portion', () => {
+    const now = new Date(2026, 6, 8, 9, 0, 0)
+    const input = '3 days​​ starting tomorrow'
+    const r = parseDateRange(input, { now })
+    expect(r.ok).toBe(true)
+    if (!r.ok) {
+      return
+    }
+    expect(r.start?.date).toEqual(new Date(2026, 6, 9))
+    expect(r.end?.date).toEqual(new Date(2026, 6, 12))
+  })
+
+  it('span text matches original input slice for normalization-shifting input', () => {
+    const now = new Date(2026, 6, 8, 9, 0, 0)
+    const input = '​3 days starting 2026-03-01'
+    const r = parseDateRange(input, { now })
+    expect(r.ok).toBe(true)
+    if (!r.ok) {
+      return
+    }
+    expect(input.slice(r.span.start, r.span.end)).toBe('3 days starting 2026-03-01')
+  })
+})
+
+describe('anchored duration range NOW_REQUIRED', () => {
+  it('fails with NOW_REQUIRED for relative anchor without now', () => {
+    const r = parseDateRange('3 days starting tomorrow')
+    expect(r.ok).toBe(false)
+    if (r.ok) {
+      return
+    }
+    expect(r.issues.some((i) => i.code === 'NOW_REQUIRED')).toBe(true)
+  })
+
+  it('succeeds for absolute anchor without now', () => {
+    const r = parseDateRange('3 days starting 2026-03-01')
+    expect(r.ok).toBe(true)
+    if (!r.ok) {
+      return
+    }
+    expect(r.start?.date).toEqual(new Date(2026, 2, 1))
+    expect(r.end?.date).toEqual(new Date(2026, 2, 4))
+  })
+
+  it('still works with now provided for absolute anchor', () => {
+    const now = new Date(2026, 6, 8, 9, 0, 0)
+    const r = parseDateRange('3 days starting 2026-03-01', { now })
+    expect(r.ok).toBe(true)
+    if (!r.ok) {
+      return
+    }
+    expect(r.start?.date).toEqual(new Date(2026, 2, 1))
+    expect(r.end?.date).toEqual(new Date(2026, 2, 4))
+  })
+})
+
+describe('humanizeDateRange round-trips for time-grain anchored ranges', () => {
+  it('round-trips an hour-grain anchored range', () => {
+    const r = parseDateRange('3 hours starting 2026-03-01 9am')
+    expect(r.ok).toBe(true)
+    if (!r.ok) {
+      return
+    }
+    expect(r.anchored).toBe(true)
+    expect(r.start?.date).toEqual(new Date(2026, 2, 1, 9))
+    expect(r.end?.date).toEqual(new Date(2026, 2, 1, 12))
+    const phrase = humanizeDateRange(r)
+    expect(phrase).toContain('starting')
+    const reparsed = parseDateRange(phrase)
+    expect(reparsed.ok).toBe(true)
+    if (!reparsed.ok) {
+      return
+    }
+    expect(reparsed.start?.date).toEqual(r.start?.date)
+    expect(reparsed.end?.date).toEqual(r.end?.date)
+  })
+
+  it('round-trips a minute-grain anchored range', () => {
+    const r = parseDateRange('30 minutes starting 2026-03-01 9am')
+    expect(r.ok).toBe(true)
+    if (!r.ok) {
+      return
+    }
+    expect(r.anchored).toBe(true)
+    expect(r.start?.date).toEqual(new Date(2026, 2, 1, 9))
+    expect(r.end?.date).toEqual(new Date(2026, 2, 1, 9, 30))
+    const phrase = humanizeDateRange(r)
+    expect(phrase).toContain('starting')
+    const reparsed = parseDateRange(phrase)
+    expect(reparsed.ok).toBe(true)
+    if (!reparsed.ok) {
+      return
+    }
+    expect(reparsed.start?.date).toEqual(r.start?.date)
+    expect(reparsed.end?.date).toEqual(r.end?.date)
+  })
+
+  it('round-trips a non-midnight day anchor with time', () => {
+    const r = parseDateRange('2 hours starting 2026-07-08 2pm')
+    expect(r.ok).toBe(true)
+    if (!r.ok) {
+      return
+    }
+    expect(r.anchored).toBe(true)
+    expect(r.start?.date).toEqual(new Date(2026, 6, 8, 14))
+    expect(r.end?.date).toEqual(new Date(2026, 6, 8, 16))
+    const phrase = humanizeDateRange(r)
+    expect(phrase).toContain('starting')
+    const reparsed = parseDateRange(phrase)
+    expect(reparsed.ok).toBe(true)
+    if (!reparsed.ok) {
+      return
+    }
+    expect(reparsed.start?.date).toEqual(r.start?.date)
+    expect(reparsed.end?.date).toEqual(r.end?.date)
+  })
+
+  it('preserves existing whole-day rendering', () => {
+    const r = parseDateRange('3 days starting 2026-03-01')
+    expect(r.ok).toBe(true)
+    if (!r.ok) {
+      return
+    }
+    const phrase = humanizeDateRange(r)
+    expect(phrase).toBe('3 days starting 2026-03-01')
+  })
+})
+
+describe('anchored duration range trailing zone (F3)', () => {
+  it('applies zone to endpoints with applyZone:true', () => {
+    const r = parseDateRange('3 hours starting 2026-03-01 9am EST', { applyZone: true })
+    expect(r.ok).toBe(true)
+    if (!r.ok) {
+      return
+    }
+    expect(r.start?.zone?.abbreviation).toBe('EST')
+    expect(r.end?.zone?.abbreviation).toBe('EST')
+    expect(r.start?.date.toISOString()).toBe('2026-03-01T14:00:00.000Z')
+    expect(r.end?.date.toISOString()).toBe('2026-03-01T17:00:00.000Z')
+  })
+
+  it('emits TZ_IGNORED when zone detected but not applied', () => {
+    const r = parseDateRange('3 hours starting 2026-03-01 9am EST')
+    expect(r.ok).toBe(true)
+    if (!r.ok) {
+      return
+    }
+    expect(r.issues.some((i) => i.code === 'TZ_IGNORED')).toBe(true)
+    expect(r.start?.zone?.abbreviation).toBe('EST')
+  })
+
+  it('emits AMBIGUOUS_TIMEZONE for ambiguous abbreviation', () => {
+    const r = parseDateRange('3 hours starting 2026-03-01 9am EST')
+    expect(r.ok).toBe(true)
+    if (!r.ok) {
+      return
+    }
+    expect(r.issues.some((i) => i.code === 'AMBIGUOUS_TIMEZONE')).toBe(true)
+  })
+
+  it('no-zone paths remain unchanged', () => {
+    const r = parseDateRange('3 hours starting 2026-03-01 9am')
+    expect(r.ok).toBe(true)
+    if (!r.ok) {
+      return
+    }
+    expect(r.start?.zone).toBeUndefined()
+    expect(r.end?.zone).toBeUndefined()
+    expect(r.issues.filter((i) => i.code === 'TZ_IGNORED')).toEqual([])
+  })
+})

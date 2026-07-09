@@ -2,7 +2,7 @@
 // stay additive — new languages add tables, they never edit grammar code.
 
 export type OffsetUnit = 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year'
-export type RelativeModifier = 'this' | 'next' | 'last'
+export type RelativeModifier = 'this' | 'next' | 'last' | 'afterNext' | 'beforeLast'
 export type PeriodUnit = 'week' | 'month' | 'year'
 export type TimeAlias = {
   grain?: 'hour' | 'minute' | 'second'
@@ -156,6 +156,8 @@ export const MODIFIERS: Record<RelativeModifier, readonly string[]> = {
   this: ['this'],
   next: ['next'],
   last: ['last'],
+  afterNext: ['after next'],
+  beforeLast: ['before last'],
 }
 
 export const PERIOD_WORDS: Record<PeriodUnit, readonly string[]> = {

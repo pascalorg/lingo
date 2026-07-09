@@ -64,16 +64,20 @@ export function scoreProfile(
     const unique = !uniqueAgainst?.has(word)
     const standalone = isStandaloneWord(tokens, i)
     if (
-      (unique && profile.numberWords.ones[word] !== undefined) ||
-      (unique && profile.numberWords.tens[word] !== undefined) ||
-      (unique && profile.numberWords.scales[word] !== undefined)
+      unique &&
+      (profile.numberWords.ones[word] !== undefined ||
+        profile.numberWords.tens[word] !== undefined ||
+        profile.numberWords.scales[word] !== undefined ||
+        profile.numberWords.bareScales?.[word] !== undefined ||
+        profile.numberWords.composed?.[word] !== undefined)
     ) {
       score += 4
     }
     if (
       unique &&
       (profile.numberWords.fuzzyAmounts[word] ||
-        profile.numberWords.fractionWords[word] !== undefined)
+        profile.numberWords.fractionWords[word] !== undefined ||
+        profile.numberWords.decimalWords?.has(word))
     ) {
       score += 3
     }
@@ -170,8 +174,13 @@ function profileWords(profile: LanguageProfile): ReadonlySet<string> {
   addRecordKeys(words, profile.numberWords.ones)
   addRecordKeys(words, profile.numberWords.tens)
   addRecordKeys(words, profile.numberWords.scales)
+  addRecordKeys(words, profile.numberWords.bareScales)
+  addRecordKeys(words, profile.numberWords.composed)
   addRecordKeys(words, profile.numberWords.fuzzyAmounts)
   addRecordKeys(words, profile.numberWords.fractionWords)
+  if (profile.numberWords.decimalWords) {
+    addSet(words, profile.numberWords.decimalWords)
+  }
   addSet(words, profile.numberWords.andWords)
   addSet(words, profile.numberWords.articles)
   addSet(words, profile.numberWords.dozenWords)
@@ -227,9 +236,20 @@ function isStandaloneWord(
 }
 
 function hasPhrase(input: string, phrase: string): boolean {
-  return new RegExp(`(?:^|\\s)${escapeRegExp(phrase)}(?:\\s|$)`, 'i').test(input)
-}
-
-function escapeRegExp(input: string): string {
-  return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  // Non-regex word-boundary check: find the phrase in the lowercased input
+  // and verify it is bounded by start/end or whitespace on both sides.
+  const pLen = phrase.length
+  let idx = 0
+  while (true) {
+    idx = input.indexOf(phrase, idx)
+    if (idx < 0) {
+      return false
+    }
+    const before = idx === 0 || input.charCodeAt(idx - 1) <= 32
+    const after = idx + pLen >= input.length || input.charCodeAt(idx + pLen) <= 32
+    if (before && after) {
+      return true
+    }
+    idx++
+  }
 }

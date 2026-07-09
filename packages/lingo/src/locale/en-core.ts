@@ -8,6 +8,7 @@ export const enCore: LocalePack = {
     system: 'us',
   },
   grammar: {
+    approximatePhrases: [],
     approximateWords: new Set([
       'about',
       'around',
@@ -113,6 +114,7 @@ export const enCore: LocalePack = {
   numberWords: {
     andWords: new Set(['and']),
     articles: new Set(['a', 'an']),
+    decimalWords: new Set(['point']),
     dozenWords: new Set(['dozen']),
     fractionWords: {
       half: 1 / 2,

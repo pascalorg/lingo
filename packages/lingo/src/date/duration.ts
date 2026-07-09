@@ -9,6 +9,8 @@ import type {
   Severity,
   Span,
 } from '../core/types'
+import { resolveLanguageProfile } from '../locale/profile'
+import type { DateOffsetUnit, LocalePack } from '../locale/types'
 import { parseQuantityExpr } from '../parse/grammar'
 import { normalizeInput, toSourceSpan } from '../parse/normalize'
 import { attachSerialization } from '../parse/serialize'
@@ -27,6 +29,8 @@ import { DURATION_UNIT_SECONDS } from './vocab'
  */
 export interface DurationOptions {
   escalate?: Partial<Record<IssueCode, Severity>>
+  locale?: string
+  localePacks?: readonly LocalePack[]
   messages?: Messages
   numberFormat?: NumberFormatPolicy
   registry?: Registry
@@ -60,6 +64,14 @@ let defaultDurationRegistry: Registry | undefined
 function registryFor(opts?: DurationOptions): Registry {
   if (opts?.registry) {
     return opts.registry
+  }
+  if (opts?.locale || opts?.localePacks) {
+    const reg = createRegistry([duration])
+    const words = resolveLanguageProfile(opts.localePacks, opts.locale).date?.unitWords ?? {}
+    for (const word of Object.keys(words)) {
+      reg.registerUnitAliases('duration', durationUnitId(words[word]!), [word])
+    }
+    return reg
   }
   defaultDurationRegistry ??= createRegistry([duration])
   return defaultDurationRegistry
@@ -137,6 +149,8 @@ function parseDurationImpl(text: string, opts?: DurationOptions): DurationResult
 export function parseUnitDuration(text: string, opts?: DurationOptions): DurationResult | DateFail {
   const q = parseQuantityExpr(text, {
     kind: 'duration',
+    locale: opts?.locale,
+    localePacks: opts?.localePacks,
     registry: registryFor(opts),
     numberFormat: opts?.numberFormat ?? 'auto',
     messages: opts?.messages,
@@ -169,6 +183,18 @@ export function parseUnitDuration(text: string, opts?: DurationOptions): Duratio
     },
     opts,
   )
+}
+
+function durationUnitId(unit: DateOffsetUnit): string {
+  return unit === 'minute'
+    ? 'min'
+    : unit === 'month'
+      ? 'mo'
+      : unit === 'year'
+        ? 'yr'
+        : unit === 'week'
+          ? 'wk'
+          : unit[0]!
 }
 
 function parseIsoDuration(

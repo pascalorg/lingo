@@ -634,3 +634,44 @@ newness and AI-SDK-only scope.
 - `standardschema.dev`, `github.com/standard-schema/standard-schema`, `@standard-schema/spec@1.1.0` on npm/unpkg
 - `platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool`
 - `github.com/567-labs/instructor-js`, `js.useinstructor.com`, `github.com/dzhng/zod-gpt`
+
+## Addendum: AI SDK v7.0.18 integration surface (2026-07-09)
+
+Multi-agent web research pass 2026-07-09. Claims are agent-reported; versions
+not re-pinned against npm dist-tags (the SDK moves fast — re-verify before
+acting).
+
+New findings beyond the v7.0.14 pass above:
+
+1. **`inputExamples` on `tool()`.** AI SDK v7's `tool()` accepts an
+   `inputExamples` array that guides model tool-call quality. Anthropic's Tool
+   interface has `input_examples` which "materially improves tool-call quality for
+   complex/nested inputs." Lingo's `examplesForKind()` already generates per-kind
+   example strings — these could be emitted as structured `inputExamples` objects
+   (e.g., `{weight: '2 kg'}`) on `lingoTool`. (agent-researched, 2026-07-09)
+
+2. **`lingoMiddleware` via `wrapLanguageModel`.** The SDK's middleware system
+   (`transformParams`/`wrapGenerate`/`wrapStream`) could host a `lingoMiddleware`
+   that auto-canonicalizes tool call arguments before `execute()`, giving
+   infrastructure-level quantity/date normalization. Zero runtime dep on AI SDK
+   (type-only import of `LanguageModelV4Middleware`). (agent-researched, 2026-07-09)
+
+3. **Telemetry metadata.** AI SDK records `execute_tool` spans under OpenTelemetry
+   GenAI Semantic Conventions. `lingoTool`/`lingoObject` could emit metadata
+   (which fields were canonicalized, corrections applied, parse duration) into the
+   tool `metadata` field, making lingo's value visible in production observability.
+   (agent-researched, 2026-07-09)
+
+4. **`assertStrictSafe` utility.** When AI SDK's `tool({ strict: true })` is
+   used, OpenAI/Anthropic require `additionalProperties:false` on every nested
+   object. `lingoObject({ passthrough: true })` emits `additionalProperties:true`,
+   which silently breaks strict mode. A pre-flight `assertStrictSafe(field)` that
+   walks the emitted JSON Schema would catch this at definition time.
+   (agent-researched, 2026-07-09)
+
+5. **Default JSON Schema target mismatch.** AI SDK's `asSchema()` hardcodes
+   `target: 'draft-07'` in its call to `~standard.jsonSchema.input()`. Lingo's
+   `toJSONSchema()` currently defaults to `'draft-2020-12'`. All real consumers
+   (AI SDK, OpenAI, Anthropic, MCP) use draft-07. Since lingo's emitted keywords
+   are target-portable, changing the default to `'draft-07'` would eliminate a
+   subtle mismatch. (agent-researched, 2026-07-09)

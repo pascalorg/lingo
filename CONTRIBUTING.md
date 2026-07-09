@@ -61,6 +61,15 @@ new issue codes need tests for the code, its copy, and its typed `data`
 payload. Hostile-input coverage (unicode, RTL, zero-width, 50k-char strings) is
 expected for parser-facing changes.
 
+### Locale corpora
+
+Locale idioms are corpus-gated per pack. Add rows in
+`packages/lingo/tests/corpus/locale-<id>-source.mjs`, regenerate checked-in
+contracts with `node scripts/corpus-diff.mjs --write` from `packages/lingo/`,
+and rely on `bun run check` to enforce them. When adding idioms to a locale
+pack, use `plans/033-locale-idiom-coverage.md` and
+`wiki/research/locale-idioms.md` as the checklist before touching data.
+
 ## Docs are part of done
 
 A user-visible change updates, in the same PR: TSDoc `@example` on new public

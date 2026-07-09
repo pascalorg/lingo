@@ -99,6 +99,9 @@ function foldChar(cp: number): string | null {
   if (cp === 0x22_12) {
     return '-' // minus sign
   }
+  if (cp === 0x30_1c || cp === 0xff_5e) {
+    return '–'
+  }
   // Apostrophe-alikes → ' (incl. prime U+2032, which NFKC would leave alone,
   // and acute/backtick, which people type for feet).
   if (

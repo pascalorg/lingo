@@ -413,16 +413,17 @@ export class Registry {
       }
       return 0
     })
-    // Dedupe (an alias can hit both pools via different units of same id).
-    const seen = new Set<string>()
-    return out.filter((m) => {
-      const key = `${m.kind}|${m.unit.id}|${m.length}`
-      if (seen.has(key)) {
-        return false
+    // Dedupe: after sort, duplicates (same kind+unit+length) are adjacent.
+    let w = 1
+    for (let r = 1; r < out.length; r++) {
+      const m = out[r]!
+      const p = out[w - 1]!
+      if (m.length !== p.length || m.kind !== p.kind || m.unit.id !== p.unit.id) {
+        out[w++] = m
       }
-      seen.add(key)
-      return true
-    })
+    }
+    out.length = w
+    return out
   }
 
   private collect(

@@ -1,7 +1,7 @@
 import type { LingoIssue } from '../core/types'
 import type { DateGrain } from './parse'
 import { issue, type P, trimRange } from './state'
-import { TIME_ALIASES, type TimeAlias } from './vocab'
+import { TIME_ALIASES, type TimeAlias, UNIT_WORDS } from './vocab'
 import { type DateZone, stripTrailingZone } from './zone'
 
 export interface TimeCore {
@@ -136,7 +136,7 @@ export function parseTimeCore(p: P, source: string, issues: LingoIssue[]): TimeC
     }
     return { hour, minute, second: 0, grain: 'minute', issues }
   }
-  const relative = parseRelativeMinutes(lower, issues)
+  const relative = parseRelativeMinutes(p, lower, issues)
   if (relative) {
     return relative
   }
@@ -174,86 +174,200 @@ function aliasTime(alias: TimeAlias, issues: LingoIssue[]): TimeCore {
   }
 }
 
-const TIME_NUM_WORDS: Record<string, number> = {
-  one: 1,
-  two: 2,
-  three: 3,
-  four: 4,
-  five: 5,
-  six: 6,
-  seven: 7,
-  eight: 8,
-  nine: 9,
-  ten: 10,
-  eleven: 11,
-  twelve: 12,
-  thirteen: 13,
-  fourteen: 14,
-  fifteen: 15,
-  sixteen: 16,
-  seventeen: 17,
-  eighteen: 18,
-  nineteen: 19,
-  twenty: 20,
-  'twenty-five': 25,
-  'twenty five': 25,
+const EN_CLOCK_MINUTES = { half: 30, quarter: 15 }
+const EN_CLOCK_PAST = ['past', 'after']
+const EN_CLOCK_TO = ['to', 'till', 'til', 'before', 'of']
+
+interface ClockRead {
+  digit?: boolean
+  next: number
+  value: number
 }
 
-function wordOrDigit(token: string): number | null {
-  if (/^\d{1,2}$/.test(token)) {
-    return Number(token)
-  }
-  return TIME_NUM_WORDS[token] ?? null
-}
-
-function minuteAmount(token: string): number | null {
-  if (token === 'quarter') {
-    return 15
-  }
-  if (token === 'half') {
-    return 30
-  }
-  const n = wordOrDigit(token)
-  return n !== null && n >= 1 && n <= 59 ? n : null
-}
-
-function hourAmount(token: string): number | null {
-  const n = wordOrDigit(token)
-  return n !== null && n >= 1 && n <= 23 ? n : null
-}
-
-/**
- * Spoken relative-minute times: "quarter past 5" (5:15), "half past 3" (3:30),
- * "quarter to 6" (5:45), "twenty past 4", "ten to 6", and British "half 5" (5:30).
- */
-function parseRelativeMinutes(lower: string, issues: LingoIssue[]): TimeCore | null {
-  const british = /^half\s+(\d{1,2}|[a-z-]+)$/.exec(lower)
-  if (british) {
-    const h = hourAmount(british[1]!)
-    if (h !== null && h >= 1 && h <= 12) {
-      return { hour: h, minute: 30, second: 0, grain: 'minute', issues }
+function parseRelativeMinutes(p: P, lower: string, issues: LingoIssue[]): TimeCore | null {
+  const words = lower.split(/\s+/).filter(Boolean)
+  const pos = skipClockFillers(p, words, 0)
+  const first = words[pos]
+  if (first && clockMinuteWords(p)[first] === 30) {
+    const hour = readClockHour(p, words, pos + 1)
+    if (hour && atEnd(p, words, hour.next)) {
+      return clock(hour.value, 30, issues)
     }
   }
-  const m =
-    /^(quarter|half|\d{1,2}|[a-z-]+)\s+(past|after|to|till|til|before)\s+(\d{1,2}|[a-z-]+)$/.exec(
-      lower,
-    )
-  if (!m) {
+
+  const minute = readClockMinute(p, words, pos)
+  if (minute) {
+    const past = readPhrase(words, minute.next, clockPastWords(p))
+    if (past >= 0) {
+      const hour = readClockHour(p, words, past)
+      if (hour && atEnd(p, words, hour.next)) {
+        return clock(hour.value, minute.value, issues)
+      }
+    }
+    const to = readPhrase(words, minute.next, clockToWords(p))
+    if (to >= 0 && !minute.digit) {
+      const hour = readClockHour(p, words, to)
+      if (hour && atEnd(p, words, hour.next)) {
+        return clock((hour.value + 23) % 24, 60 - minute.value, issues)
+      }
+    }
+  }
+
+  const hour = readClockHour(p, words, pos)
+  if (!hour) {
     return null
   }
-  const amount = minuteAmount(m[1]!)
-  const hour = hourAmount(m[3]!)
-  if (amount === null || hour === null) {
-    return null
+  const next = skipHourUnit(p, words, hour.next)
+  if (words[next] === "o'clock" || words[next] === 'oclock') {
+    return atEnd(p, words, next + 1) ? clock(hour.value, 0, issues, 'hour') : null
   }
-  if (m[2] === 'past' || m[2] === 'after') {
-    return { hour: hour % 24, minute: amount, second: 0, grain: 'minute', issues }
+  const past = readPhrase(words, next, clockPastWords(p))
+  if (past >= 0) {
+    const amount = readClockMinute(p, words, past)
+    return amount && atEnd(p, words, amount.next) ? clock(hour.value, amount.value, issues) : null
   }
-  // to/till/before: `amount` minutes before `hour`. Require a minute WORD
-  // (quarter/half/ten/…), never a bare digit, so "5 to 6"/"9 to 5" stay a time
-  // RANGE (parseDateRange) instead of misreading as 5:55 / 4:51.
-  if (/^\d/.test(m[1]!)) {
-    return null
+  const to = readPhrase(words, next, clockToWords(p))
+  if (to >= 0) {
+    const amount = readClockMinute(p, words, to)
+    return amount && !amount.digit && atEnd(p, words, amount.next)
+      ? clock((hour.value + 23) % 24, 60 - amount.value, issues)
+      : null
   }
-  return { hour: (hour + 23) % 24, minute: 60 - amount, second: 0, grain: 'minute', issues }
+  if (next > hour.next) {
+    const amount = readClockMinute(p, words, next)
+    if (amount && atEnd(p, words, amount.next)) {
+      return clock(hour.value, amount.value, issues)
+    }
+  }
+  return null
+}
+
+function clock(
+  hour: number,
+  minute: number,
+  issues: LingoIssue[],
+  grain: TimeCore['grain'] = 'minute',
+): TimeCore {
+  return { hour: hour % 24, minute, second: 0, grain, issues }
+}
+
+function readClockMinute(p: P, words: readonly string[], pos: number): ClockRead | null {
+  pos = skipClockFillers(p, words, pos)
+  const named = readRecord(words, pos, clockMinuteWords(p))
+  if (named && named.value >= 1 && named.value <= 59) {
+    return named
+  }
+  const n = readClockNumber(p, words, pos, 59)
+  return n && n.value >= 1 ? n : null
+}
+
+function readClockHour(p: P, words: readonly string[], pos: number): ClockRead | null {
+  pos = skipClockFillers(p, words, pos)
+  const alias = readAlias(p, words, pos)
+  return alias ?? readClockNumber(p, words, pos, 23)
+}
+
+function readClockNumber(
+  p: P,
+  words: readonly string[],
+  pos: number,
+  max: number,
+): ClockRead | null {
+  const phrase = words[pos]
+  const value = phrase ? clockNumber(p, phrase) : null
+  return value !== null && value >= 0 && value <= max
+    ? { value, next: pos + 1, digit: /^\d/.test(phrase!) }
+    : null
+}
+
+function clockNumber(p: P, phrase: string): number | null {
+  if (/^\d{1,2}$/.test(phrase)) {
+    return Number(phrase)
+  }
+  const n = p.profile.numberWords
+  const direct = n.composed?.[phrase] ?? n.ones[phrase] ?? n.tens[phrase]
+  if (direct !== undefined) {
+    return direct
+  }
+  const parts = phrase.split('-')
+  if (parts.length === 2) {
+    const ten = n.tens[parts[0]!]
+    const one = n.ones[parts[1]!]
+    if (ten !== undefined && one !== undefined && one < 10) {
+      return ten + one
+    }
+  }
+  return null
+}
+
+function readAlias(p: P, words: readonly string[], pos: number): ClockRead | null {
+  const aliases = timeAliases(p)
+  for (const key of Object.keys(aliases)) {
+    const len = matchPhrase(words, pos, key)
+    if (len > 0) {
+      return { value: aliases[key]!.hour, next: pos + len }
+    }
+  }
+  return null
+}
+
+function readRecord(
+  words: readonly string[],
+  pos: number,
+  record: Record<string, number>,
+): ClockRead | null {
+  for (const key of Object.keys(record)) {
+    const len = matchPhrase(words, pos, key)
+    if (len > 0) {
+      return { value: record[key]!, next: pos + len }
+    }
+  }
+  return null
+}
+
+function readPhrase(words: readonly string[], pos: number, phrases: readonly string[]): number {
+  for (const phrase of phrases) {
+    const len = matchPhrase(words, pos, phrase)
+    if (len > 0) {
+      return pos + len
+    }
+  }
+  return -1
+}
+
+function matchPhrase(words: readonly string[], pos: number, phrase: string): number {
+  const parts = phrase.split(/\s+/)
+  return parts.every((word, index) => words[pos + index] === word) ? parts.length : 0
+}
+
+function skipClockFillers(p: P, words: readonly string[], pos: number): number {
+  while (words[pos] && p.profile.date?.fillerWords?.includes(words[pos]!)) {
+    pos++
+  }
+  return pos
+}
+
+function skipHourUnit(p: P, words: readonly string[], pos: number): number {
+  pos = skipClockFillers(p, words, pos)
+  return dateUnitWords(p)[words[pos]!] === 'hour' ? skipClockFillers(p, words, pos + 1) : pos
+}
+
+function atEnd(p: P, words: readonly string[], pos: number): boolean {
+  return skipClockFillers(p, words, pos) === words.length
+}
+
+function clockMinuteWords(p: P): Record<string, number> {
+  return p.profile.date?.clockMinuteWords ?? EN_CLOCK_MINUTES
+}
+
+function clockPastWords(p: P): readonly string[] {
+  return p.profile.date?.clockPastWords ?? EN_CLOCK_PAST
+}
+
+function clockToWords(p: P): readonly string[] {
+  return p.profile.date?.clockToWords ?? EN_CLOCK_TO
+}
+
+function dateUnitWords(p: P): Record<string, string> {
+  return p.profile.date?.unitWords ?? UNIT_WORDS
 }

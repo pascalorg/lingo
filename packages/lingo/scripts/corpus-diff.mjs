@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { buildContract } from '../tests/corpus/source.mjs'
 
 const ROOT = new URL('..', import.meta.url)
@@ -15,7 +15,7 @@ if (!(existsSync(indexUrl) && existsSync(dateUrl))) {
   process.exit(1)
 }
 
-const [{ lingo }, { parseDate, parseDateRange }] = await Promise.all([
+const [{ lingo, createLingo }, { parseDate, parseDateRange }] = await Promise.all([
   import(indexUrl.href),
   import(dateUrl.href),
 ])
@@ -25,32 +25,125 @@ const current = buildContract({ lingo, parseDate, parseDateRange })
 if (write) {
   writeFileSync(CONTRACT_URL, `${JSON.stringify(current, null, 2)}\n`)
   console.log(`Wrote ${relative(CONTRACT_URL)}`)
-  process.exit(0)
 }
 
-if (!existsSync(CONTRACT_URL)) {
+if (!(write || existsSync(CONTRACT_URL))) {
   console.error(
     `${relative(CONTRACT_URL)} is missing. Run node scripts/corpus-diff.mjs --write after build.`,
   )
   process.exit(reportOnly ? 0 : 1)
 }
 
-const expected = JSON.parse(readFileSync(CONTRACT_URL, 'utf8'))
-const changes = diffContract(expected, current)
-const additive = changes.filter((change) => change.classification === 'ADDITIVE')
-const breaking = changes.filter((change) => change.classification === 'BREAKING')
+if (!write) {
+  const expected = JSON.parse(readFileSync(CONTRACT_URL, 'utf8'))
+  const changes = diffContract(expected, current)
+  const additive = changes.filter((change) => change.classification === 'ADDITIVE')
+  const breaking = changes.filter((change) => change.classification === 'BREAKING')
 
-if (changes.length === 0) {
-  console.log('Corpus contract: zero changes.')
-} else {
-  console.log(`Corpus contract: ${additive.length} additive, ${breaking.length} breaking.`)
-  for (const change of changes) {
-    console.log(`${change.classification} ${change.path}: ${change.reason}`)
+  if (changes.length === 0) {
+    console.log('Corpus contract: zero changes.')
+  } else {
+    console.log(`Corpus contract: ${additive.length} additive, ${breaking.length} breaking.`)
+    for (const change of changes) {
+      console.log(`${change.classification} ${change.path}: ${change.reason}`)
+    }
+  }
+
+  if (breaking.length > 0 && !reportOnly) {
+    process.exit(1)
   }
 }
 
-if (breaking.length > 0 && !reportOnly) {
+// ─── Locale corpus discovery ────────────────────────────────────────────────
+// Auto-discover locale-*-source.mjs files and check/write their contracts.
+
+const corpusDir = new URL('tests/corpus/', ROOT)
+const localeSourceFiles = readdirSync(corpusDir)
+  .filter((f) => /^locale-[a-z]+-source\.mjs$/.test(f))
+  .sort()
+
+let localePacksCache = null
+async function getLocalePacks() {
+  if (localePacksCache) {
+    return localePacksCache
+  }
+  const localeDir = new URL('dist/locales/', ROOT)
+  if (!existsSync(localeDir)) {
+    return []
+  }
+  const files = readdirSync(localeDir).filter((f) => f.endsWith('.js') && f !== 'index.js')
+  const packs = []
+  for (const f of files) {
+    const mod = await import(new URL(`dist/locales/${f}`, ROOT).href)
+    const pack = mod.default ?? Object.values(mod)[0]
+    if (pack?.locale) {
+      packs.push(pack)
+    }
+  }
+  localePacksCache = packs
+  return packs
+}
+
+let localeBreaking = false
+for (const sourceFile of localeSourceFiles) {
+  const id = sourceFile.replace('locale-', '').replace('-source.mjs', '')
+  const contractFile = `locale-${id}-contract-v1.json`
+  const contractUrl = new URL(`tests/corpus/${contractFile}`, ROOT)
+  const sourceUrl = new URL(`tests/corpus/${sourceFile}`, ROOT)
+
+  const localeMod = await import(sourceUrl.href)
+  const localePacks = await getLocalePacks()
+  const localeInstance = createLingo({ locales: localePacks })
+  const localeLingo = localeInstance.parse
+  const localeCurrent = localeMod.buildContract({
+    lingo: localeLingo,
+    localePacks,
+    parseDate,
+    parseDateRange,
+  })
+
+  if (write) {
+    writeFileSync(contractUrl, `${JSON.stringify(localeCurrent, null, 2)}\n`)
+    console.log(`Wrote ${relative(contractUrl)}`)
+    continue
+  }
+
+  if (!existsSync(contractUrl)) {
+    console.error(
+      `${relative(contractUrl)} is missing. Run node scripts/corpus-diff.mjs --write after build.`,
+    )
+    if (!reportOnly) {
+      localeBreaking = true
+    }
+    continue
+  }
+
+  const localeExpected = JSON.parse(readFileSync(contractUrl, 'utf8'))
+  const localeChanges = diffContract(localeExpected, localeCurrent)
+  const localeAdditive = localeChanges.filter((c) => c.classification === 'ADDITIVE')
+  const localeBreakingChanges = localeChanges.filter((c) => c.classification === 'BREAKING')
+
+  if (localeChanges.length === 0) {
+    console.log(`Locale corpus [${id}]: zero changes.`)
+  } else {
+    console.log(
+      `Locale corpus [${id}]: ${localeAdditive.length} additive, ${localeBreakingChanges.length} breaking.`,
+    )
+    for (const change of localeChanges) {
+      console.log(`  ${change.classification} ${change.path}: ${change.reason}`)
+    }
+  }
+
+  if (localeBreakingChanges.length > 0 && !reportOnly) {
+    localeBreaking = true
+  }
+}
+
+if (localeBreaking) {
   process.exit(1)
+}
+if (write) {
+  process.exit(0)
 }
 
 function diffContract(expectedRoot, currentRoot) {

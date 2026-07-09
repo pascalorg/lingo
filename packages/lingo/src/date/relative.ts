@@ -15,7 +15,16 @@ import {
   withTime,
 } from './civil'
 import type { DateAlternative, DateGrain } from './parse'
-import { type CoreDate, core, issue, knownFor, needsNow, type P, trimRange } from './state'
+import {
+  type CoreDate,
+  core,
+  issue,
+  knownFor,
+  needsNow,
+  type P,
+  stripDateFillers,
+  trimRange,
+} from './state'
 import {
   type DayTimePhrase,
   DAY_OFFSETS as EN_DAY_OFFSETS,
@@ -843,18 +852,6 @@ function eatPrefix(p: P, first: number, phrases: readonly string[] | undefined):
 
 function isPrefixAt(p: P, first: number, phrases: readonly string[] | undefined): boolean {
   return eatPrefix(p, first, phrases) > first
-}
-
-function stripDateFillers(p: P, source: string): string {
-  const fillers = p.profile.date?.fillerWords ?? ['the']
-  if (fillers.length === 0) {
-    return source
-  }
-  const fillerSet = new Set(fillers)
-  return source
-    .split(/\s+/)
-    .filter((word) => !fillerSet.has(word.toLowerCase()))
-    .join(' ')
 }
 
 function matchPeriodModifier(

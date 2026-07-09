@@ -23,11 +23,12 @@ const range = parseRange("between 5 and 10 kg", { kind: "mass" })
 - `quantity(value, unitRef, kind?)`, `convert(v, from, to)`, `tryConvert(v, from, to)`, `convertDelta(v, from, to)`.
 - `createLingo({ registry?, kinds?, messages?, fuzzy?, locales? }) → instance` for SSR/multi-tenant isolation and loaded locale packs.
 - `fromJSON(json)` rehydrates `toJSON()` output.
+- Result guards: `isQuantity`, `isRange`, `isConversion`, `isNumber`; helpers: `firstError`, `candidateOf`, `formatIssue`.
 
 Options `{ kind?, unit?, currency?, locale?, system?: 'us'|'imperial'|'metric', numberFormat?: 'auto'|'dot-decimal'|'comma-decimal', strictness?: 'forgiving'|'confirm'|'strict', accept?, tolerance?, escalate?, messages?, profile?, registry? }`.
 
-Quantity: `.value`, `.base`, `.kind`, `.to(unitRef)`, `.valueIn(u)`, `.convertDelta(u)`, `.toMinor()`, `.format()`, `.toBest()`, `.toJSON()`.
-QuantityRange: `.minBase/.maxBase/.min()/.max()/.plusMinus/.fuzzy/.contains(q)/.widthIn(u)/.to(u)/.format()`.
+Quantity: `.value`, `.base`, `.kind`, `.to(unitRef)`, `.valueIn(u)`, `.convertDelta(u)`, `.toMinor()`, `.format()`, `.toBest()`, `.toJSON()`. Literal `.to()` targets are same-kind checked at compile time; dynamic strings still validate at runtime.
+QuantityRange: `.minBase/.maxBase/.min()/.max()/.plusMinus/.fuzzy/.contains(q)/.widthIn(u)/.to(u)/.format()`. Literal `.to()` targets get the same check.
 
 Kinds: length mass temperature duration volume area speed data data_rate flow_rate acceleration pressure energy force torque power frequency angle percent luminous_intensity luminous_flux illuminance luminance voltage current resistance charge substance concentration radiation_absorbed_dose radiation_equivalent_dose radioactivity currency. Bases: m, kg, K, s, m³, m², m/s, byte, bit/s, m³/s, m/s², Pa, J, N, N⋅m, W, Hz, rad, %, cd, lm, lx, cd/m², V, A, Ω, C, mol, mol/m³, Gy, Sv, Bq, and self-canonical ISO currency codes.
 
@@ -57,6 +58,27 @@ lingo.parseQuantity("5公斤", { locale: "zh" })
 ```
 
 Packs: `en`, `en-gb`, `es`, `fr`, `pt`, `zh`, `ja`. Omit `locale` to detect among loaded packs plus English; pass `locale` for known fields. English is built in and does not require a pack. `parseDate(text, { locale, localePacks, now })` can use loaded packs for relative date vocabulary.
+
+Pack notes:
+- `en`: built-in English quantity/date grammar; wave-1 adds spoken decimals and date idioms such as `two point five kg` and `quarter of five`.
+- `en-gb`: English plus day-first numeric dates and UK weekday offsets (`Monday week`, `Tuesday fortnight`).
+- `es`: Spanish number/range words, Romance composition, spoken decimals, approximants, and date clock/edge idioms.
+- `fr`: French number/range words, exhaustive CLDR-style vigesimal compounds, spoken decimals, approximants, and weekday-offset/clock idioms.
+- `pt`: Portuguese number/range words, compound hundreds/tens, spoken decimals, approximants, and clock/day-offset idioms.
+- `zh`: Chinese CJK number walker, scale grouping, post-unit half, duration counters, period edges, and day offsets. CJK spoken clock (`下午3点半`) is deferred.
+- `ja`: Japanese CJK number walker, scale grouping, post-unit half, duration counters, wave-dash ranges, and double-step period modifiers. CJK spoken clock (`午後3時半`) is deferred.
+
+Verified locale examples (fixed `now = 2026-07-03 14:30` local time for date examples):
+
+```txt
+en:    "two point five kg" → 2.5 kg; "quarter of five" → 2026-07-04 04:45
+en-gb: "Monday week" → 2026-07-13; "Tuesday fortnight" → 2026-07-21
+es:    "treinta y cinco kilos" → 35 kg; "dos coma cinco kg" → 2.5 kg; "las tres menos cuarto" → 2026-07-04 02:45
+fr:    "quatre-vingt-dix kg" → 90 kg; "deux virgule cinq kg" → 2.5 kg; "deux heures et quart" → 2026-07-04 02:15; "lundi en huit" → 2026-07-13
+pt:    "vinte e cinco kg" → 25 kg; "dois virgula cinco kg" → 2.5 kg; "quinze para as tres" → 2026-07-04 02:45; "depois de amanha" → 2026-07-05
+zh:    "三十五公斤" → 35 kg; "两公斤半" → 2.5 kg; "七八天" → duration range 7..8 d; "月底" → 2026-07-31
+ja:    "三十五キロ" → 35 kg; "一時間半" → 1.5 h; "5〜10キロ" → 5..10 kg; "再来週" → week of 2026-07-13
+```
 
 ## Dates (`@pascal-app/lingo/date`)
 
@@ -88,7 +110,7 @@ field.set("6ft")
 field.commit() // hidden input submits canonical value
 ```
 
-`field.value` · `.quantity` · `.result` · `.state` ('idle'|'incomplete'|'valid'|'invalid') · `.set()` · `.commit()` · `.update()` · `.destroy()`. Never rewrites while typing; canonicalizes on blur/Enter/submit. React: `useLingoInput(opts)` from `@pascal-app/lingo/react`.
+`field.value` · `.quantity` · `.result` · `.state` ('idle'|'incomplete'|'valid'|'invalid') · `.set()` · `.commit()` · `.update()` · `.destroy()`. Never rewrites while typing; canonicalizes on blur/Enter/submit. With `complete`/`onComplete`, the input gets the headless WAI-ARIA combobox attributes (`role="combobox"`, `aria-autocomplete="list"`, `aria-expanded`); pass `listboxId` to set `aria-controls` for your rendered listbox. React: `useLingoInput(opts)` from `@pascal-app/lingo/react`.
 
 ## Element (`@pascal-app/lingo/element`)
 
@@ -201,7 +223,7 @@ The `/docs#forms-ux` section and `/docs/forms-ux.md` markdown mirror show the sa
 | RANGE_MIN / RANGE_MAX | Value outside bounds | Re-emit within min/max advertised in field description |
 | RATE_REQUIRED | Cross-currency without rates | Call `convertCurrency` with injected rates |
 
-Full list: RANGE_KIND_MISMATCH, CONVERSION_KIND_MISMATCH, TRAILING_INPUT, SINGLE_VALUE_EXPECTED, APPROX_NOT_ALLOWED, NUMBER_FORMAT, NONFINITE, LOCALE_NOT_LOADED, RANGE_OPEN_BOUND_NOT_ALLOWED, REQUIRED, UNSUPPORTED_DATE, AMBIGUOUS_DATE, RANGE_REVERSED, COMPOUND_OVERFLOW, CIVIL_AVERAGE, UNIT_ASSUMED, WEEKDAY_ASSUMED_NEXT, SLANG_UNIT, AMBIGUOUS_TIMEZONE. Override copy via `messages` option map.
+Full list: EMPTY, NO_VALUE, UNKNOWN_UNIT, KIND_MISMATCH, RANGE_KIND_MISMATCH, CONVERSION_KIND_MISMATCH, RATE_REQUIRED, TRAILING_INPUT, SINGLE_VALUE_EXPECTED, APPROX_NOT_ALLOWED, UNIT_REQUIRED, CONVERSION_NOT_ALLOWED, NUMBER_FORMAT, NONFINITE, LOCALE_NOT_LOADED, RANGE_MIN, RANGE_MAX, RANGE_OPEN_BOUND_NOT_ALLOWED, REQUIRED, UNSUPPORTED_DATE, NOW_REQUIRED, TYPO_CORRECTED, AMBIGUOUS_NUMBER, AMBIGUOUS_UNIT, AMBIGUOUS_DATE, RANGE_REVERSED, COMPOUND_OVERFLOW, CIVIL_AVERAGE, UNIT_ASSUMED, WEEKDAY_ASSUMED_NEXT, SLANG_UNIT, TZ_IGNORED, AMBIGUOUS_TIMEZONE. Override copy via `messages` option map.
 
 ## Canonical examples (input → essence)
 

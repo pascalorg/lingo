@@ -83,6 +83,18 @@ export function trimRange(text: string, start: number, end: number): Span {
   return { start, end }
 }
 
+export function stripDateFillers(p: P, source: string): string {
+  const fillers = p.profile.date?.fillerWords ?? ['the']
+  if (fillers.length === 0) {
+    return source
+  }
+  const fillerSet = new Set(fillers)
+  return source
+    .split(/\s+/)
+    .filter((word) => !fillerSet.has(word.toLowerCase()))
+    .join(' ')
+}
+
 export function knownFor(grain: DateGrain): string[] {
   if (grain === 'year') {
     return ['year']

@@ -385,6 +385,17 @@ export function eatPhrase(p: ParserState, i: number, phrase: string): number {
   return pos
 }
 
+/** Try each phrase in order; return next token index after first match, or -1. */
+export function eatAnyPhrase(p: ParserState, pos: number, phrases: Iterable<string>): number {
+  for (const phrase of phrases) {
+    const nx = eatPhrase(p, pos, phrase)
+    if (nx >= 0) {
+      return nx
+    }
+  }
+  return -1
+}
+
 /** First token index whose start ≥ normalized position `pos`. Binary search. */
 export function tokenAfter(p: ParserState, pos: number): number {
   let lo = 0

@@ -1,7 +1,7 @@
 import type { LingoIssue } from '../core/types'
 import { parseYear, sameDay, startOfDay, validDateTime } from './civil'
 import type { DateAlternative, DateGrain } from './parse'
-import { type CoreDate, core, issue, knownFor, needsNow, type P } from './state'
+import { type CoreDate, core, issue, knownFor, needsNow, type P, stripDateFillers } from './state'
 import { MONTHS as EN_MONTHS } from './vocab'
 
 export function parseAbsolute(p: P, start: number, end: number): CoreDate | null {
@@ -149,18 +149,6 @@ function monthAlternation(p: P): string {
 
 function dateMonths(p: P): Record<string, number> {
   return p.profile.date?.months ?? EN_MONTHS
-}
-
-function stripDateFillers(p: P, source: string): string {
-  const fillers = p.profile.date?.fillerWords
-  if (!(fillers && fillers.length > 0)) {
-    return source
-  }
-  const fillerSet = new Set(fillers)
-  return source
-    .split(/\s+/)
-    .filter((word) => !fillerSet.has(word.toLowerCase()))
-    .join(' ')
 }
 
 function buildYearless(p: P, month: number, day: number, year: number | undefined): Date | null {

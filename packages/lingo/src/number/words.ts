@@ -8,13 +8,6 @@ import type { Token } from '../parse/tokenize'
  * hyphenated compounds arrive as word/sym/word triples.
  */
 
-export const ONES: Record<string, number> = EN_NUMBER_WORDS.ones
-export const TENS: Record<string, number> = EN_NUMBER_WORDS.tens
-export const SCALES: Record<string, number> = EN_NUMBER_WORDS.scales
-/** value + spread for approximate amount words. */
-export const FUZZY_AMOUNTS: Record<string, { value: number; spread: [number, number] }> =
-  EN_NUMBER_WORDS.fuzzyAmounts
-
 export interface WordNumberResult {
   approximate?: boolean
   /**

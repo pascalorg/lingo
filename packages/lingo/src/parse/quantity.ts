@@ -5,6 +5,7 @@ import type { Kind, UnitDef } from '../core/types'
 import { parseValue, type ValueCtx, type ValueNode } from '../number/value'
 import { parseAndFractionTail } from '../number/words'
 import {
+  eatAnyPhrase,
   eatPhrase,
   issue,
   type ParserState,
@@ -43,16 +44,6 @@ function startsBound(p: ParserState, pos: number): boolean {
     }
   }
   return false
-}
-
-function eatAnyPhrase(p: ParserState, pos: number, phrases: Iterable<string>): number {
-  for (const phrase of phrases) {
-    const nx = eatPhrase(p, pos, phrase)
-    if (nx >= 0) {
-      return nx
-    }
-  }
-  return -1
 }
 
 export function parseQualifiers(p: ParserState, i: number): Quals {

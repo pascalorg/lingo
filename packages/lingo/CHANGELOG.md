@@ -7,6 +7,8 @@ change**, even if the API is untouched.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-07-09
+
 ### Added
 
 - **Locale idiom coverage wave 1** (plan 033, D68/D69): parse how people

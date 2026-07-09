@@ -414,10 +414,10 @@ function fractionDenOk(den: string): boolean {
  */
 function withNumericTails(ctx: ValueCtx, node: ValueNode): ValueNode {
   const { tokens } = ctx
-  if (node.issues.length > 0) {
-    return node
-  }
 
+  // Exponent detection runs BEFORE the issue bail-out: an exponent immediately
+  // following a digit.digitdigitdigit coefficient disambiguates it as decimal
+  // (not thousands-grouped), so any AMBIGUOUS_NUMBER issue is cleared.
   const eTok = tokens[node.next]
   if (
     eTok &&
@@ -439,6 +439,8 @@ function withNumericTails(ctx: ValueCtx, node: ValueNode): ValueNode {
       node.value = node.value * 10 ** (sign * Number(tokens[pos]!.text))
       node.next = pos + 1
       node.end = tokens[pos]!.end
+      node.issues = []
+      node.altValue = undefined
       return guardFinite(ctx, node)
     }
   }
@@ -474,6 +476,8 @@ function withNumericTails(ctx: ValueCtx, node: ValueNode): ValueNode {
           node.value *= 10 ** (sign * Number(tokens[pos]!.text))
           node.next = pos + 1
           node.end = tokens[pos]!.end
+          node.issues = []
+          node.altValue = undefined
           return guardFinite(ctx, node)
         }
       }
@@ -487,10 +491,16 @@ function withNumericTails(ctx: ValueCtx, node: ValueNode): ValueNode {
           node.value *= 10 ** exp
           node.next = node.next + 2
           node.end = tenTok.end
+          node.issues = []
+          node.altValue = undefined
           return guardFinite(ctx, node)
         }
       }
     }
+  }
+
+  if (node.issues.length > 0) {
+    return node
   }
 
   // Suffix multipliers: 70k, 1.5bn (never for temperature — 5K is kelvin).

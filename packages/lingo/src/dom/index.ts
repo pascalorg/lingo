@@ -78,6 +78,7 @@ export interface LingoInputOptions {
   hintElement?: HTMLElement | string
   inputmode?: string
   kind?: Kind
+  listboxId?: string
   max?: string | number
   messages?: Messages
   min?: string | number

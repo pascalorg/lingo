@@ -227,9 +227,20 @@ function isStandaloneWord(
 }
 
 function hasPhrase(input: string, phrase: string): boolean {
-  return new RegExp(`(?:^|\\s)${escapeRegExp(phrase)}(?:\\s|$)`, 'i').test(input)
-}
-
-function escapeRegExp(input: string): string {
-  return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  // Non-regex word-boundary check: find the phrase in the lowercased input
+  // and verify it is bounded by start/end or whitespace on both sides.
+  const pLen = phrase.length
+  let idx = 0
+  while (true) {
+    idx = input.indexOf(phrase, idx)
+    if (idx < 0) {
+      return false
+    }
+    const before = idx === 0 || input.charCodeAt(idx - 1) <= 32
+    const after = idx + pLen >= input.length || input.charCodeAt(idx + pLen) <= 32
+    if (before && after) {
+      return true
+    }
+    idx++
+  }
 }

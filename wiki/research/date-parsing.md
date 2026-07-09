@@ -46,3 +46,51 @@ Research pass 2026-07-03 (background agent, source-level). Subjects: chrono-node
 ## Licenses
 
 chrono-node MIT · inclusive-dates MIT · Humanizer MIT (.NET Foundation) · date-fns MIT · Luxon MIT · moment MIT · timeago.js MIT · humanize-duration **Unlicense** · ms MIT · tinyduration MIT · Intl spec (ECMA-402).
+
+## Competitive positioning update (2026-07-09)
+
+Multi-agent web research pass 2026-07-09, cross-referencing download numbers and
+feature matrices across the date-parsing ecosystem. Claims are agent-reported and
+worth re-verifying.
+
+**Download context (npm weekly, agent-reported 2026-07-09)**: chrono-node ~5M,
+date-fns ~27M (utility, not NL parsing), Luxon ~11M (utility, not NL parsing),
+ms ~130M (minimal durations).
+
+**chrono-node parity gaps**:
+
+1. *Known/implied component certainty model* — chrono-node's `isCertain(component)`
+   is a meaningful distinction lingo does not yet surface. A `certainty` map per
+   component (year/month/day/hour/minute/tz) with values
+   `'explicit'|'inferred'|'default'` on `DateResult` would close this.
+2. *strict/casual dual-mode* — chrono ships two preconfigured pipelines per
+   locale. Lingo could expose `mode: 'casual' | 'strict'` where strict disables
+   deictic expressions and requires two date components.
+3. *14-locale coverage* — lingo has 7; the highest-demand missing locales are
+   de, it, ru, nl, ko.
+
+**Exclusive lingo differentiators vs chrono-node**:
+
+- Round-trip: `humanizeDate` output re-parses to the same value (chrono is
+  parse-only).
+- Spans on every date result component (chrono has `index` start only, no end).
+- Standard Schema integration (chrono has no schema surface).
+- Duration parsing + humanization in the same library (chrono delegates to ms or
+  date-fns).
+- Headless DOM controller for date input fields.
+- Size: lingo/date adds ~13.1 kB marginal on top of core; chrono-node is ~45 kB
+  standalone (both zero deps).
+- Throughput: lingo ~340K ops/sec for dates on ARM64 vs unknown for chrono-node
+  (no published benchmarks beyond trivial cases).
+
+**Duckling and Recognizers-Text** (server-side, non-JS):
+
+- Duckling (Facebook, Haskell): 47 languages, 15 dimensions, ranked alternatives,
+  interval/comparative modifier grammar. Requires deploying a Haskell HTTP server.
+  No JS-native option. Lingo should validate against Duckling's English test corpus
+  (`Duckling/Quantity/EN/Corpus.hs`) for coverage parity on modifiers.
+- Microsoft Recognizers-Text: 10+ languages, .NET/Java/Python/JS. The JS port
+  exists but is unmaintained (last publish 2022). Handles "greater than 5 kg" and
+  "no more than 10 miles" — patterns lingo already parses via qualifier grammar.
+
+(agent-researched, 2026-07-09; see also `wiki/research/competitive-landscape.md`)

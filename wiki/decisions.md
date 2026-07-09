@@ -465,3 +465,24 @@ Budgets recalibrate for the shared profile merge/detector surface, the locale da
 and the date parser layers that consume the new tables. Deferred: localized
 `humanizeDate()` output; current humanization remains English-only until date rendering
 gets pack-owned phrase tables too.
+
+**D67 · 2026-07-09 · Anchored ranges round-trip at every grain; property tests are
+the two-way gate.** A seeded property-based round-trip suite (plan 010 layer 2,
+finally implemented — 41k+ cases over every kind × unit × format style) and an
+adversarial review pass exposed three two-way-guarantee breaches: (1) scientific
+coefficients with three decimal digits (`3.493e-4 m`) failed to re-parse because the
+European-thousands `AMBIGUOUS_NUMBER` reading stranded the exponent — an attached
+exponent now clears both the issue and its alternative (nobody writes `3.493e-4`
+meaning 3493×10⁻⁴); plain `1.234 kg` keeps its warning. (2) Narrow style glued five
+hazard units (`5K`, `5M`, `5ft³`, `5ft²`, `5kΩ`) into strings that re-parse as
+different kinds — those five keep the space in narrow mode rather than teaching the
+parser hazardous glued forms (D47/D53 stay intact). (3) `humanizeDateRange` rendered
+time-grain anchored ranges (`3 hours starting 2026-03-01 9am`) with clock-only
+phrasing that re-parses relative to `now` — the D65 `anchored` flag now renders
+re-parseable "N <unit> starting <anchor>" phrasing at day, hour, and minute grain,
+and the anchored path threads the trailing range zone through `finishRange`'s
+zone/escalation logic (absolute anchors still need no `now`, D36). `./date`
+standalone recalibrates 38.2 → 38.3 kB (measured 38.26 after golfing) for the
+humanize + zone correctness weight — correctness is product, not bloat (D14
+pattern). The corpus gained only additive entries; the property suite keeps one
+documented exclusion (bare `C` charge-vs-Celsius, D43).

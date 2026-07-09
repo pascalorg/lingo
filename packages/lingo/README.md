@@ -796,10 +796,11 @@ Override any message: `parseQuantity(text, { messages: { UNKNOWN_UNIT: 'Try cm o
 Result helpers, so you never hand-roll the same narrowing twice:
 
 ```ts
-import { firstError, isQuantity, candidateOf, formatIssue } from '@pascal-app/lingo'
+import { firstError, isQuantity, isNumber, candidateOf, formatIssue } from '@pascal-app/lingo'
 
 const r = lingo(input, opts)
 if (isQuantity(r)) save(r.quantity.to('m').value)
+else if (isNumber(r)) save(r.value) // bare number, no unit ("72")
 else showError(formatIssue(firstError(r)!), candidateOf(r)?.quantity)
 ```
 

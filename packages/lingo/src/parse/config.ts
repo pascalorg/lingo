@@ -385,13 +385,19 @@ export function eatPhrase(p: ParserState, i: number, phrase: string): number {
   return pos
 }
 
-/** First token index whose start ≥ normalized position `pos`. */
+/** First token index whose start ≥ normalized position `pos`. Binary search. */
 export function tokenAfter(p: ParserState, pos: number): number {
-  let i = 0
-  while (i < p.tokens.length && p.tokens[i]!.start < pos) {
-    i++
+  let lo = 0
+  let hi = p.tokens.length
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1
+    if (p.tokens[mid]!.start < pos) {
+      lo = mid + 1
+    } else {
+      hi = mid
+    }
   }
-  return i
+  return lo
 }
 
 /**

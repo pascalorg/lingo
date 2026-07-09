@@ -436,7 +436,15 @@ function parseDateRangeImpl(text: string, opts?: DateOptions): DateRange | DateR
     issues: [makeIssue('UNSUPPORTED_DATE', { example: '"2pm to 4pm"' }, span, p.opts.messages)],
   })
 
-  const anchored = parseAnchoredDurationRange(p, source, span, zoneSpan, issues)
+  const anchored = parseAnchoredDurationRange(
+    p,
+    source,
+    spanStart,
+    span,
+    zoneSpan,
+    issues,
+    rangeZone,
+  )
   if (anchored) {
     return anchored
   }
@@ -503,9 +511,11 @@ type CalendarDelta = Parameters<typeof addCalendar>[1]
 function parseAnchoredDurationRange(
   p: P,
   source: string,
+  normStart: number,
   span: Span,
   zoneSpan: Span,
   issues: LingoIssue[],
+  rangeZone?: DateZone,
 ): DateRange | DateRangeFail | null {
   const m = /^(.+?)\s+starting\s+(.+)$/i.exec(source)
   if (!m) {
@@ -513,10 +523,10 @@ function parseAnchoredDurationRange(
   }
   const durationText = m[1]!
   const anchorText = m[2]!
-  const durationStart = span.start
+  const durationStart = normStart
   const durationEnd = durationStart + durationText.length
-  const anchorStart = span.start + source.length - anchorText.length
-  const anchorEnd = span.start + source.length
+  const anchorStart = normStart + source.length - anchorText.length
+  const anchorEnd = normStart + source.length
   const duration = parseUnitDuration(p.text.slice(durationStart, durationEnd), {
     escalate: p.opts.escalate,
     messages: p.opts.messages,
@@ -530,21 +540,31 @@ function parseAnchoredDurationRange(
     return null
   }
 
+  if (p.opts.now === undefined && anchor.ref) {
+    return {
+      ok: false,
+      type: 'date-range-failure',
+      text: p.src,
+      issues: [...issues, makeIssue('NOW_REQUIRED', {}, span, p.opts.messages)],
+    }
+  }
+
   const endDate = addCalendar(anchor.date, durationDelta(duration.duration))
   const endGrain = finestGrain(anchor.grain, durationGrain(duration.duration))
+  const zone = anchor.zone ?? rangeZone
   const startEp: DateRangeEndpoint = {
-    date: anchor.date,
+    date: zone?.applied ? applyZoneToCivil(anchor.date, zone) : anchor.date,
     grain: anchor.grain,
     known: [...new Set(anchor.known)],
   }
   const endEp: DateRangeEndpoint = {
-    date: endDate,
+    date: zone?.applied ? applyZoneToCivil(endDate, zone) : endDate,
     grain: endGrain,
     known: knownFor(endGrain),
   }
-  if (anchor.zone) {
-    startEp.zone = anchor.zone
-    endEp.zone = anchor.zone
+  if (zone) {
+    startEp.zone = zone
+    endEp.zone = zone
   }
   const range = finishRange(
     p,
@@ -553,6 +573,7 @@ function parseAnchoredDurationRange(
     [...issues, ...rebaseIssues(p, duration.issues, durationStart), ...anchor.issues],
     startEp,
     endEp,
+    true,
   )
   if (range.ok) {
     range.anchored = true

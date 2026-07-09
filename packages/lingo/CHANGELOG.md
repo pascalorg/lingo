@@ -7,6 +7,55 @@ change**, even if the API is untouched.
 
 ## [Unreleased]
 
+### Added
+
+- `isNumber()` result guard, completing the `isQuantity`/`isRange`/`isConversion`
+  family for the bare-number branch of `LingoResult`.
+- DOM completion fields now ship the headless half of the WAI-ARIA combobox
+  pattern: `role="combobox"`, `aria-autocomplete="list"`, `aria-expanded`
+  toggling, and a `listboxId` option wired to `aria-controls`. Author-set
+  attributes are respected and restored on `destroy()`.
+- Compile-time unit checking on `Quantity.to()` / `QuantityRange.to()`:
+  cross-kind literal targets (`quantity(5, 'kg').to('cm')`) are now compile
+  errors while dynamic `string` refs still pass (plan 027 / D29 pattern).
+- Seeded property-based round-trip suite (plan 010 layer 2): every built-in
+  kind × unit × format style across five magnitude regimes — 41k+ cases
+  asserting `parse(format(q)) ≈ q` and wire-JSON span integrity.
+- Performance: `Intl.NumberFormat` instance caching for locale formatting,
+  binary-search token lookup, allocation-free unit-match dedupe, and
+  regex-free locale-detection scoring (+3–8% across parse suites).
+
+### Changed
+
+- `LOCALE_NOT_LOADED` and `NOW_REQUIRED` message copy now names the fix
+  (import the locale pack / pass an explicit reference time).
+- Narrow-style formatting keeps the number–unit space for the five units
+  whose glued form re-parses differently (`K`, `M`, `ft²`, `ft³`, `kΩ`),
+  preserving the two-way guarantee.
+
+### Fixed
+
+- `/ai` output JSON Schemas for `output: 'quantity'`/`'range'` declared
+  `schemaVersion` enum `[2]` while the runtime emits `3`; strict providers
+  validating tool output against the declared schema would reject conformant
+  results.
+- Scientific/engineering coefficients with three decimal digits
+  (`3.493e-4 m`, `1.234×10^5 kg`) now parse: an attached exponent
+  disambiguates the coefficient, so the European-thousands `AMBIGUOUS_NUMBER`
+  reading (and its stale alternative) no longer strands the exponent as
+  trailing input.
+- Anchored duration ranges (`3 days starting tomorrow`): offset bookkeeping
+  now survives normalization shifts (unicode quotes, invisible characters),
+  absolute anchors (`3 days starting 2026-03-01`) no longer demand `now`,
+  and relative anchors without `now` fail with `NOW_REQUIRED` (D36).
+- Time-grain anchored ranges now humanize to re-parseable phrasing
+  (`3 hours starting 2026-03-01 9:00 AM` instead of clock-only output that
+  re-parsed against `now`), and a trailing timezone on an anchored range is
+  applied/escalated with the same semantics as other date ranges (D67).
+- `lingoTool()` MCP callbacks accept both bare arguments and the
+  `{ params: { arguments } }` request envelope, matching how
+  `@modelcontextprotocol/sdk` actually invokes `registerTool` callbacks.
+
 ## [0.2.0] - 2026-07-08
 
 ### Added

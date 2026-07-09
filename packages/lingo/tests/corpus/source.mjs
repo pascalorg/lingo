@@ -182,6 +182,8 @@ export const breadthRows = [
   ['70k km'],
   ['1×10⁻³ kg'],
   ['2.5×10⁻⁴ m'],
+  ['3.493e-4 m'],
+  ['1.234×10^5 kg'],
   ['¾ cup'],
   ['a dozen inches'],
   ['half a dozen feet'],

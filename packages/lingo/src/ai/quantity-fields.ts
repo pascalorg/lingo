@@ -468,7 +468,7 @@ function quantityRangeJsonSchema(): Record<string, unknown> {
   return {
     type: 'object',
     properties: {
-      schemaVersion: { type: 'number', enum: [2] },
+      schemaVersion: { type: 'number', enum: [3] },
       type: { type: 'string', enum: ['range'] },
       kind: { type: 'string' },
       baseUnit: { type: 'string' },
@@ -517,7 +517,7 @@ function quantityJsonSchema(): Record<string, unknown> {
   return {
     type: 'object',
     properties: {
-      schemaVersion: { type: 'number', enum: [2] },
+      schemaVersion: { type: 'number', enum: [3] },
       type: { type: 'string', enum: ['quantity'] },
       kind: { type: 'string' },
       value: { type: 'number' },

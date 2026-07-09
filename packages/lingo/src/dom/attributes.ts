@@ -24,6 +24,20 @@ export class AttributeStore {
     this.el.setAttribute(name, value)
   }
 
+  setDefault(name: string, value: string): void {
+    if (!this.el.hasAttribute(name)) {
+      this.set(name, value)
+    }
+  }
+
+  sync(name: string, value: string | null | false): void {
+    if (value === null || value === false) {
+      this.remove(name)
+    } else {
+      this.set(name, value)
+    }
+  }
+
   remove(name: string): void {
     this.remember(name)
     this.el.removeAttribute(name)

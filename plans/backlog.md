@@ -159,3 +159,82 @@ surfaces mid-task, add it here and keep going — don't act on it.
 - **CHANGELOG contributor attribution** — adopt a
   `**title** — description ([#PR](url)) by [@handle]` format once external
   contributions exist.
+
+## From research pass 2026-07-09 (deferred)
+
+Items surfaced by the multi-agent library/competitive research pass. Each is
+recorded here as a parking-lot idea, not a commitment. See
+`wiki/research/library-craft.md`, `wiki/research/competitive-landscape.md`,
+`wiki/research/base-ui-headless-patterns.md` for full context.
+
+- **chrono-node-style known/implied component certainty model** — add a
+  `certainty` map per date component (`'explicit'|'inferred'|'default'`) to
+  `DateResult`. Helps LLM tool consumers distinguish what the user said from what
+  was assumed. (competitive-landscape.md, lesson 0)
+- **Confidence scores on parse results** — a numeric `confidence: 0-1` field on
+  `QuantityResult`/`DateResult`, computed from exact-vs-fuzzy match, typo
+  distance, and alternatives presence. Helps tool callers decide accept-vs-clarify.
+  (competitive-landscape.md, lesson 8)
+- **AI SDK cookbook recipe + `lingoSchema()` adapter docs** — submit an MDX recipe
+  to `github.com/vercel/ai` showing `quantityField` as `tool()` inputSchema,
+  `lingoObject` composing fields, and `repairToolCallWith`. Highest-leverage
+  external discovery surface. (ai-structured-output.md addendum, 2026-07-09)
+- **`repairToolCallWith` v7 signature alignment check** — verify and document
+  that `repairToolCallWith()` can be passed directly as
+  `experimental_repairToolCall` on `ToolLoopAgent` without an adapter function.
+  (ai-structured-output.md addendum, 2026-07-09)
+- **Telemetry metadata for `lingoTool`** — emit which fields were canonicalized,
+  corrections applied, and parse duration into AI SDK tool `metadata` for
+  OpenTelemetry `execute_tool` spans. (ai-structured-output.md addendum,
+  2026-07-09)
+- **Locale message packs inside LocalePack** — bundle issue-code copy per locale
+  inside the locale pack data module so non-English fields get localized error
+  messages without a separate message-pack import. (library-craft.md, Drizzle
+  multi-bridge pattern)
+- **Cross-kind alias collision whitelist validation** — plan 003 spec gap:
+  validate at `registerKind`/`registerUnits` time that new aliases do not collide
+  with existing aliases in other kinds, unless explicitly whitelisted. Currently
+  silent; `registerUnitAliases` also silently drops unknown unitRefs.
+  (audit: extensibility, finding 3)
+- **`defineLocalePack` type-checking helper** — an identity function
+  `defineLocalePack<const T extends LocalePack>(pack: T): T` (same pattern as
+  `defineKind`) for type-safe locale pack authoring with literal preservation.
+  (audit: extensibility, finding 4)
+- **React peerDependency range widening** (`^19` to `>=18.2.0 || ^19`) — the
+  hook uses only React 16.8+ APIs (`useRef`, `useState`, `useCallback`,
+  `useEffect`). The `^19` constraint excludes React 18 users (still widely
+  deployed). Needs owner decision on whether to support 18's `RefObject` type
+  shape. (audit: integration, finding 2)
+- **Vue/Svelte/Solid adapters** — the DOM controller is framework-agnostic; thin
+  adapter hooks for Vue (`useLingoInput` composable), Svelte (action), and Solid
+  (directive) would expand reach without new core deps. Low urgency until React
+  adoption proves the pattern. (competitive-landscape.md, positioning)
+- **Per-function docs pages** — evolve `docs-catalog.ts` to generate individual
+  routes (`/docs/parseQuantity`, `/docs/convert`, etc.) from existing JSDoc
+  `@example` blocks. Top-20 exports first. (library-craft.md, lodash lesson 1)
+- **Competitor benchmark comparisons** (`bench-compare`) — measure lingo parse
+  operations against chrono-node (dates), convert-units (conversion), and ms
+  (durations) on shared inputs; publish in docs. (library-craft.md, es-toolkit
+  lesson 0; competitive-landscape.md throughput section)
+- **DOM paste handling** — detect `inputType === 'insertFromPaste'` in `onInput`,
+  skip debounce, strip newlines/formatting, parse immediately. Currently pasted
+  text is debounced like typing. (audit: integration, finding 4)
+- **React hook completions integration** — expose `completions[]` and
+  `highlightedIndex` in `UseLingoInputResult` so React consumers can render a
+  combobox popup with the ARIA contract from Base UI research.
+  (base-ui-headless-patterns.md)
+- **`partialState` double-parse** — the DOM controller parses once for
+  `partialState` classification and again on commit; if the debounced parse
+  result is still current at commit time, reuse it. (audit: performance, implied)
+- **IssueCode extensibility for third-party kinds** — add `| (string & {})` to
+  `IssueCode` (matching the `Kind` pattern) so custom kinds can define
+  domain-specific issue codes without forking. Adjust `Messages` type to allow
+  partial mapping. (audit: extensibility, finding 0)
+- **`lingoMiddleware` for AI SDK** — a `wrapLanguageModel()` middleware that
+  runs `canonicalizeValues` on tool call arguments before `execute()`, giving
+  infrastructure-level quantity/date normalization without per-tool boilerplate.
+  (ai-structured-output.md addendum, 2026-07-09)
+- **`assertStrictSafe(field)` utility** — walk a LingoField's emitted JSON
+  Schema and throw if any object has `additionalProperties:true` or missing
+  `required`; catches the `passthrough:true` footgun at definition time for
+  OpenAI/Anthropic strict mode. (ai-structured-output.md addendum, 2026-07-09)

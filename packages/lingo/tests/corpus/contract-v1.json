@@ -2435,6 +2435,32 @@
       },
       "confidence": 1
     },
+    "3.493e-4 m": {
+      "input": "3.493e-4 m",
+      "type": "quantity",
+      "kind": "length",
+      "base": 0.0003493,
+      "unit": "m",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 10
+      },
+      "confidence": 1
+    },
+    "1.234×10^5 kg": {
+      "input": "1.234×10^5 kg",
+      "type": "quantity",
+      "kind": "mass",
+      "base": 123400,
+      "unit": "kg",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 13
+      },
+      "confidence": 1
+    },
     "¾ cup": {
       "input": "¾ cup",
       "type": "quantity",

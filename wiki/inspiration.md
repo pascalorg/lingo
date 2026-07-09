@@ -148,3 +148,11 @@ license obligation; we do not copy code without noting it here explicitly.
 - **taste-skill** (Leonxlnx, tasteskill.dev) — anti-slop frontend skill; its
   redesign protocol (audit-first, targeted-evolution levers, IA preservation
   rules) governs site Pass 10; installed via `npx skills add`.
+
+## Library-craft & quality patterns (research pass 2026-07-09)
+
+| source | license/type | what we took |
+|--------|--------------|--------------|
+| [Base UI](https://base-ui.com) Combobox (v1.6.0) | MIT | The ARIA combobox contract (`role="combobox"` + `aria-autocomplete="list"` + `aria-activedescendant` pointing at highlighted option) as the accessibility pattern for lingo's DOM completions popup — keeps DOM focus on the input while screen readers navigate the list. Applied to the planned completions ARIA wiring in `packages/lingo/src/dom/controller.ts`. |
+| [FFmpeg FATE](https://fate.ffmpeg.org) + plan 010 | LGPL-2.1 (the practice pattern, not code) | Seeded property round-trip testing: encode-then-decode oracle (FATE's `enc_dec_pcm` pattern) as the direct model for lingo's two-way guarantee property test — generate random magnitudes, `format()`, `parse()`, assert `base` equality within epsilon. Validates the plan 010 layer-2 spec from independent prior art. |
+| [es-toolkit](https://es-toolkit.slash.page) | MIT | Per-entry size/benchmark publishing as a documentation practice: each function measured individually with esbuild min+gzip, results surfaced on the site with head-to-head comparisons. Lingo already has the measurement infrastructure (`scripts/size.mjs`, `scripts/bench.mjs`); the idea is to pipe those numbers into the published docs site as a future docs-site item. |

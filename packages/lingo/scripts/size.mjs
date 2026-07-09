@@ -256,7 +256,10 @@ if (has('src/date/index.ts')) {
   // 37.6 (was 37.3): D64 — locale unit-vocab detection cascade; the standalone
   // date build inherits the shared alias-aware detector.
   // 38.2 (was 37.6): D66 — locale date vocab readers plus pack-owned date frames.
-  check('./date (standalone, incl. engine)', dateAlone, 38_200)
+  // 38.3 (was 38.2): D67 — anchored-range two-way fix (time-grain "N hours
+  // starting <anchor>" humanize phrasing) + range-zone threading through the
+  // anchored path (measured 38.26 after golfing; correctness is product, D14).
+  check('./date (standalone, incl. engine)', dateAlone, 38_300)
   const withDate = await bundleStdin(
     `export * from './src/index.ts'; export * from './src/date/index.ts'`,
   )

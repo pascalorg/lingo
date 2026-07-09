@@ -6,9 +6,11 @@ import {
   convertCurrency,
   convertDelta,
   createLingo,
+  defaultRegistry,
   fromMinor,
   type KindDef,
   type KindOfUnit,
+  QuantityRange,
   quantity,
   type TryConvertResult,
   tryConvert,
@@ -85,6 +87,10 @@ const instanceKilograms = builtInInstance.quantity(5, 'kg')
 const instanceConverted = builtInInstance.convert(5, 'in', 'cm')
 const instanceTried = builtInInstance.tryConvert(5, 'in', 'cm')
 const instanceMinorUsd = builtInInstance.fromMinor(500, 'USD')
+const kilogramRange = new QuantityRange(defaultRegistry, 'mass', {
+  min: { base: 5, unit: 'kg' },
+  max: { base: 10, unit: 'kg' },
+})
 
 const widgetKind = {
   kind: 'widget',
@@ -116,6 +122,10 @@ type _InstanceConvertedIsNumber = Expect<Equal<typeof instanceConverted, number>
 type _InstanceTriedIsResult = Expect<Equal<typeof instanceTried, TryConvertResult>>
 type _InstanceMinorUsdKind = Expect<Equal<typeof instanceMinorUsd.kind, 'currency'>>
 
+kilograms.to('lb')
+kilograms.to(dynamicTo)
+kilogramRange.to('lb')
+kilogramRange.to(dynamicTo)
 quantity(5, dynamicUnit)
 quantity(5, dynamicUnit, 'length')
 quantity(5, 'kg', dynamicKind)
@@ -140,6 +150,12 @@ tryConvert(5, 'kg', 'cm')
 
 // @ts-expect-error delta conversion uses the same kind constraint.
 convertDelta(5, 'kg', 'cm')
+
+// @ts-expect-error Quantity.to rejects cross-kind literal targets.
+kilograms.to('cm')
+
+// @ts-expect-error QuantityRange.to rejects cross-kind literal targets.
+kilogramRange.to('cm')
 
 // @ts-expect-error a literal unit must belong to the literal kind.
 quantity(5, 'kg', 'length')

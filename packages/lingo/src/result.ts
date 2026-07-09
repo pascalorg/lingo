@@ -4,6 +4,7 @@ import type {
   ConversionResult,
   FailResult,
   LingoResult,
+  NumberResult,
   QuantityResult,
   RangeResult,
 } from './parse/grammar'
@@ -60,6 +61,19 @@ export function isRange(result: LingoResult): result is RangeResult {
  */
 export function isConversion(result: LingoResult): result is ConversionResult {
   return result.ok && result.type === 'conversion'
+}
+
+/**
+ * Narrow a `LingoResult` to `NumberResult` — `ok: true` and `type: 'number'`.
+ * @example
+ * ```ts
+ * import { lingo, isNumber } from '@pascal-app/lingo'
+ * const r = lingo('72')
+ * if (isNumber(r)) r.value // 72
+ * ```
+ */
+export function isNumber(result: LingoResult): result is NumberResult {
+  return result.ok && result.type === 'number'
 }
 
 /**

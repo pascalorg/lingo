@@ -259,6 +259,18 @@ describe('single quantities', () => {
     expect(base('2.5×10⁻⁴ m')).toBeCloseTo(2.5e-4, 15)
   })
 
+  it('clears ambiguity alternatives when an exponent disambiguates', () => {
+    const r = qty('1.234e5 kg')
+    expect(r.quantity.base).toBeCloseTo(123_400, 6)
+    expect(r.issues).toEqual([])
+    expect(r.alternatives).toBeUndefined()
+
+    const neg = qty('-1.234e5 kg')
+    expect(neg.quantity.base).toBeCloseTo(-123_400, 6)
+    expect(neg.issues).toEqual([])
+    expect(neg.alternatives).toBeUndefined()
+  })
+
   it('parses force, power, and frequency units', () => {
     expect(base('5 N')).toBeCloseTo(5, 12)
     expect(base('10 kW')).toBeCloseTo(10_000, 12)

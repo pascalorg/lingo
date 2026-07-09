@@ -153,6 +153,7 @@ export function finishRange(
   issues: LingoIssue[],
   start: DateRangeEndpoint | undefined,
   end: DateRangeEndpoint | undefined,
+  anchored?: boolean,
 ): DateRange | DateRangeFail {
   // A trailing zone rides along the same way parseTimeOnly exposes it:
   // TZ_IGNORED when detected-not-applied, then AMBIGUOUS_TIMEZONE. Both
@@ -178,7 +179,8 @@ export function finishRange(
   })
   // Every endpoint is a time-of-day — reference-dependent, like parseDate's
   // `ref` path — so an absent `now` is NOW_REQUIRED, not a silent host-clock read.
-  if (p.opts.now === undefined) {
+  // Anchored absolute ranges bypass this: they need no reference time.
+  if (p.opts.now === undefined && !anchored) {
     return {
       ok: false,
       type: 'date-range-failure',

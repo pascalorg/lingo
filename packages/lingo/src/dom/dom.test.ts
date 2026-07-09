@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { Completion } from '../complete/types'
 import { setDefaultMessages } from '../core/errors'
 import { englishMessages } from '../index'
 import { lingoInput } from './index'
@@ -284,6 +285,13 @@ function enter(el: TestInputElement): TestKeyboardEvent {
   el.dispatchEvent(event)
   return event
 }
+
+const completion = {
+  confidence: 1,
+  result: {} as Completion['result'],
+  source: 'unit-prefix',
+  text: '2 ft',
+} satisfies Completion
 
 afterEach(() => {
   vi.useRealTimers()
@@ -676,6 +684,75 @@ describe('lingoInput', () => {
     expect(states).toContain('valid')
   })
 
+  it('wires completion combobox aria and restores generated attrs', () => {
+    vi.useFakeTimers()
+    const doc = installDom()
+    const el = input(doc)
+    const onComplete = vi.fn()
+    const field = lingoInput(el as unknown as HTMLInputElement, {
+      complete: () => [completion],
+      listboxId: 'height-options',
+      onComplete,
+    })
+
+    expect(el.getAttribute('role')).toBe('combobox')
+    expect(el.getAttribute('aria-autocomplete')).toBe('list')
+    expect(el.getAttribute('aria-controls')).toBe('height-options')
+    expect(el.getAttribute('aria-expanded')).toBe('false')
+
+    typeInto(el, '2 f')
+    vi.advanceTimersByTime(150)
+    expect(el.getAttribute('aria-expanded')).toBe('true')
+    expect(onComplete).toHaveBeenLastCalledWith([completion], field)
+
+    typeInto(el, '2 ft')
+    vi.advanceTimersByTime(150)
+    expect(el.getAttribute('aria-expanded')).toBe('true')
+    blur(el)
+    expect(el.getAttribute('aria-expanded')).toBe('false')
+    expect(onComplete).toHaveBeenLastCalledWith([completion], field)
+
+    typeInto(el, '')
+    vi.advanceTimersByTime(150)
+    expect(el.getAttribute('aria-expanded')).toBe('false')
+    expect(onComplete).toHaveBeenLastCalledWith([], field)
+
+    field.destroy()
+    expect(el.getAttribute('role')).toBeNull()
+    expect(el.getAttribute('aria-autocomplete')).toBeNull()
+    expect(el.getAttribute('aria-controls')).toBeNull()
+    expect(el.getAttribute('aria-expanded')).toBeNull()
+  })
+
+  it('respects author completion attrs while restoring controlled aria state', () => {
+    vi.useFakeTimers()
+    const doc = installDom()
+    const el = input(doc)
+    el.setAttribute('role', 'searchbox')
+    el.setAttribute('aria-autocomplete', 'both')
+    el.setAttribute('aria-controls', 'author-list')
+    el.setAttribute('aria-expanded', 'maybe')
+    const field = lingoInput(el as unknown as HTMLInputElement, {
+      complete: () => [completion],
+      listboxId: 'lingo-list',
+    })
+
+    expect(el.getAttribute('role')).toBe('searchbox')
+    expect(el.getAttribute('aria-autocomplete')).toBe('both')
+    expect(el.getAttribute('aria-controls')).toBe('lingo-list')
+    expect(el.getAttribute('aria-expanded')).toBe('false')
+
+    typeInto(el, '2 f')
+    vi.advanceTimersByTime(150)
+    expect(el.getAttribute('aria-expanded')).toBe('true')
+
+    field.destroy()
+    expect(el.getAttribute('role')).toBe('searchbox')
+    expect(el.getAttribute('aria-autocomplete')).toBe('both')
+    expect(el.getAttribute('aria-controls')).toBe('author-list')
+    expect(el.getAttribute('aria-expanded')).toBe('maybe')
+  })
+
   it('supports programmatic set and live option updates', () => {
     vi.useFakeTimers()
     const doc = installDom()
@@ -702,6 +779,10 @@ describe('lingoInput', () => {
     expect(el.getAttribute('data-lingo')).toBe('input')
     expect(el.getAttribute('data-kind')).toBe('length')
     expect(el.getAttribute('data-unit')).toBe('m')
+
+    lingoInput.get(el as unknown as HTMLInputElement)?.destroy()
+    lingoInput(el as unknown as HTMLInputElement, { kind: 'length', unit: '' })
+    expect(el.getAttribute('data-unit')).toBeNull()
   })
 
   it('processes untrusted synthetic input and waits for compositionend', () => {

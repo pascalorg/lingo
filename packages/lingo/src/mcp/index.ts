@@ -18,6 +18,7 @@ import { type InferLingoObject, type LingoObjectShape, lingoObject } from '../ai
  * ```
  */
 export interface McpTool {
+  /** Accepts raw arguments or an MCP request envelope with `params.arguments`. */
   callback: (raw: unknown) => Promise<{
     content: { type: 'text'; text: string }[]
     isError?: boolean
@@ -29,8 +30,9 @@ export interface McpTool {
 
 /**
  * Build an MCP tool descriptor from a `lingoObject` shape. The generated JSON
- * Schema is closed by default, and callback input is canonicalized before the
- * handler runs so model repair sees lingo's `[CODE] message` failures.
+ * Schema is closed by default, and callback input is unwrapped from MCP's
+ * `params.arguments` envelope and canonicalized before the handler runs so
+ * model repair sees lingo's `[CODE] message` failures.
  * @example
  * ```ts
  * import { quantityField } from '@pascal-app/lingo/ai'
@@ -58,7 +60,8 @@ export function lingoTool<Shape extends LingoObjectShape>(def: {
     description: def.description,
     inputSchema: schema['~standard'].jsonSchema.input({ target: 'draft-2020-12' }),
     async callback(raw) {
-      const parsed = schema.safeParse(raw)
+      const params = (raw as { params?: { arguments?: unknown; name?: unknown } })?.params
+      const parsed = schema.safeParse(params?.name && params.arguments ? params.arguments : raw)
       if (!('value' in parsed)) {
         return {
           isError: true,
@@ -70,16 +73,20 @@ export function lingoTool<Shape extends LingoObjectShape>(def: {
         const out = await def.handler(parsed.value)
         return {
           content: [
-            { type: 'text', text: typeof out === 'string' ? out : (JSON.stringify(out) ?? '') },
+            { type: 'text', text: typeof out === 'string' ? out : JSON.stringify(out) || '' },
           ],
         }
       } catch (error) {
-        return { isError: true, content: [{ type: 'text', text: errorMessage(error) }] }
+        return {
+          isError: true,
+          content: [
+            {
+              type: 'text',
+              text: error instanceof Error ? error.message : String(error),
+            },
+          ],
+        }
       }
     },
   }
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
 }

@@ -322,11 +322,10 @@ export function humanizeDateRange(
   range: { anchored?: boolean; start?: { date: Date }; end?: { date: Date } },
   opts?: HumanizeDateRangeOptions,
 ): string {
-  if (range.anchored) {
-    const dayRange = wholeDayRange(range)
-    if (dayRange) {
-      const unit = dayRange.days === 1 ? 'day' : 'days'
-      return `${dayRange.days} ${unit} starting ${formatMonthDayYear(dayRange.start)}`
+  if (range.anchored && range.start && range.end) {
+    const a = anchoredPhrase(range.start.date, range.end.date, opts)
+    if (a) {
+      return a
     }
   }
   const hour12 = opts?.hour12 ?? true
@@ -344,42 +343,43 @@ export function humanizeDateRange(
   throw new Error('humanizeDateRange: range has neither start nor end.')
 }
 
-function wholeDayRange(range: {
-  start?: { date: Date }
-  end?: { date: Date }
-}): { days: number; start: Date } | null {
-  if (!(range.start && range.end)) {
+function anchoredPhrase(s: Date, e: Date, opts?: HumanizeDateRangeOptions): string | null {
+  const m =
+    (e.getTime() - s.getTime() - (e.getTimezoneOffset() - s.getTimezoneOffset()) * 6e4) / 6e4
+  if (m <= 0) {
     return null
   }
-  const start = range.start.date
-  const end = range.end.date
-  if (!(isMidnight(start) && isMidnight(end))) {
+  const day = !(s.getHours() | s.getMinutes() | s.getSeconds()) && m % 1440 === 0
+  const n = day ? m / 1440 : m % 60 === 0 ? m / 60 : m
+  if (!Number.isInteger(n)) {
     return null
   }
-  const minutes =
-    (end.getTime() -
-      start.getTime() -
-      (end.getTimezoneOffset() - start.getTimezoneOffset()) * 60_000) /
-    60_000
-  const days = minutes / (24 * 60)
-  return Number.isInteger(days) && days > 0 ? { days, start } : null
+  const u = day
+    ? n === 1
+      ? 'day'
+      : 'days'
+    : m % 60 === 0
+      ? n === 1
+        ? 'hour'
+        : 'hours'
+      : n === 1
+        ? 'minute'
+        : 'minutes'
+  const anchor = day
+    ? formatMonthDayYear(s)
+    : `${formatMonthDayYear(s)} ${formatClock(s, opts?.hour12 ?? true)}`
+  return `${n} ${u} starting ${anchor}`
 }
 
-function isMidnight(date: Date): boolean {
-  return date.getHours() === 0 && date.getMinutes() === 0 && date.getSeconds() === 0
+function formatMonthDayYear(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-function formatMonthDayYear(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-}
-
-function formatClock(date: Date, hour12: boolean): string {
-  const h = date.getHours()
-  const mm = String(date.getMinutes()).padStart(2, '0')
+function formatClock(d: Date, hour12: boolean): string {
+  const h = d.getHours()
+  const mm = String(d.getMinutes()).padStart(2, '0')
   if (!hour12) {
     return `${String(h).padStart(2, '0')}:${mm}`
   }
-  const meridiem = h < 12 ? 'AM' : 'PM'
-  const h12 = h % 12 === 0 ? 12 : h % 12
-  return `${h12}:${mm} ${meridiem}`
+  return `${h % 12 || 12}:${mm} ${h < 12 ? 'AM' : 'PM'}`
 }

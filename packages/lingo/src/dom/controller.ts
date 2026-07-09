@@ -253,15 +253,12 @@ export class Controller implements LingoField {
     return this.opts.validationBehavior ?? (this.errorEl ? 'aria' : 'native')
   }
 
-  private emitCompletions(raw: string): void {
+  private emitCompletions(raw: string, collapsed = false): void {
     if (!(this.opts.complete || this.opts.onComplete)) {
       return
     }
-    if (raw.trim() === '') {
-      this.opts.onComplete?.([], this)
-      return
-    }
-    const list = this.opts.complete?.(raw) ?? []
+    const list = raw.trim() === '' ? [] : (this.opts.complete?.(raw) ?? [])
+    this.attrs.set('aria-expanded', !collapsed && list.length ? 'true' : 'false')
     this.opts.onComplete?.(list, this)
   }
 
@@ -292,7 +289,7 @@ export class Controller implements LingoField {
       this.parseTimer = null
     }
     const raw = this.el.value
-    this.emitCompletions(raw)
+    this.emitCompletions(raw, fromCommit)
     const partial = partialState(raw, toLingoOptions(this.opts))
     if (partial === 'empty') {
       this.updateState('idle', null, fromCommit)
@@ -400,59 +397,18 @@ export class Controller implements LingoField {
     // height field still reads data-kind="length" data-unit="m".
     const kind =
       (this.currentResult ? resultKind(this.currentResult) : null) ?? this.opts.kind ?? null
-    if (kind) {
-      this.attrs.set('data-kind', kind)
-    } else {
-      this.attrs.remove('data-kind')
-    }
-
-    if (this.touched) {
-      this.attrs.set('data-touched', '')
-    } else {
-      this.attrs.remove('data-touched')
-    }
-
-    if (this.el.value === this.initialRaw) {
-      this.attrs.remove('data-dirty')
-    } else {
-      this.attrs.set('data-dirty', '')
-    }
-
-    if (this.touched && this.currentState === 'invalid') {
-      this.attrs.set('data-invalid', '')
-    } else {
-      this.attrs.remove('data-invalid')
-    }
-
-    if (this.touched && this.currentState === 'valid') {
-      this.attrs.set('data-valid', '')
-    } else {
-      this.attrs.remove('data-valid')
-    }
-
-    if (this.currentState === 'valid' && material.approximate) {
-      this.attrs.set('data-approx', '')
-    } else {
-      this.attrs.remove('data-approx')
-    }
-
-    if (this.currentState === 'valid' && material.canonical !== null) {
-      this.attrs.set('data-canonical', material.canonical)
-    } else {
-      this.attrs.remove('data-canonical')
-    }
-
-    if (this.opts.unit) {
-      this.attrs.set('data-unit', this.opts.unit)
-    } else {
-      this.attrs.remove('data-unit')
-    }
-
-    if (showError) {
-      this.attrs.set('aria-invalid', 'true')
-    } else {
-      this.attrs.remove('aria-invalid')
-    }
+    this.attrs.sync('data-kind', kind)
+    this.attrs.sync('data-touched', this.touched && '')
+    this.attrs.sync('data-dirty', this.el.value !== this.initialRaw && '')
+    this.attrs.sync('data-invalid', this.touched && this.currentState === 'invalid' && '')
+    this.attrs.sync('data-valid', this.touched && this.currentState === 'valid' && '')
+    this.attrs.sync('data-approx', this.currentState === 'valid' && material.approximate && '')
+    this.attrs.sync(
+      'data-canonical',
+      this.currentState === 'valid' && material.canonical !== null && material.canonical,
+    )
+    this.attrs.sync('data-unit', this.opts.unit || null)
+    this.attrs.sync('aria-invalid', showError && 'true')
 
     if (
       (this.validationBehavior() === 'native' || this.form) &&
@@ -491,11 +447,7 @@ export class Controller implements LingoField {
       const next = this.errorId
         ? removeToken(this.el.getAttribute('aria-describedby'), this.errorId)
         : null
-      if (next) {
-        this.attrs.set('aria-describedby', next)
-      } else {
-        this.attrs.remove('aria-describedby')
-      }
+      this.attrs.sync('aria-describedby', next)
       this.errorEl.textContent = ''
     }
   }
@@ -577,19 +529,25 @@ export class Controller implements LingoField {
   }
 
   private applyAttachAttributes(): void {
-    const defaults: Record<string, string> = {
-      autocomplete: 'off',
-      autocorrect: 'off',
-      autocapitalize: 'none',
-      spellcheck: 'false',
-    }
-    for (const [name, value] of Object.entries(defaults)) {
-      if (!this.el.hasAttribute(name)) {
-        this.attrs.set(name, value)
-      }
+    for (const [name, value] of [
+      ['autocomplete', 'off'],
+      ['autocorrect', 'off'],
+      ['autocapitalize', 'none'],
+      ['spellcheck', 'false'],
+    ] as const) {
+      this.attrs.setDefault(name, value)
     }
     if (this.opts.inputmode !== undefined) {
       this.attrs.set('inputmode', this.opts.inputmode)
+    }
+    if (this.opts.complete || this.opts.onComplete) {
+      this.attrs.setDefault('role', 'combobox')
+      this.attrs.setDefault('aria-autocomplete', 'list')
+      this.attrs.set('aria-expanded', 'false')
+      const listboxId = this.opts.listboxId
+      if (listboxId) {
+        this.attrs.set('aria-controls', listboxId)
+      }
     }
   }
 

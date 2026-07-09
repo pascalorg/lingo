@@ -64,7 +64,7 @@ export function parseNumberWords(
 }
 
 function parseCore(tokens: Token[], i: number, tables: NumberWordTables): WordNumberResult | null {
-  let pos = i
+  const pos = i
   const w = word(tokens[pos])
   if (w === null) {
     return null
@@ -129,58 +129,131 @@ function parseCore(tokens: Token[], i: number, tables: NumberWordTables): WordNu
     }
   }
 
+  // Composed table: longest-match phrase lookup (quinientos, quatre-vingt-dix, etc.)
+  const comp = tryComposed(tokens, pos, tables)
+  if (comp) {
+    return cardinalLoop(tokens, comp.next, 0, comp.value, true, tables)
+  }
+
+  // Bare scale words: "cien gramos", "mil metros"
+  if (tables.bareScales?.[w] !== undefined) {
+    return cardinalLoop(tokens, pos + 1, 0, tables.bareScales[w]!, true, tables)
+  }
+
   // Standard cardinal grammar.
-  let total = 0
-  let current = 0
-  let consumedAny = false
-  let sawDozen = false
+  return cardinalLoop(tokens, pos, 0, 0, false, tables)
+}
+
+/** Longest-match against composed table; hyphens transparent. */
+function tryComposed(
+  tokens: Token[],
+  pos: number,
+  tables: NumberWordTables,
+): { next: number; value: number } | null {
+  const c = tables.composed
+  if (!c) {
+    return null
+  }
+  let best: number | undefined
+  let bestNext = pos
+  let key = ''
+  let scan = pos
+  let end = pos
+  while (scan < tokens.length) {
+    const t = tokens[scan]!
+    if (t.type === 'word') {
+      key = key ? `${key} ${t.text.toLowerCase()}` : t.text.toLowerCase()
+      end = ++scan
+    } else if (t.type === 'sym' && t.text === '-' && word(tokens[scan + 1]) !== null) {
+      scan++
+      continue
+    } else {
+      break
+    }
+    if (c[key] !== undefined) {
+      best = c[key]!
+      bestNext = end
+    }
+  }
+  return best === undefined ? null : { value: best, next: bestNext }
+}
+
+function cardinalLoop(
+  tokens: Token[],
+  startPos: number,
+  total: number,
+  current: number,
+  any: boolean,
+  tables: NumberWordTables,
+): WordNumberResult | null {
+  let pos = startPos
+  let t_ = total
+  let c_ = current
+  let dozen = false
   while (pos < tokens.length) {
-    const t = tokens[pos]!
-    const tw = word(t)
+    const tw = word(tokens[pos])
     if (tw === null) {
       break
     }
+
+    if (any && tables.composed) {
+      const m = tryComposed(tokens, pos, tables)
+      if (m) {
+        c_ += m.value
+        pos = m.next
+        continue
+      }
+    }
     if (tables.ones[tw] !== undefined) {
-      current += tables.ones[tw]!
+      c_ += tables.ones[tw]!
       pos++
-      consumedAny = true
-      // hyphenated tens handled below via TENS branch; ones ends a group
+      any = true
       continue
     }
     if (tables.tens[tw] !== undefined) {
-      current += tables.tens[tw]!
+      c_ += tables.tens[tw]!
       pos++
-      consumedAny = true
-      // optional hyphen + ones ("twenty-five" / "twenty five")
-      const hyphen = tokens[pos]
-      if (hyphen && hyphen.type === 'sym' && hyphen.text === '-') {
-        const onesW = word(tokens[pos + 1])
-        if (onesW && tables.ones[onesW] !== undefined && tables.ones[onesW]! < 10) {
-          current += tables.ones[onesW]!
-          pos += 2
+      any = true
+      // hyphen+ones OR and-word+ones after tens
+      const nxt = tokens[pos]
+      const skip =
+        nxt && nxt.type === 'sym' && nxt.text === '-'
+          ? 1
+          : word(tokens[pos]) && tables.andWords.has(word(tokens[pos])!)
+            ? 1
+            : 0
+      if (skip) {
+        const o = word(tokens[pos + skip])
+        if (o && tables.ones[o] !== undefined && tables.ones[o]! < 10) {
+          c_ += tables.ones[o]!
+          pos += skip + 1
         }
       }
       continue
     }
-    if (tables.dozenWords.has(tw) && consumedAny) {
-      current *= 12
-      sawDozen = true
+    if (tables.dozenWords.has(tw) && any) {
+      c_ *= 12
+      dozen = true
       pos++
       continue
     }
-    if (tables.scales[tw] !== undefined && consumedAny) {
+    if (tables.scales[tw] !== undefined && any) {
       if (tables.scales[tw] === 100) {
-        current = (current === 0 ? 1 : current) * 100
+        c_ = (c_ === 0 ? 1 : c_) * 100
       } else {
-        total += (current === 0 ? 1 : current) * tables.scales[tw]!
-        current = 0
+        t_ += (c_ === 0 ? 1 : c_) * tables.scales[tw]!
+        c_ = 0
       }
       pos++
-      // optional "and" ("one hundred and five")
-      const join = word(tokens[pos])
-      if (join && tables.andWords.has(join)) {
-        const after = word(tokens[pos + 1])
-        if (after && (tables.ones[after] !== undefined || tables.tens[after] !== undefined)) {
+      const j = word(tokens[pos])
+      if (j && tables.andWords.has(j)) {
+        const a = word(tokens[pos + 1])
+        if (
+          a &&
+          (tables.ones[a] !== undefined ||
+            tables.tens[a] !== undefined ||
+            tables.composed?.[a] !== undefined)
+        ) {
           pos++
         }
       }
@@ -188,14 +261,53 @@ function parseCore(tokens: Token[], i: number, tables: NumberWordTables): WordNu
     }
     break
   }
-  if (!consumedAny) {
+  if (!any) {
     return null
   }
-  let value = total + current
-  if (sawDozen) {
+  let value = t_ + c_
+
+  // Spoken decimal separator — parse post-decimal as digit sequence
+  if (tables.decimalWords) {
+    const dw = word(tokens[pos])
+    if (dw && tables.decimalWords.has(dw)) {
+      let d = ''
+      let dp = pos + 1
+      while (dp < tokens.length) {
+        const tw = word(tokens[dp])
+        if (!tw) {
+          break
+        }
+        const v = tables.ones[tw]
+        if (v !== undefined && v <= 99) {
+          d += String(v)
+          dp++
+        } else if (tables.composed) {
+          const c = tryComposed(tokens, dp, tables)
+          if (c && c.value <= 99) {
+            d += String(c.value)
+            dp = c.next
+          } else {
+            break
+          }
+        } else {
+          break
+        }
+      }
+      if (!d && tokens[pos + 1]?.type === 'digits') {
+        const tx = tokens[pos + 1]!.text
+        d = tx
+        dp = pos + 2
+      }
+      if (d) {
+        const frac = +d / 10 ** d.length
+        return { value: value + (value < 0 ? -1 : 1) * frac, next: dp }
+      }
+    }
+  }
+
+  if (dozen) {
     return withHalfDozenTail(tokens, pos, value, tables)
   }
-  // "two and a half"
   const tail = parseAndFractionTail(tokens, pos, tables)
   if (tail) {
     value += tail.add
@@ -211,20 +323,12 @@ function finishScaled(
   tables: NumberWordTables,
 ): WordNumberResult {
   const scaleWord = word(tokens[scalePos])!
-  let value = multiplier * tables.scales[scaleWord]!
-  let pos = scalePos + 1
-  const join = word(tokens[pos])
-  if (join && tables.andWords.has(join)) {
-    const after = word(tokens[pos + 1])
-    if (after && (tables.ones[after] !== undefined || tables.tens[after] !== undefined)) {
-      const rest = parseCore(tokens, pos + 1, tables)
-      if (rest && !rest.needsUnit) {
-        value += rest.value
-        pos = rest.next
-      }
-    }
-  }
-  return { value, next: pos }
+  const scaleValue = multiplier * tables.scales[scaleWord]!
+  const pos = scalePos + 1
+  // Continue into cardinalLoop to consume further composed/scale chains.
+  // E.g. "un millon quinientos mil" seeds total with 1,000,000, then
+  // cardinalLoop picks up "quinientos mil" (500*1000).
+  return cardinalLoop(tokens, pos, scaleValue, 0, true, tables)!
 }
 
 /**

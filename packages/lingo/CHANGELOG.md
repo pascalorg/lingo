@@ -9,6 +9,37 @@ change**, even if the API is untouched.
 
 ### Added
 
+- **Locale idiom coverage wave 1** (plan 033, D68/D69): parse how people
+  actually write and speak quantities and dates across all shipped locales.
+  - CJK number engine: multi-character number words inside CJK tokens
+    (`三公斤`, `三十五キロ`), 万/亿/億 scale grouping (`三百五十万` = 3.5M),
+    elliptical shorthands (`一百五` = 150, `三万五` = 35 000), mixed
+    digit+scale (`3万5千`, `1億2千万`), wave-dash ranges (`5〜10キロ`),
+    adjacent-number ranges (`七八天` = 7–8 days), and post-unit 半
+    (`两公斤半` = 2.5 kg).
+  - Romance number composition via new pack fields: tens + and-word + ones
+    (`treinta y cinco`), `bareScales` (`cien gramos`, `mil metros`),
+    `composed` exact compounds (`quinientos`, exhaustive French vigesimal
+    `quatre-vingt-dix`), and spoken decimals via `decimalWords`
+    (`dos coma cinco`, `trois virgule quatorze`; English gains
+    `two point five` through the same table).
+  - Localized date grammar via new pack fields: spoken clock
+    (`las tres menos cuarto`, `quinze para as tres`, `deux heures et quart`,
+    US `quarter of five`), period edges (`fin juillet`, `a finales de mes`,
+    `月底`), weekday offsets (`lundi en huit`, `Monday week`,
+    `Tuesday fortnight`), after-next/before-last modifiers (`再来週`,
+    `先々週`, `the week after next`), day + day-part compounds
+    (`tomorrow morning`), and duration parsing that honors pack unit words
+    (`2 horas`).
+  - Multi-word leading approximants (`más o menos`, `à peu près`,
+    `por volta de`) and trailing approximants (`y pico`, `e pouco`).
+  - Deepened es/fr/pt/zh/ja packs (day offsets like `pasado mañana`,
+    `avant-hier`, `前天`, `一昨日`; fuzzy amounts `une vingtaine`;
+    duration words `个小时`, `時間`; `円` → JPY) — ~190 new locale corpus
+    rows.
+  - Per-locale corpus gates: `tests/corpus/locale-<id>-source.mjs` →
+    checked-in contracts, discovered generically and enforced by
+    `bun run check`, so locale behavior can no longer silently regress.
 - `isNumber()` result guard, completing the `isQuantity`/`isRange`/`isConversion`
   family for the bare-number branch of `LingoResult`.
 - DOM completion fields now ship the headless half of the WAI-ARIA combobox

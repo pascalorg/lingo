@@ -486,3 +486,61 @@ standalone recalibrates 38.2 → 38.3 kB (measured 38.26 after golfing) for the
 humanize + zone correctness weight — correctness is product, not bloat (D14
 pattern). The corpus gained only additive entries; the property suite keeps one
 documented exclusion (bare `C` charge-vs-Celsius, D43).
+
+**D68 · 2026-07-09 · Wave-1 idiom engine: new pack-data seams, no language
+branches.** The locale idiom research pass (335 gap idioms across es/fr/pt/zh/ja/en,
+`wiki/research/locale-idioms.md`, plan 033) showed whole idiom classes blocked by
+engine assumptions no pack data could reach. The fix follows D5 strictly — new
+OPTIONAL pack fields consumed by shared grammar, zero per-language parser code:
+`numberWords.bareScales` (bare `cien`/`mil`/`cem` open a number; English
+`hundred` deliberately still requires `a`), `numberWords.composed`
+(longest-match exact compounds: `quinientos`, exhaustive French vigesimal per
+CLDR RBNF), `numberWords.decimalWords` (`dos coma cinco`, `trois virgule
+quatorze`; English gains `point` via the same table), tens+andWords+ones
+composition (`treinta y cinco` — guarded so `entre cinco y diez` stays a range),
+and `grammar.approximatePhrases` (`más o menos`, `à peu près`). CJK gets a
+profile-table-driven number walker (`number/cjk.ts`): sub-token segmentation
+(三公斤 → 3 kg, the tokenizer's merged-CJK-token blocker), 万/亿 group algebra
+(三百五十万 = 3.5M), elliptical shorthands (一百五 = 150, 三万五 = 35 000),
+mixed digit+scale (3万5千), wave-dash range folding (5〜10), adjacent-number
+implicit ranges (七八天 = 7–8 days; 三三 stays rejected), and post-unit 半
+(两公斤半 = 2.5 kg). D47's glued-`1M` rejection holds — digit+scale composition
+fires only on CJK scale characters. Chosen over chrono-node's imperative
+per-locale parser classes (14 locales and still no vigesimal or `en huit` —
+imperative locale code demonstrably doesn't scale idiom coverage). Cost after a
+golf pass: `full` 36.9 → 38.3 kB (measured 38.19), `./core` 24.2 → 25.6
+(measured 25.46), `./date` standalone 38.3 → 39.7 (measured 39.51) — the
+engine mechanisms live in the shared number/parse layer so BYO-registry cores
+get them; capability is product (D14). Pack data itself stays tree-shakeable in
+per-locale entries (their budgets unchanged). Corpus: zero changes to existing
+entries.
+
+**D69 · 2026-07-09 · Wave-1 idiom data + localized date grammar + per-locale
+corpus gates.** Completing plan 033's wave 1 on top of D68: (1) the date module
+gains pack-owned spoken-clock vocabulary (`clockPastWords`/`clockToWords`/
+`clockMinuteWords` — `las tres menos cuarto`, `quarter of five`, `half seven`),
+`periodEdgePhrases` (start=day 1, mid=15, end=last day: `fin juillet`, 月底,
+`end of the month`), `weekdayOffsetPhrases` (`lundi en huit`, `Monday week`,
+`Tuesday fortnight`), `afterNext`/`beforeLast` modifier slots (再来週, 先々週,
+`the week after next`), `dayPartWords` compounds (`tomorrow morning`), and
+duration parsing that honors pack unit words (`2 horas`) — English defaults
+preserved behavior-identically. (2) The es/fr/pt packs fill the D68 fields
+(exhaustive French vigesimal from CLDR RBNF, ES/PT compound hundreds, `coma`/
+`virgule`/`virgula` decimals, `y pico`/`e pouco` trailing approx, `más o menos`
+class phrases, `pasado mañana`/`avant-hier`/`anteontem` offsets) and zh/ja fill
+the CJK walker tables (两/幺/点/半, duration counters 个小时/時間, trailing
+左右/上下, 前天/一昨日/大後天 offsets, 月底/年初 edges, 円→JPY). Traditional
+units 斤/两/里/坪 are deliberately NOT registered: locale aliases map words to
+EXISTING unit ids only, 斤=500g needs a real unit definition and 两 collides
+with the numeral 2 (D4 honesty; backlog). (3) Locale behavior is now
+corpus-gated like English: `tests/corpus/locale-<id>-source.mjs` →
+`locale-<id>-contract-v1.json` per pack (184 rows: es 42, fr 37, pt 42, zh 30,
+ja 34 at landing), discovered generically by `corpus-diff.mjs` and enforced in
+`bun run check`. Budgets recalibrate once for the wave: packs es 1.8/fr 1.9/
+pt 1.7/zh 1.3/ja 1.4 kB standalone (romance marginal 3.9, cjk 2.0, all 5.8),
+`./date` standalone 39.7 → 41.0 (measured 40.85), `./date` marginal 13.1 →
+14.4, `./ai` 16.1 → 17.4 (the /ai entry bundles the date engine). Main-entry
+and `./core` D68 budgets hold. Deferred to wave 2 (backlog): no-space CJK
+trailing approx (五公斤左右 needs suffix-stripping in the unit matcher), CJK
+spoken clock (午後3時半), unit-first implied-1 (`hora y media`, `kilo y
+medio`), 三点五 CJK decimal composition, `uno ochenta` elliptical heights.

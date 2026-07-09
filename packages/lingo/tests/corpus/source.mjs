@@ -188,6 +188,8 @@ export const breadthRows = [
   ['a dozen inches'],
   ['half a dozen feet'],
   ['one hundred and five kg'],
+  ['two point five six kg'],
+  ['three point one four kg'],
   [''],
   ['   '],
   ['banana'],

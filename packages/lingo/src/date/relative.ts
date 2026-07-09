@@ -38,6 +38,31 @@ interface OffsetPart {
   value: number
 }
 
+const EN_DAY_PART_WORDS = {
+  morning: { hour: 9 },
+  afternoon: { hour: 15 },
+  evening: { hour: 19 },
+  night: { hour: 21 },
+}
+
+const EN_WEEKDAY_OFFSET_PHRASES = {
+  'a week on': 7,
+  'a week': 7,
+  fortnight: 14,
+  'week on': 7,
+  week: 7,
+}
+
+const RELATIVE_MODIFIERS = ['this', 'next', 'last', 'afterNext', 'beforeLast'] as const
+const PERIODS = ['week', 'month', 'year'] as const
+const PERIOD_DELTAS: Record<RelativeModifier, number> = {
+  this: 0,
+  next: 1,
+  last: -1,
+  afterNext: 2,
+  beforeLast: -2,
+}
+
 export function parseDateOnly(
   p: P,
   start: number,
@@ -91,6 +116,10 @@ function parseDeictic(p: P, start: number, end: number): CoreDate | null {
   const dayTime = dateDayTimePhrases(p)[source]
   if (dayTime) {
     return dayTimeCore(p, today, dayTime, start, end)
+  }
+  const dayPart = parseDayPartCompound(p, source, today, start, end)
+  if (dayPart) {
+    return dayPart
   }
   const dayOffset = dateDayOffsets(p)[source]
   if (dayOffset !== undefined) {
@@ -268,9 +297,13 @@ function offsetCore(
 }
 
 function parseWeekday(p: P, start: number, end: number): CoreDate | null {
-  const source = stripDateFillers(p, p.text.slice(start, end).toLowerCase())
+  let source = stripDateFillers(p, p.text.slice(start, end).toLowerCase())
+  const offset = extractWeekdayOffset(p, source)
+  if (offset) {
+    source = offset.source
+  }
   const words = source.split(/\s+/)
-  let modifier: 'bare' | 'this' | 'next' | 'last' = 'bare'
+  let modifier: 'bare' | RelativeModifier = 'bare'
   let dayWord = words[0]
   const withModifier = matchWordModifier(p, source)
   if (withModifier) {
@@ -310,6 +343,9 @@ function parseWeekday(p: P, start: number, end: number): CoreDate | null {
   } else if (modifier === 'last') {
     const diff = backwardDiff(today.getDay(), weekday) || 7
     date = addCalendar(today, { days: -diff })
+  } else if (modifier === 'afterNext' || modifier === 'beforeLast') {
+    const days = modifier === 'afterNext' ? 14 : -14
+    date = dateInWeek(addCalendar(startOfWeek(today, p.weekStart), { days }), weekday, p.weekStart)
   } else {
     const diff = p.forwardDates
       ? forwardDiff(today.getDay(), weekday)
@@ -319,15 +355,50 @@ function parseWeekday(p: P, start: number, end: number): CoreDate | null {
       issue(p, 'WEEKDAY_ASSUMED_NEXT', { weekday: dateWeekdayNames(p)[weekday]! }, start, end),
     )
   }
-  return core(date, 'day', [...knownFor('day'), 'weekday'], start, end, issues, alternatives)
+  const result = core(
+    date,
+    'day',
+    [...knownFor('day'), 'weekday'],
+    start,
+    end,
+    issues,
+    alternatives,
+  )
+  return offset ? applyWeekdayOffset(result, offset.days) : result
+}
+
+function extractWeekdayOffset(p: P, source: string): { days: number; source: string } | null {
+  const phrases = dateWeekdayOffsetPhrases(p)
+  for (const phrase of Object.keys(phrases)) {
+    if (source.endsWith(` ${phrase}`)) {
+      return { source: source.slice(0, -phrase.length - 1).trim(), days: phrases[phrase]! }
+    }
+    if (source.startsWith(`${phrase} `)) {
+      return { source: source.slice(phrase.length + 1).trim(), days: phrases[phrase]! }
+    }
+  }
+  return null
+}
+
+function applyWeekdayOffset(result: CoreDate, days: number): CoreDate {
+  result.date = addCalendar(result.date, { days })
+  result.issues = result.issues.filter((it) => it.code !== 'WEEKDAY_ASSUMED_NEXT')
+  if (result.alternatives) {
+    result.alternatives = result.alternatives.map((alt) => ({
+      ...alt,
+      date: addCalendar(alt.date, { days }),
+    }))
+  }
+  return result
 }
 
 function matchWordModifier(
   p: P,
   source: string,
-): { modifier: 'this' | 'next' | 'last'; word: string } | null {
-  for (const modifier of ['this', 'next', 'last'] as const) {
-    for (const modWord of dateModifiers(p)[modifier]) {
+): { modifier: RelativeModifier; word: string } | null {
+  const modifiers = dateModifiers(p)
+  for (const modifier of RELATIVE_MODIFIERS) {
+    for (const modWord of modifiers[modifier]) {
       if (source.startsWith(`${modWord} `)) {
         return { modifier, word: source.slice(modWord.length + 1) }
       }
@@ -354,6 +425,10 @@ function parseCalendarPeriod(p: P, start: number, end: number): CoreDate | null 
   const localePeriod = matchPeriodModifier(p, source)
   if (localePeriod) {
     return periodCore(p, localePeriod.modifier, localePeriod.period, start, end)
+  }
+  const periodEdge = matchPeriodEdge(p, source, start, end)
+  if (periodEdge) {
+    return periodEdge
   }
   const monthRel = matchMonthModifier(p, source)
   if (monthRel) {
@@ -386,9 +461,6 @@ function parseCalendarPeriod(p: P, start: number, end: number): CoreDate | null 
         return middlePeriodCore(p, mod, target, start, end)
       }
       const base = periodCore(p, mod, target, start, end)
-      if (!base) {
-        return null
-      }
       if (kind === 'end') {
         return endPeriodCore(p, base.date, target, start, end)
       }
@@ -411,12 +483,12 @@ function parseCalendarPeriod(p: P, start: number, end: number): CoreDate | null 
 
 function periodCore(
   p: P,
-  mod: 'this' | 'next' | 'last',
+  mod: RelativeModifier,
   period: 'week' | 'month' | 'year',
   start: number,
   end: number,
 ): CoreDate {
-  const delta = mod === 'next' ? 1 : mod === 'last' ? -1 : 0
+  const delta = PERIOD_DELTAS[mod]
   let date: Date
   if (period === 'week') {
     date = addCalendar(startOfWeek(p.now, p.weekStart), { days: delta * 7 })
@@ -444,7 +516,7 @@ function monthPeriodCore(
 
 function middlePeriodCore(
   p: P,
-  mod: 'this' | 'next' | 'last',
+  mod: RelativeModifier,
   period: 'week' | 'month' | 'year',
   start: number,
   end: number,
@@ -463,6 +535,23 @@ function middlePeriodCore(
     )
   }
   return core(new Date(base.getFullYear(), 6, 2), 'day', knownFor('day'), start, end)
+}
+
+function periodEdgeCore(
+  p: P,
+  mod: RelativeModifier,
+  period: 'week' | 'month' | 'year',
+  edge: 'start' | 'mid' | 'end',
+  start: number,
+  end: number,
+): CoreDate {
+  if (edge === 'mid') {
+    return middlePeriodCore(p, mod, period, start, end)
+  }
+  const base = periodCore(p, mod, period, start, end)
+  return edge === 'end'
+    ? endPeriodCore(p, base.date, period, start, end)
+    : core(base.date, 'day', knownFor('day'), start, end)
 }
 
 function endPeriodCore(
@@ -485,6 +574,65 @@ function endPeriodCore(
     )
   }
   return core(new Date(base.getFullYear(), 11, 31), 'day', knownFor('day'), start, end)
+}
+
+function matchPeriodEdge(p: P, source: string, start: number, end: number): CoreDate | null {
+  const phrases = p.profile.date?.periodEdgePhrases
+  if (!phrases) {
+    return null
+  }
+  for (const variant of source === source.replace(/-/g, ' ')
+    ? [source]
+    : [source, source.replace(/-/g, ' ')]) {
+    const exact = phrases[variant]
+    if (exact) {
+      return periodEdgeCore(p, 'this', exact.period, exact.edge, start, end)
+    }
+    for (const phrase of Object.keys(phrases)) {
+      if (!variant.startsWith(`${phrase} `)) {
+        continue
+      }
+      const target = variant.slice(phrase.length + 1).trim()
+      const edge = phrases[phrase]!.edge
+      const period = periodWord(p, target)
+      if (period) {
+        return periodEdgeCore(p, 'this', period, edge, start, end)
+      }
+      const month = dateMonths(p)[target]
+      if (month !== undefined) {
+        return monthEdgeCore(p, month, edge, start, end)
+      }
+    }
+  }
+  return null
+}
+
+function periodWord(p: P, word: string): PeriodUnit | null {
+  const periods = datePeriodWords(p)
+  for (const period of PERIODS) {
+    if (periods[period].includes(word)) {
+      return period
+    }
+  }
+  return null
+}
+
+function monthEdgeCore(
+  p: P,
+  month: number,
+  edge: 'start' | 'mid' | 'end',
+  start: number,
+  end: number,
+): CoreDate | null {
+  if (edge === 'end') {
+    let date = new Date(p.now.getFullYear(), month + 1, 0)
+    if (p.forwardDates && date.getTime() < startOfDay(p.now).getTime()) {
+      date = new Date(p.now.getFullYear() + 1, month + 1, 0)
+    }
+    return core(date, 'day', knownFor('day'), start, end)
+  }
+  const day = edge === 'mid' ? 15 : 1
+  return monthDayCore(p, month, day, undefined, 'day', start, end)
 }
 
 function wordAt(p: P, i: number): string | null {
@@ -570,6 +718,61 @@ function dateDayTimePhrases(p: P): Record<string, DayTimePhrase> {
   return p.profile.date?.dayTimePhrases ?? EN_DAY_TIME_PHRASES
 }
 
+function parseDayPartCompound(
+  p: P,
+  source: string,
+  today: Date,
+  start: number,
+  end: number,
+): CoreDate | null {
+  const parts = dateDayPartWords(p)
+  for (const phrase of Object.keys(parts)) {
+    if (!source.endsWith(` ${phrase}`)) {
+      continue
+    }
+    const partStart = end - phrase.length
+    const { end: anchorEnd } = trimRange(p.text, start, partStart)
+    if (anchorEnd <= start) {
+      continue
+    }
+    const anchor = p.text.slice(start, anchorEnd).toLowerCase()
+    const dayOffset = dateDayOffsets(p)[anchor]
+    const part = parts[phrase]!
+    const grain = part.grain ?? 'hour'
+    if (dayOffset !== undefined) {
+      return core(
+        withTime(addCalendar(today, { days: dayOffset }), part.hour),
+        grain,
+        [...knownFor(grain), 'implied-hour'],
+        start,
+        end,
+      )
+    }
+    const weekday = parseWeekday(p, start, anchorEnd)
+    if (weekday) {
+      const date = withTime(weekday.date, part.hour)
+      return core(
+        date,
+        grain,
+        [...knownFor(grain), 'weekday', 'implied-hour'],
+        start,
+        end,
+        weekday.issues,
+        weekday.alternatives?.map((alt) => ({ ...alt, date: withTime(alt.date, part.hour) })),
+      )
+    }
+  }
+  return null
+}
+
+function dateDayPartWords(p: P): Record<string, { grain?: 'hour'; hour: number }> {
+  return p.profile.date?.dayPartWords ?? EN_DAY_PART_WORDS
+}
+
+function dateWeekdayOffsetPhrases(p: P): Record<string, number> {
+  return p.profile.date?.weekdayOffsetPhrases ?? EN_WEEKDAY_OFFSET_PHRASES
+}
+
 function dayTimeCore(
   p: P,
   today: Date,
@@ -608,6 +811,8 @@ function dateModifiers(p: P): Record<RelativeModifier, readonly string[]> {
     this: wordsOr(p.profile.date?.modifiers?.this, EN_MODIFIERS.this),
     next: wordsOr(p.profile.date?.modifiers?.next, EN_MODIFIERS.next),
     last: wordsOr(p.profile.date?.modifiers?.last, EN_MODIFIERS.last),
+    afterNext: wordsOr(p.profile.date?.modifiers?.afterNext, EN_MODIFIERS.afterNext),
+    beforeLast: wordsOr(p.profile.date?.modifiers?.beforeLast, EN_MODIFIERS.beforeLast),
   }
 }
 
@@ -641,8 +846,8 @@ function isPrefixAt(p: P, first: number, phrases: readonly string[] | undefined)
 }
 
 function stripDateFillers(p: P, source: string): string {
-  const fillers = p.profile.date?.fillerWords
-  if (!(fillers && fillers.length > 0)) {
+  const fillers = p.profile.date?.fillerWords ?? ['the']
+  if (fillers.length === 0) {
     return source
   }
   const fillerSet = new Set(fillers)
@@ -657,9 +862,10 @@ function matchPeriodModifier(
   source: string,
 ): { modifier: RelativeModifier; period: PeriodUnit } | null {
   const periods = datePeriodWords(p)
-  for (const modifier of ['this', 'next', 'last'] as const) {
-    for (const modWord of dateModifiers(p)[modifier]) {
-      for (const period of ['week', 'month', 'year'] as const) {
+  const modifiers = dateModifiers(p)
+  for (const modifier of RELATIVE_MODIFIERS) {
+    for (const modWord of modifiers[modifier]) {
+      for (const period of PERIODS) {
         for (const periodWord of periods[period]) {
           if (source === `${modWord} ${periodWord}` || source === `${periodWord} ${modWord}`) {
             return { modifier, period }
@@ -675,9 +881,11 @@ function matchMonthModifier(
   p: P,
   source: string,
 ): { modifier: 'next' | 'last'; monthWord: string } | null {
+  const modifiers = dateModifiers(p)
+  const months = Object.keys(dateMonths(p))
   for (const modifier of ['next', 'last'] as const) {
-    for (const modWord of dateModifiers(p)[modifier]) {
-      for (const monthWord of Object.keys(dateMonths(p))) {
+    for (const modWord of modifiers[modifier]) {
+      for (const monthWord of months) {
         if (source === `${modWord} ${monthWord}` || source === `${monthWord} ${modWord}`) {
           return { modifier, monthWord }
         }

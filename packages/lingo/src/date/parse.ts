@@ -529,6 +529,8 @@ function parseAnchoredDurationRange(
   const anchorEnd = normStart + source.length
   const duration = parseUnitDuration(p.text.slice(durationStart, durationEnd), {
     escalate: p.opts.escalate,
+    locale: p.opts.locale,
+    localePacks: p.opts.localePacks,
     messages: p.opts.messages,
     strictness: p.opts.strictness,
   })

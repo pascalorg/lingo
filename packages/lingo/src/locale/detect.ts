@@ -64,16 +64,20 @@ export function scoreProfile(
     const unique = !uniqueAgainst?.has(word)
     const standalone = isStandaloneWord(tokens, i)
     if (
-      (unique && profile.numberWords.ones[word] !== undefined) ||
-      (unique && profile.numberWords.tens[word] !== undefined) ||
-      (unique && profile.numberWords.scales[word] !== undefined)
+      unique &&
+      (profile.numberWords.ones[word] !== undefined ||
+        profile.numberWords.tens[word] !== undefined ||
+        profile.numberWords.scales[word] !== undefined ||
+        profile.numberWords.bareScales?.[word] !== undefined ||
+        profile.numberWords.composed?.[word] !== undefined)
     ) {
       score += 4
     }
     if (
       unique &&
       (profile.numberWords.fuzzyAmounts[word] ||
-        profile.numberWords.fractionWords[word] !== undefined)
+        profile.numberWords.fractionWords[word] !== undefined ||
+        profile.numberWords.decimalWords?.has(word))
     ) {
       score += 3
     }
@@ -170,8 +174,13 @@ function profileWords(profile: LanguageProfile): ReadonlySet<string> {
   addRecordKeys(words, profile.numberWords.ones)
   addRecordKeys(words, profile.numberWords.tens)
   addRecordKeys(words, profile.numberWords.scales)
+  addRecordKeys(words, profile.numberWords.bareScales)
+  addRecordKeys(words, profile.numberWords.composed)
   addRecordKeys(words, profile.numberWords.fuzzyAmounts)
   addRecordKeys(words, profile.numberWords.fractionWords)
+  if (profile.numberWords.decimalWords) {
+    addSet(words, profile.numberWords.decimalWords)
+  }
   addSet(words, profile.numberWords.andWords)
   addSet(words, profile.numberWords.articles)
   addSet(words, profile.numberWords.dozenWords)

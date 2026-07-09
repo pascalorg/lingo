@@ -112,6 +112,18 @@ export function parseQualifiers(p: ParserState, i: number): Quals {
         pos = softener
         continue
       }
+      // Multi-word approximate phrases ("más o menos", "à peu près") —
+      // matched longest-first before single-word approximateWords.
+      const approxPhrase = eatAnyPhrase(p, pos, p.profile.grammar.approximatePhrases)
+      if (approxPhrase >= 0) {
+        approximate = true
+        pos = approxPhrase
+        const skipWord = wordAt(p, pos)
+        if (skipWord && p.profile.grammar.qualifierSkipAfterApprox.has(skipWord)) {
+          pos++
+        }
+        continue
+      }
       if (p.profile.grammar.approximateWords.has(w)) {
         approximate = true
         pos++

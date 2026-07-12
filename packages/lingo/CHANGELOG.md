@@ -7,6 +7,12 @@ change**, even if the API is untouched.
 
 ## [Unreleased]
 
+### Changed
+
+- The docs autocomplete showcase now separates ranked completions, loaded-locale
+  examples, and caller-controlled unit suggestions into three focused,
+  keyboard-navigable demos instead of one control-heavy panel.
+
 ## [0.2.1] - 2026-07-09
 
 ### Added

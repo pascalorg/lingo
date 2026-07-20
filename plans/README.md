@@ -11,7 +11,7 @@ and whose content is covered by wiki/code gets deleted, and its number retired
 ## Conventions
 
 - **Filename:** `NNN-kebab-title.md` — three digits, stable once assigned.
-  Next free number: **033**.
+  Next free number: **035**.
 - **Frontmatter:** `id`, `title`, `status`, `created`, `updated`. New plans
   (since 2026-07-04) also carry:
   - `goal:` — one-sentence done state.
@@ -102,6 +102,7 @@ Driver: <the user need, review finding, or decision that motivates this — link
 | 031 | [Ranked completions (autocomplete anything)](031-completions.md) | approved |
 | 031 | [Locale packs](031-locale-packs.md) | in-progress |
 | 032 | [Input calculations (quantity arithmetic)](032-input-calculations.md) | draft |
+| 034 | [React Native text input](034-react-native-input.md) | in-progress |
 
 Retired numbers (plans deleted after shipping; content lives in wiki/code):
 015–017, 022–023.

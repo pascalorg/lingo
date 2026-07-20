@@ -131,9 +131,10 @@ function RankedAutocompleteDemo() {
   const field = useLingoInput({
     debounce: DEBOUNCE_MS,
     listboxId: listId,
-    complete: (text) => completions(text, completionOptions()),
+    complete: (text: string) => completions(text, completionOptions()),
   })
-  const { completions: items, highlightedIndex: activeIndex } = field
+  const items = field.completions as readonly Completion[]
+  const { highlightedIndex: activeIndex } = field
   const activeId =
     activeIndex >= 0 && items.length > 0 ? `${listId}-item-${activeIndex}` : undefined
 
@@ -184,7 +185,7 @@ function RankedAutocompleteDemo() {
               }
               if (event.key === 'Enter' && activeIndex >= 0) {
                 event.preventDefault()
-                field.selectCompletion()
+                field.selectCompletion(activeIndex)
               }
               if (event.key === 'Escape') {
                 event.preventDefault()

@@ -81,7 +81,7 @@ async function type(input: HTMLInputElement, text: string): Promise<void> {
 
 function completion(text: string): Completion {
   const result = lingo(text)
-  if (!result.ok) {
+  if (!result.ok || result.type === 'number') {
     throw new Error(`invalid completion fixture: ${text}`)
   }
   return { text, result, confidence: result.confidence, source: 'parse' }
@@ -132,6 +132,12 @@ describe('useLingoInput (jsdom smoke)', () => {
     const items = [completion('2 ft'), completion('3 ft')]
     const onComplete = vi.fn()
     let latest: UseLingoInputResult | null = null
+    const api = () => {
+      if (!latest) {
+        throw new Error('completion harness did not render')
+      }
+      return latest
+    }
 
     function CompletionHarness() {
       const api = useLingoInput({
@@ -153,24 +159,30 @@ describe('useLingoInput (jsdom smoke)', () => {
     }
 
     await type(input, '2 f')
-    expect(latest.completions).toEqual(items)
-    expect(latest.highlightedIndex).toBe(0)
+    expect(api().completions).toEqual(items)
+    expect(api().highlightedIndex).toBe(0)
     expect(input.getAttribute('aria-controls')).toBe('height-options')
     expect(input.getAttribute('aria-expanded')).toBe('true')
 
-    act(() => latest?.setHighlightedIndex(99))
-    expect(latest.highlightedIndex).toBe(1)
+    act(() => api().setHighlightedIndex(99))
+    expect(api().highlightedIndex).toBe(1)
 
-    act(() => latest?.selectCompletion())
-    expect(latest.value).toBeCloseTo(0.9144)
-    expect(latest.completions).toEqual([])
-    expect(latest.highlightedIndex).toBe(-1)
+    act(() => api().selectCompletion())
+    expect(api().value).toBeCloseTo(0.9144)
+    expect(api().completions).toEqual([])
+    expect(api().highlightedIndex).toBe(-1)
     expect(input.getAttribute('aria-expanded')).toBe('false')
     expect(onComplete).toHaveBeenCalled()
   })
 
   it('live-reads a changed completion provider', async () => {
     let latest: UseLingoInputResult | null = null
+    const api = () => {
+      if (!latest) {
+        throw new Error('completion harness did not render')
+      }
+      return latest
+    }
     const first = [completion('2 ft')]
     const second = [completion('3 ft')]
 
@@ -190,14 +202,14 @@ describe('useLingoInput (jsdom smoke)', () => {
       throw new Error('completion harness did not mount')
     }
     await type(input, '2 f')
-    expect(latest.completions).toEqual(first)
+    expect(api().completions).toEqual(first)
 
     act(() => root.render(<CompletionHarness items={second} />))
     await type(input, '3 f')
-    expect(latest.completions).toEqual(second)
+    expect(api().completions).toEqual(second)
 
     act(() => input.dispatchEvent(new FocusEvent('blur')))
-    expect(latest.completions).toEqual([])
-    expect(latest.highlightedIndex).toBe(-1)
+    expect(api().completions).toEqual([])
+    expect(api().highlightedIndex).toBe(-1)
   })
 })

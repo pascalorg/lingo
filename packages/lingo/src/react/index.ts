@@ -182,7 +182,6 @@ export function useLingoInput<T extends HTMLInputElement | HTMLTextAreaElement =
   const optsRef = React.useRef(opts)
   const appliedSigRef = React.useRef<string | null>(null)
   const [view, setView] = React.useState<Snapshot>(() => snapshot(null))
-  const completionViewRef = React.useRef<CompletionView>(EMPTY_COMPLETION_VIEW)
   const [completionView, setCompletionView] = React.useState<CompletionView>(EMPTY_COMPLETION_VIEW)
 
   optsRef.current = opts
@@ -197,7 +196,6 @@ export function useLingoInput<T extends HTMLInputElement | HTMLTextAreaElement =
       completions,
       highlightedIndex: completions.length ? 0 : -1,
     }
-    completionViewRef.current = next
     setCompletionView(next)
   }, [])
 
@@ -329,25 +327,17 @@ export function useLingoInput<T extends HTMLInputElement | HTMLTextAreaElement =
   }, [syncView, updateCompletionView])
 
   const setHighlightedIndex = React.useCallback((index: number) => {
-    const current = completionViewRef.current
-    const highlightedIndex = current.completions.length
-      ? Math.min(
-          Math.max(Number.isFinite(index) ? Math.trunc(index) : 0, 0),
-          current.completions.length - 1,
-        )
-      : -1
-    if (highlightedIndex === current.highlightedIndex) {
-      return
-    }
-    const next = { ...current, highlightedIndex }
-    completionViewRef.current = next
-    setCompletionView(next)
+    setCompletionView((current) => ({
+      ...current,
+      highlightedIndex: current.completions.length
+        ? Math.min(Math.max(index, 0), current.completions.length - 1)
+        : -1,
+    }))
   }, [])
 
   const selectCompletion = React.useCallback(
     (index?: number) => {
-      const current = completionViewRef.current
-      const selected = current.completions[index ?? current.highlightedIndex]
+      const selected = completionView.completions[index ?? completionView.highlightedIndex]
       if (!selected) {
         return
       }
@@ -355,7 +345,7 @@ export function useLingoInput<T extends HTMLInputElement | HTMLTextAreaElement =
       updateCompletionView([])
       syncView()
     },
-    [syncView, updateCompletionView],
+    [completionView, syncView, updateCompletionView],
   )
 
   return {

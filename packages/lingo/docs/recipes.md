@@ -723,10 +723,20 @@ function HeightInput() {
             ? `height-option-${field.highlightedIndex}`
             : undefined
         }
-        onKeyDown={(event) => {
-          if (event.key === 'ArrowDown') field.setHighlightedIndex(field.highlightedIndex + 1)
-          if (event.key === 'ArrowUp') field.setHighlightedIndex(field.highlightedIndex - 1)
-          if (event.key === 'Enter') field.selectCompletion()
+        onKeyDownCapture={(event) => {
+          if (event.key === 'ArrowDown') {
+            event.preventDefault()
+            field.setHighlightedIndex(field.highlightedIndex + 1)
+          }
+          if (event.key === 'ArrowUp') {
+            event.preventDefault()
+            field.setHighlightedIndex(field.highlightedIndex - 1)
+          }
+          if (event.key === 'Enter' && field.highlightedIndex >= 0) {
+            event.preventDefault()
+            event.stopPropagation()
+            field.selectCompletion(field.highlightedIndex)
+          }
         }}
       />
       <div id="height-options" role="listbox">
@@ -750,6 +760,8 @@ function HeightInput() {
 
 The `Completion` type is shared through the DOM layer, but the completion
 engine is not: importing `./react` alone never pulls in `./complete`.
+Handle Enter in React's capture phase so completion selection runs before the
+controller's native Enter-to-commit listener.
 
 ### React Hook Form
 

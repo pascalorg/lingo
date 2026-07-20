@@ -149,7 +149,22 @@ describe('useLingoInput (jsdom smoke)', () => {
         onComplete,
       })
       latest = api
-      return <input ref={api.ref} />
+      return (
+        <input
+          onKeyDownCapture={(event) => {
+            if (event.key === 'ArrowDown') {
+              event.preventDefault()
+              api.setHighlightedIndex(api.highlightedIndex + 1)
+            }
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              event.stopPropagation()
+              api.selectCompletion(api.highlightedIndex)
+            }
+          }}
+          ref={api.ref}
+        />
+      )
     }
 
     act(() => root.render(<CompletionHarness />))
@@ -164,10 +179,18 @@ describe('useLingoInput (jsdom smoke)', () => {
     expect(input.getAttribute('aria-controls')).toBe('height-options')
     expect(input.getAttribute('aria-expanded')).toBe('true')
 
-    act(() => api().setHighlightedIndex(99))
+    act(() =>
+      input.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+      ),
+    )
     expect(api().highlightedIndex).toBe(1)
 
-    act(() => api().selectCompletion())
+    act(() =>
+      input.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+      ),
+    )
     expect(api().value).toBeCloseTo(0.9144)
     expect(api().completions).toEqual([])
     expect(api().highlightedIndex).toBe(-1)

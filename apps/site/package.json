@@ -43,7 +43,6 @@
     "react-grab": "^0.1.48",
     "react-scan": "^0.5.7",
     "tailwindcss": "^4",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.10"
+    "typescript": "^6.0.3"
   }
 }

@@ -20,6 +20,12 @@ change**, even if the API is untouched.
   examples, and caller-controlled unit suggestions into three focused,
   keyboard-navigable demos instead of one control-heavy panel.
 
+### Fixed
+
+- The docs autocomplete showcase now handles Enter during React's capture phase,
+  so selecting a highlighted completion wins over the input controller's native
+  primary-parse commit.
+
 ## [0.2.1] - 2026-07-09
 
 ### Added

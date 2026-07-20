@@ -171,7 +171,7 @@ function RankedAutocompleteDemo() {
             autoComplete="off"
             className="rounded-[6px]"
             id={`${listId}-input`}
-            onKeyDown={(event) => {
+            onKeyDownCapture={(event) => {
               if (items.length === 0) {
                 return
               }
@@ -185,6 +185,7 @@ function RankedAutocompleteDemo() {
               }
               if (event.key === 'Enter' && activeIndex >= 0) {
                 event.preventDefault()
+                event.stopPropagation()
                 field.selectCompletion(activeIndex)
               }
               if (event.key === 'Escape') {

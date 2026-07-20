@@ -102,7 +102,7 @@ Driver: <the user need, review finding, or decision that motivates this — link
 | 031 | [Ranked completions (autocomplete anything)](031-completions.md) | approved |
 | 031 | [Locale packs](031-locale-packs.md) | in-progress |
 | 032 | [Input calculations (quantity arithmetic)](032-input-calculations.md) | draft |
-| 034 | [React Native text input](034-react-native-input.md) | in-progress |
+| 034 | [React Native text input](034-react-native-input.md) | done |
 
 Retired numbers (plans deleted after shipping; content lives in wiki/code):
 015–017, 022–023.

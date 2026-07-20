@@ -1,15 +1,15 @@
 ---
 id: 034
 title: React Native text input
-status: in-progress
+status: done — shipped 2026-07-20
 created: 2026-07-20
 updated: 2026-07-20
 goal: "Ship a DOM-free React Native hook that gives TextInput the same parse, commit, validation, and completion semantics as lingo's web fields."
 success_criteria:
-  - "TextInput handlers parse while typing and canonicalize on blur/submit -> src/react-native/use-lingo-text-input.test.tsx"
-  - "Required/bounds failures retain original-input spans -> src/react-native/use-lingo-text-input.test.tsx"
-  - "Injected completions select without bundling ./complete -> src/react-native/use-lingo-text-input.test.tsx + scripts/size.mjs"
-  - "./react-native builds with React as its only optional peer and no react-native import -> build + zero-deps gate"
+  - "[MET: handler tests] TextInput handlers parse while typing and canonicalize on blur/submit -> src/react-native/use-lingo-text-input.test.tsx"
+  - "[MET: issue-span tests] Required/bounds failures retain original-input spans -> src/react-native/use-lingo-text-input.test.tsx"
+  - "[MET: completion tests + size gate] Injected completions select without bundling ./complete -> src/react-native/use-lingo-text-input.test.tsx + scripts/size.mjs"
+  - "[MET: build + zero-deps gate] ./react-native builds with React as its only optional peer and no react-native import -> build + zero-deps gate"
 ---
 
 # React Native text input

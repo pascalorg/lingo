@@ -47,4 +47,12 @@ export default defineConfig((options) => [
       js: "'use client';",
     },
   },
+  {
+    ...shared,
+    entry: {
+      'react-native/index': 'src/react-native/index.ts',
+    },
+    clean: false,
+    treeshake: false,
+  },
 ])

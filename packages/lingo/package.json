@@ -154,6 +154,16 @@
         "default": "./dist/react/index.cjs"
       }
     },
+    "./react-native": {
+      "import": {
+        "types": "./dist/react-native/index.d.ts",
+        "default": "./dist/react-native/index.js"
+      },
+      "require": {
+        "types": "./dist/react-native/index.d.cts",
+        "default": "./dist/react-native/index.cjs"
+      }
+    },
     "./complete": {
       "import": {
         "types": "./dist/complete/index.d.ts",

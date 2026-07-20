@@ -112,7 +112,7 @@ const EMPTY_COMPLETIONS: readonly Completion[] = []
 const CONTROLLED_VALUE_EPSILON = 1e-12
 
 function fieldOptions(options: UseLingoTextInputOptions): LingoInputOptions {
-  return options
+  return options as unknown as LingoInputOptions
 }
 
 function sameControlledValue(expected: number | null, actual: number | null): boolean {

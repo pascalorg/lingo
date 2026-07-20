@@ -2,7 +2,8 @@
 // Two mechanical checks behind the prose rule:
 //   1. package.json declares no `dependencies`.
 //   2. No runtime module under src/ imports a bare specifier. Relative imports
-//      only — the single exception is the optional `react` peer inside src/react/.
+//      only — the single exception is the optional `react` peer inside the
+//      React adapter entries.
 // Test files (*.test.ts) are exempt (they import vitest). TSDoc @example blocks
 // are naturally exempt: their lines start with `*`, not `import`.
 import { readdirSync, readFileSync, statSync } from 'node:fs'
@@ -19,7 +20,12 @@ if (deps.length > 0) {
 }
 
 /** Bare specifiers allowed, keyed to where they may appear. */
-const ALLOWED = [{ specifier: 'react', where: (file) => file.startsWith('react/') }]
+const ALLOWED = [
+  {
+    specifier: 'react',
+    where: (file) => file.startsWith('react/') || file.startsWith('react-native/'),
+  },
+]
 
 function* walk(dir) {
   for (const name of readdirSync(dir)) {
@@ -69,5 +75,5 @@ if (failures.length > 0) {
   process.exit(1)
 }
 console.log(
-  'Zero-dependency gate ok: no dependencies, src imports are relative-only (react peer allowed in src/react).',
+  'Zero-dependency gate ok: no dependencies, src imports are relative-only (react peer allowed in React adapter entries).',
 )

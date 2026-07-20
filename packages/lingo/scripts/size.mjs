@@ -360,7 +360,7 @@ if (has('src/react-native/index.ts')) {
   )
   // Plan 034 — DOM-free TextInput state, commit formatting, bounds, and
   // injected completions. React stays external; react-native is never imported.
-  check('./react-native (marginal over full)', withReactNative - full, 3000)
+  check('./react-native (marginal over full)', withReactNative - full, 2800)
 }
 
 if (has('src/describe/index.ts')) {

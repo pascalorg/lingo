@@ -3,13 +3,14 @@ id: 031
 title: Ranked completions (autocomplete anything)
 status: approved
 created: 2026-07-08
-updated: 2026-07-08
+updated: 2026-07-20
 goal: "Ship a ranked completions API that returns all plausible canonical interpretations of a partial or ambiguous quantity input, plus docs/showcase demos — without a library-shipped dropdown."
 success_criteria:
   - "completions('2 f') returns multiple ranked QuantityResult readings -> packages/lingo/tests/complete.test.ts"
   - "Every completion text round-trips through parse -> same test file"
   - "./complete marginal size budget green -> packages/lingo/scripts/size.mjs"
   - "Docs site combobox demo renders ranked completions -> apps/site showcase section"
+  - "useLingoInput exposes injected completions and headless selection state without importing ./complete at runtime -> packages/lingo/src/react/use-lingo-input.test.tsx"
 ---
 
 # Ranked completions (autocomplete anything)
@@ -76,14 +77,40 @@ Dedupe by canonical `text`, sort by `confidence` descending, cap at `limit` (def
 DOM: `LingoInputOptions` gains injected `complete?` and `onComplete?` hooks — no
 bundled dropdown (plan 008 non-goal stands; site builds the combobox demo).
 
+### React bridge (locked-in 2026-07-20)
+
+`useLingoInput()` forwards the same injected completion provider and owns only
+the state that every React combobox would otherwise have to rebuild:
+
+```ts
+interface UseLingoInputResult {
+  completions: readonly Completion[]
+  highlightedIndex: number
+  setHighlightedIndex(index: number): void
+  selectCompletion(index?: number): void
+}
+```
+
+New completion lists reset highlighting to the first ranked result; an empty
+list uses `-1`. `setHighlightedIndex()` clamps to the current list.
+`selectCompletion()` defaults to the highlighted result, writes that
+completion's canonical `text` through the existing controller, commits it, and
+collapses the hook's list.
+
+`Completion` remains a type-only import and the provider remains injected:
+`./react` never imports the `./complete` orchestrator at runtime. Popup markup,
+option ids, styling, and keyboard policy remain caller-owned.
+
 ## Changes
 
 1. `Registry.aliasCompletions(prefix, kind?, limit?)` — ranked prefix expansion.
 2. `packages/lingo/src/complete/` — `completions()` orchestrator.
 3. `packages/lingo/package.json` + `tsup.config.ts` — `./complete` entry.
 4. `packages/lingo/src/dom/` — injected hooks on controller.
-5. `apps/site/` — combobox showcase + docs section.
-6. Tests, bench case, corpus (ADDITIVE only), CHANGELOG, README, llms.txt.
+5. `packages/lingo/src/react/` — injected provider bridge, completion state,
+   and headless selection helpers.
+6. `apps/site/` — combobox showcase + docs section.
+7. Tests, bench case, corpus (ADDITIVE only), CHANGELOG, README, llms.txt.
 
 ## Non-goals
 
@@ -92,4 +119,5 @@ bundled dropdown (plan 008 non-goal stands; site builds the combobox demo).
 
 ## Acceptance
 
-`bun run check` green; bench case for `completions('2 f')`; site demo works.
+`bun run check` green; bench case for `completions('2 f')`; React bridge tests
+green; site demo works with keyboard navigation and the existing ARIA contract.

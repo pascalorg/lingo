@@ -41,7 +41,7 @@ const items = completions("10 kg to 16", { kind: "mass", limit: 8 })
 // [{ text, result, confidence, source }] — source: parse|alternative|unit-ambiguity|unit-prefix|implied-unit|range-implied|cross-kind|date
 ```
 
-Distinct from success `alternatives`, failure `candidate`, and issue `suggestions`. Wire into `lingoInput({ complete, onComplete })` for autocomplete dropdowns. Pass `date: (text) => parseDate(text, { now })` to opt into date completions without bundling `@pascal-app/lingo/date` into `@pascal-app/lingo/complete`.
+Distinct from success `alternatives`, failure `candidate`, and issue `suggestions`. Wire into `lingoInput({ complete, onComplete })` or `useLingoInput({ complete })` for autocomplete dropdowns. The React hook exposes `completions`, `highlightedIndex`, `setHighlightedIndex()`, and `selectCompletion()` while keeping popup UI caller-owned. Pass `date: (text) => parseDate(text, { now })` to opt into date completions without bundling `@pascal-app/lingo/date` into `@pascal-app/lingo/complete`.
 
 ## Locales (`@pascal-app/lingo/locales/*`)
 
@@ -110,7 +110,7 @@ field.set("6ft")
 field.commit() // hidden input submits canonical value
 ```
 
-`field.value` · `.quantity` · `.result` · `.state` ('idle'|'incomplete'|'valid'|'invalid') · `.set()` · `.commit()` · `.update()` · `.destroy()`. Never rewrites while typing; canonicalizes on blur/Enter/submit. With `complete`/`onComplete`, the input gets the headless WAI-ARIA combobox attributes (`role="combobox"`, `aria-autocomplete="list"`, `aria-expanded`); pass `listboxId` to set `aria-controls` for your rendered listbox. React: `useLingoInput(opts)` from `@pascal-app/lingo/react`.
+`field.value` · `.quantity` · `.result` · `.state` ('idle'|'incomplete'|'valid'|'invalid') · `.set()` · `.commit()` · `.update()` · `.destroy()`. Never rewrites while typing; canonicalizes on blur/Enter/submit. With `complete`/`onComplete`, the input gets the headless WAI-ARIA combobox attributes (`role="combobox"`, `aria-autocomplete="list"`, `aria-expanded`); pass `listboxId` to set `aria-controls` for your rendered listbox. React: `useLingoInput(opts)` from `@pascal-app/lingo/react`, with completion list/highlight/selection state when a provider is injected.
 
 ## Element (`@pascal-app/lingo/element`)
 

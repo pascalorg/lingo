@@ -696,6 +696,61 @@ const heightField = quantityField({ kind: 'length', unit: 'm', min: 0.3, max: 2.
 const weightField = quantityField({ kind: 'mass', unit: 'kg', min: 0 })
 ```
 
+### React ranked completions
+
+Inject `completions()` into the hook and render the listbox yourself. The hook
+owns only ranked-list state and selection; popup markup, option ids, styling,
+and keyboard policy stay in your component:
+
+```tsx
+import { completions } from '@pascal-app/lingo/complete'
+import { useLingoInput } from '@pascal-app/lingo/react'
+
+function HeightInput() {
+  const field = useLingoInput({
+    kind: 'length',
+    unit: 'm',
+    listboxId: 'height-options',
+    complete: (text) => completions(text, { kind: 'length', limit: 6 }),
+  })
+
+  return (
+    <>
+      <input
+        ref={field.ref}
+        aria-activedescendant={
+          field.highlightedIndex >= 0
+            ? `height-option-${field.highlightedIndex}`
+            : undefined
+        }
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowDown') field.setHighlightedIndex(field.highlightedIndex + 1)
+          if (event.key === 'ArrowUp') field.setHighlightedIndex(field.highlightedIndex - 1)
+          if (event.key === 'Enter') field.selectCompletion()
+        }}
+      />
+      <div id="height-options" role="listbox">
+        {field.completions.map((item, index) => (
+          <button
+            aria-selected={index === field.highlightedIndex}
+            id={`height-option-${index}`}
+            key={`${item.source}-${item.text}`}
+            onClick={() => field.selectCompletion(index)}
+            role="option"
+            type="button"
+          >
+            {item.text}
+          </button>
+        ))}
+      </div>
+    </>
+  )
+}
+```
+
+The `Completion` type is shared through the DOM layer, but the completion
+engine is not: importing `./react` alone never pulls in `./complete`.
+
 ### React Hook Form
 
 For a whole form, `lingoObject` drops straight into the resolver:

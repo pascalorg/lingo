@@ -7,6 +7,13 @@ change**, even if the API is untouched.
 
 ## [Unreleased]
 
+### Added
+
+- `useLingoInput()` now forwards an injected ranked-completion provider and
+  exposes `completions`, `highlightedIndex`, `setHighlightedIndex()`, and
+  `selectCompletion()` for headless React comboboxes. `./complete` remains an
+  explicit, tree-shakeable import; no popup UI or runtime dependency is added.
+
 ### Changed
 
 - The docs autocomplete showcase now separates ranked completions, loaded-locale

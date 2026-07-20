@@ -91,6 +91,7 @@ export function optionSignature(o: LingoInputOptions): string {
     elementSignature(o.errorElement),
     elementSignature(o.hintElement),
     o.inputmode,
+    o.listboxId,
     o.debounce,
   ])
 }

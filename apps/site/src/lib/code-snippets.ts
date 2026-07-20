@@ -12,6 +12,7 @@ const range = parseRange("between 5 and 10 kg", { kind: "mass" })`
 export const completionsSnippet = `import { completions } from "@pascal-app/lingo/complete"
 import { parseDate, parseDateRange } from "@pascal-app/lingo/date"
 import { lingoInput } from "@pascal-app/lingo/dom"
+import { useLingoInput } from "@pascal-app/lingo/react"
 
 // Debounce in your UI (~120–150ms) — completions() re-parses on every call
 const items = completions("10 kg to 16", { kind: "mass", limit: 8 })
@@ -33,7 +34,17 @@ lingoInput(input, {
   kind: "mass",
   complete: (text) => completions(text, { kind: "mass", limit: 8 }),
   onComplete: (list) => renderGroupedDropdown(list),
-})`
+})
+
+// React exposes the same injected list plus headless highlight/selection state
+const field = useLingoInput({
+  kind: "mass",
+  listboxId: "mass-options",
+  complete: (text) => completions(text, { kind: "mass", limit: 8 }),
+})
+field.completions
+field.setHighlightedIndex(1)
+field.selectCompletion()`
 
 export const strictnessSnippet = `import { lingo } from "@pascal-app/lingo"
 

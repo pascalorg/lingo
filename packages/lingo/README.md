@@ -398,13 +398,25 @@ Style it with attribute selectors:
 ### React: `@pascal-app/lingo/react`
 
 ```tsx
+import { completions } from '@pascal-app/lingo/complete'
 import { useLingoInput } from '@pascal-app/lingo/react'
 
 function HeightField() {
-  const { ref, state, value } = useLingoInput({ kind: 'length', unit: 'm', name: 'height_m' })
-  return <input ref={ref} placeholder={`try 5'11" or 180cm`} />
+  const field = useLingoInput({
+    kind: 'length',
+    unit: 'm',
+    name: 'height_m',
+    listboxId: 'height-options',
+    complete: (text) => completions(text, { kind: 'length' }),
+  })
+  return <input ref={field.ref} placeholder={`try 5'11" or 180cm`} />
 }
 ```
+
+The hook exposes `completions`, `highlightedIndex`,
+`setHighlightedIndex()`, and `selectCompletion()` for a caller-rendered
+listbox. `./complete` stays an injected import; `./react` does not bundle it or
+ship popup UI.
 
 ### Web components: `@pascal-app/lingo/element`
 
@@ -450,9 +462,9 @@ completions('5', { kind: 'length' }).map((c) => c.text)
 // ['5 m', '5 ft', '5 cm', '5 in', '5 km', '5 mi']
 ```
 
-The DOM field is headless about this too: `lingoInput` accepts injected
-`complete` / `onComplete` hooks, so you render your own dropdown — the library ships
-no UI. When completions are enabled it wires the combobox side of the ARIA
+The DOM field and React hook are headless about this too: inject `complete`,
+render your own dropdown, and use `onComplete` or the hook's completion state.
+When completions are enabled the input gets the combobox side of the ARIA
 contract (`role="combobox"`, `aria-autocomplete="list"`, `aria-expanded`), and
 `listboxId` sets `aria-controls` for your listbox.
 

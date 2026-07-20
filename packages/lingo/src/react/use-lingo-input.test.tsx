@@ -3,7 +3,9 @@
  */
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { Completion } from '../complete/types'
+import { lingo } from '../index'
 import { type UseLingoInputResult, useLingoInput } from './index'
 
 // Smoke coverage for the ./react entry: mount the hook against a real DOM
@@ -77,6 +79,14 @@ async function type(input: HTMLInputElement, text: string): Promise<void> {
   })
 }
 
+function completion(text: string): Completion {
+  const result = lingo(text)
+  if (!result.ok) {
+    throw new Error(`invalid completion fixture: ${text}`)
+  }
+  return { text, result, confidence: result.confidence, source: 'parse' }
+}
+
 describe('useLingoInput (jsdom smoke)', () => {
   it('parses typed input into state/value/quantity', async () => {
     const h = mount()
@@ -116,5 +126,78 @@ describe('useLingoInput (jsdom smoke)', () => {
     expect(h.api().state).toBe('valid')
     act(() => root.render(<div />))
     expect(container.querySelector('input')).toBeNull()
+  })
+
+  it('surfaces, highlights, and selects injected completions', async () => {
+    const items = [completion('2 ft'), completion('3 ft')]
+    const onComplete = vi.fn()
+    let latest: UseLingoInputResult | null = null
+
+    function CompletionHarness() {
+      const api = useLingoInput({
+        kind: 'length',
+        unit: 'm',
+        debounce: 0,
+        listboxId: 'height-options',
+        complete: () => items,
+        onComplete,
+      })
+      latest = api
+      return <input ref={api.ref} />
+    }
+
+    act(() => root.render(<CompletionHarness />))
+    const input = container.querySelector('input')
+    if (!(input && latest)) {
+      throw new Error('completion harness did not mount')
+    }
+
+    await type(input, '2 f')
+    expect(latest.completions).toEqual(items)
+    expect(latest.highlightedIndex).toBe(0)
+    expect(input.getAttribute('aria-controls')).toBe('height-options')
+    expect(input.getAttribute('aria-expanded')).toBe('true')
+
+    act(() => latest?.setHighlightedIndex(99))
+    expect(latest.highlightedIndex).toBe(1)
+
+    act(() => latest?.selectCompletion())
+    expect(latest.value).toBeCloseTo(0.9144)
+    expect(latest.completions).toEqual([])
+    expect(latest.highlightedIndex).toBe(-1)
+    expect(input.getAttribute('aria-expanded')).toBe('false')
+    expect(onComplete).toHaveBeenCalled()
+  })
+
+  it('live-reads a changed completion provider', async () => {
+    let latest: UseLingoInputResult | null = null
+    const first = [completion('2 ft')]
+    const second = [completion('3 ft')]
+
+    function CompletionHarness({ items }: { items: readonly Completion[] }) {
+      const api = useLingoInput({
+        kind: 'length',
+        debounce: 0,
+        complete: () => items,
+      })
+      latest = api
+      return <input ref={api.ref} />
+    }
+
+    act(() => root.render(<CompletionHarness items={first} />))
+    const input = container.querySelector('input')
+    if (!(input && latest)) {
+      throw new Error('completion harness did not mount')
+    }
+    await type(input, '2 f')
+    expect(latest.completions).toEqual(first)
+
+    act(() => root.render(<CompletionHarness items={second} />))
+    await type(input, '3 f')
+    expect(latest.completions).toEqual(second)
+
+    act(() => input.dispatchEvent(new FocusEvent('blur')))
+    expect(latest.completions).toEqual([])
+    expect(latest.highlightedIndex).toBe(-1)
   })
 })

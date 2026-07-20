@@ -34,6 +34,7 @@ cost and bundle risk run from 1 (small) to 5 (large).
 | Opportunity | Audience | Value | Differentiation | Cost | Bundle risk | Recommendation |
 |---|---|---:|---:|---:|---:|---|
 | React completion state and selection | Forms, computer-use agents | 5 | 3 | 2 | 1 | Ship first |
+| React Native TextInput adapter | Mobile forms | 4 | 3 | 3 | 1 | Separate headless entry |
 | Strict-schema preflight (`assertStrictSafe`) | Tool authors | 4 | 4 | 2 | 1 | Next safety slice |
 | Warning-preserving direct integrations | Forms, tool authors | 5 | 5 | 2 | 1 | Design after observing adapters |
 | Date/duration wire schemas | APIs, agents | 4 | 3 | 3 | 2 | Finish plan 029 |
@@ -46,13 +47,12 @@ cost and bundle risk run from 1 (small) to 5 (large).
 No new backlog entries result from this pass: every deferred opportunity above
 already appears in a numbered plan or `plans/backlog.md`.
 
-## First slice: React completions
+## Shipped first slice: React completions
 
 `@pascal-app/lingo/complete` already returns ranked, fully parsed completions,
-and `lingoInput()` already accepts an injected completion provider. The React
-hook currently inherits those option types but does not forward the provider or
-surface the resulting list. React users therefore have to rebuild state wiring
-that the DOM controller already performs.
+and `lingoInput()` accepts an injected completion provider. `useLingoInput()`
+now forwards that provider and surfaces the resulting list, highlighted index,
+and selection helpers without bundling the completion engine.
 
 The first slice should expose completion list and highlighted-index state from
 `useLingoInput()`, plus a selection helper. The completion engine remains an
@@ -135,17 +135,18 @@ that generic resolvers preserve them.
 
 ## Recommended sequence
 
-1. Complete the React completion bridge and dogfood it in the accessible site
-   combobox.
-2. Add strict-schema preflight as a tiny, provider-neutral `./ai` helper.
-3. Design a warning-preserving integration pattern using evidence from the DOM,
+1. Keep the React completion bridge dogfooded in the accessible site combobox.
+2. Ship the separate DOM-free React Native TextInput adapter without importing
+   `react-native`.
+3. Add strict-schema preflight as a tiny, provider-neutral `./ai` helper.
+4. Design a warning-preserving integration pattern using evidence from the DOM,
    React, form recipes, and tool callbacks; do not mutate validation into a
    side-effect.
-4. Finish date/duration machine schemas, then add per-component date certainty
+5. Finish date/duration machine schemas, then add per-component date certainty
    when the date result shape is next revised.
-5. Publish a demo MCP server and comparative browser benchmarks as executable
+6. Publish a demo MCP server and comparative browser benchmarks as executable
    adoption proof.
-6. Continue locale work through pack-owned humanize templates and message copy,
+7. Continue locale work through pack-owned humanize templates and message copy,
    preserving two-way tests and entry budgets.
 
 ## Sources in this repository

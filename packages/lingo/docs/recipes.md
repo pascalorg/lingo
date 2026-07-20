@@ -763,6 +763,45 @@ engine is not: importing `./react` alone never pulls in `./complete`.
 Handle Enter in React's capture phase so completion selection runs before the
 controller's native Enter-to-commit listener.
 
+### React Native `TextInput`
+
+The native adapter owns display text and returns the four props `TextInput`
+needs. It does not import React Native or emulate browser validation:
+
+```tsx
+import { Text, TextInput, View } from 'react-native'
+import { useLingoTextInput } from '@pascal-app/lingo/react-native'
+
+function PackageWeight({ onWeight }: { onWeight: (kg: number | null) => void }) {
+  const field = useLingoTextInput({
+    kind: 'mass',
+    unit: 'kg',
+    min: 0,
+    max: '500 kg',
+    onValueChange: onWeight,
+  })
+
+  return (
+    <View>
+      <TextInput
+        {...field.inputProps}
+        accessibilityLabel="Package weight"
+        accessibilityHint="Enter a weight in kilograms or pounds"
+        placeholder="165 lb or 75 kg"
+      />
+      {field.errorMessage ? <Text accessibilityLiveRegion="polite">{field.errorMessage}</Text> : null}
+      {!field.errorMessage && field.hint ? <Text>{field.hint}</Text> : null}
+    </View>
+  )
+}
+```
+
+`field.text` is display text; `field.value` is the canonical number in `unit`;
+`field.submitValue` is the backend-ready string. Typing never rewrites text.
+Blur, `onSubmitEditing`, and `commit()` apply canonical formatting. Inject
+`completions()` exactly as on web and render the returned items with a
+`FlatList`; the completion engine remains an explicit import.
+
 ### React Hook Form
 
 For a whole form, `lingoObject` drops straight into the resolver:

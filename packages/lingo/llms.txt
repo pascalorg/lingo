@@ -112,6 +112,18 @@ field.commit() // hidden input submits canonical value
 
 `field.value` · `.quantity` · `.result` · `.state` ('idle'|'incomplete'|'valid'|'invalid') · `.set()` · `.commit()` · `.update()` · `.destroy()`. Never rewrites while typing; canonicalizes on blur/Enter/submit. With `complete`/`onComplete`, the input gets the headless WAI-ARIA combobox attributes (`role="combobox"`, `aria-autocomplete="list"`, `aria-expanded`); pass `listboxId` to set `aria-controls` for your rendered listbox. React: `useLingoInput(opts)` from `@pascal-app/lingo/react`, with completion list/highlight/selection state when a provider is injected.
 
+## React Native (`@pascal-app/lingo/react-native`)
+
+```tsx
+import { TextInput } from "react-native"
+import { useLingoTextInput } from "@pascal-app/lingo/react-native"
+
+const field = useLingoTextInput({ kind: "mass", unit: "kg", min: 0 })
+// <TextInput {...field.inputProps} />
+```
+
+DOM-free and headless: `inputProps` supplies `value`, `onChangeText`, `onBlur`, and `onSubmitEditing`. `field.text` is display text; `field.value` is the canonical number; `field.submitValue` is backend-ready. Also exposes state/result/quantity, touched/dirty, errorMessage/hint, set/commit, and injected completion list/highlight/selection. Imports React only; no `react-native`, DOM, or completion-engine runtime dependency.
+
 ## Element (`@pascal-app/lingo/element`)
 
 ```ts

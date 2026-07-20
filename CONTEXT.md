@@ -112,8 +112,8 @@ its value. Fields never rewrite text while typing (D6).
 ## Infrastructure nouns
 
 **Entry:** a published subpath — `.`, `./core`, `./date`, `./dom`, `./element`,
-`./describe`, `./catalog`, `./schema`, `./ai`, `./mcp`, `./react`, `./complete`,
-`./locales/*`. *Avoid: subpackage, plugin.*
+`./describe`, `./catalog`, `./schema`, `./ai`, `./mcp`, `./react`,
+`./react-native`, `./complete`, `./locales/*`. *Avoid: subpackage, plugin.*
 
 **Catalog:** the read-only query surface (`./catalog`) over built-in
 unit/kind/currency data — list kinds/units, resolve refs, related units,

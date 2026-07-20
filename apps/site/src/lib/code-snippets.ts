@@ -82,6 +82,25 @@ function HeightField() {
   return <input ref={field.ref} placeholder="5'11\\" or 180cm" />
 }`
 
+export const reactNativeSnippet = `import { Text, TextInput, View } from "react-native"
+import { useLingoTextInput } from "@pascal-app/lingo/react-native"
+
+function WeightField() {
+  const field = useLingoTextInput({
+    kind: "mass",
+    unit: "kg",
+    min: 0,
+    max: "500 kg",
+  })
+
+  return (
+    <View>
+      <TextInput {...field.inputProps} placeholder="165 lb or 75 kg" />
+      {field.errorMessage ? <Text>{field.errorMessage}</Text> : null}
+    </View>
+  )
+}`
+
 export const findSnippet = `import { findQuantities } from "@pascal-app/lingo"
 
 const found = findQuantities("ship 2 boxes at 5 kg each by friday")

@@ -418,6 +418,33 @@ The hook exposes `completions`, `highlightedIndex`,
 listbox. `./complete` stays an injected import; `./react` does not bundle it or
 ship popup UI.
 
+### React Native: `@pascal-app/lingo/react-native`
+
+```tsx
+import { Text, TextInput, View } from 'react-native'
+import { useLingoTextInput } from '@pascal-app/lingo/react-native'
+
+function WeightField() {
+  const field = useLingoTextInput({
+    kind: 'mass',
+    unit: 'kg',
+    min: 0,
+    max: '500 kg',
+  })
+  return (
+    <View>
+      <TextInput {...field.inputProps} placeholder="165 lb or 75 kg" />
+      {field.errorMessage ? <Text>{field.errorMessage}</Text> : null}
+    </View>
+  )
+}
+```
+
+`onChangeText` parses without rewriting, while blur, submit, or `commit()`
+canonicalizes the display. `value` is the canonical number and `submitValue`
+is the backend-ready string. The entry imports React only—there is no DOM
+controller, `react-native` runtime dependency, or bundled completion UI.
+
 ### Web components: `@pascal-app/lingo/element`
 
 A form-associated custom element for design systems with no framework

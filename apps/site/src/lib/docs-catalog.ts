@@ -111,6 +111,8 @@ export const docsNavGroups: DocsNavGroup[] = [
       page('forms', 'Inputs', 'Turn any input into a natural-language field.', [
         'dom',
         'react',
+        'react native',
+        'textinput',
         'input',
         'field',
         'validation',
@@ -125,6 +127,13 @@ export const docsNavGroups: DocsNavGroup[] = [
         'Web component',
         'The framework-free <lingo-input> custom element.',
         ['lingo-input', 'web component', 'element', 'defineLingoInput', 'vue', 'svelte', 'angular'],
+        { depth: 3, markdownSectionId: 'forms' },
+      ),
+      page(
+        'forms-react-native',
+        'React Native',
+        'DOM-free parsing and canonicalization for TextInput.',
+        ['react native', 'textinput', 'mobile', 'useLingoTextInput'],
         { depth: 3, markdownSectionId: 'forms' },
       ),
       page(

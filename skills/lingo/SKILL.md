@@ -61,6 +61,7 @@ Import only what you need; each subpath is tree-shakeable.
 | `@pascal-app/lingo/mcp` | `lingoTool()` — MCP tool with validation before the handler |
 | `@pascal-app/lingo/dom` | headless `lingoInput()` controller for any `<input>` |
 | `@pascal-app/lingo/react` | `useLingoInput()` hook |
+| `@pascal-app/lingo/react-native` | DOM-free `useLingoTextInput()` hook for React Native `TextInput` |
 | `@pascal-app/lingo/element` | `<lingo-input>` form-associated custom element |
 | `@pascal-app/lingo/complete` | ranked autocomplete `completions()` |
 | `@pascal-app/lingo/locales/{en,en-gb,es,fr,pt,zh,ja}` | opt-in parsing language packs |
@@ -110,6 +111,7 @@ field.commit() // hidden <input name="height_m"> submits the canonical value
 
 React: `useLingoInput(opts)` from `@pascal-app/lingo/react`. Framework-agnostic
 element: `defineLingoInput()` then `<lingo-input kind="length" unit="m" name="height_m">`.
+React Native: spread `useLingoTextInput(opts).inputProps` onto `TextInput`.
 
 ## Pattern 3 — safe LLM tool / MCP boundary
 

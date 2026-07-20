@@ -9,6 +9,11 @@ change**, even if the API is untouched.
 
 ### Added
 
+- `@pascal-app/lingo/react-native`: DOM-free `useLingoTextInput()` for React
+  Native `TextInput`, including parse-as-you-type partial states, blur/submit
+  canonicalization, required/bounds validation, backend-ready `submitValue`,
+  and injected ranked completions. The entry imports React only—no
+  `react-native` runtime dependency.
 - `useLingoInput()` now forwards an injected ranked-completion provider and
   exposes `completions`, `highlightedIndex`, `setHighlightedIndex()`, and
   `selectCompletion()` for headless React comboboxes. `./complete` remains an

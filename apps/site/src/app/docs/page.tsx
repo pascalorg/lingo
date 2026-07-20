@@ -44,6 +44,7 @@ import {
   formSnippet,
   integrationSnippets,
   localeSnippet,
+  reactNativeSnippet,
   schemaTabs,
   strictnessSnippet,
   typeSafetySnippet,
@@ -487,7 +488,7 @@ export default async function Home() {
           <Section
             explainer="Turn any native input into a natural-language field: parse on input, never rewrite mid-typing, and submit one hidden canonical value on commit."
             id="forms"
-            kicker="DOM + React"
+            kicker="DOM + React + Native"
             title="Inputs"
           >
             <CodeBlock code={formSnippet} filename="dom-field.ts" lang="ts" />
@@ -514,6 +515,21 @@ export default async function Home() {
                 behave like any control in Vue, Svelte, Angular, or plain HTML.
               </p>
               <CodeBlock code={elementSnippet} filename="lingo-input.html" lang="html" />
+            </div>
+            <div className="flex min-w-0 flex-col gap-3">
+              <SubHeading id="forms-react-native">React Native</SubHeading>
+              <p className="text-muted-foreground text-sm">
+                <code className="rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-foreground text-sm">
+                  useLingoTextInput
+                </code>{' '}
+                gives React Native{' '}
+                <code className="rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-foreground text-sm">
+                  TextInput
+                </code>{' '}
+                the same partial-state parsing and commit canonicalization without importing the DOM
+                controller or React Native runtime.
+              </p>
+              <CodeBlock code={reactNativeSnippet} filename="weight-field.tsx" lang="tsx" />
             </div>
           </Section>
 

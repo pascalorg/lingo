@@ -152,3 +152,23 @@ Inside `packages/lingo/` the same scripts run directly (`bun run test`, etc.).
 - Re-read the original request every few turns to make sure you haven't drifted.
 - When the user corrects you, stop and re-read their message before continuing.
 - Don't write new comments unless they state a constraint the code can't show.
+
+## Cursor Cloud specific instructions
+
+The startup update script runs `bun install` (Bun 1.3.14 lives at `~/.bun/bin`,
+already on `PATH` via `~/.bashrc`). Commands, module map, and site notes are all
+documented above — this section only records cloud-specific gotchas.
+
+- **No external services.** No DB / cache / API keys. The library is in-process;
+  tests are Vitest + jsdom; `ai-eval` runs a recorded corpus. `bun run check`
+  needs nothing long-lived; browser E2E needs `bun dev` (see Commands above).
+- **`bun dev` runs both packages via turbo:** `tsup --watch` (library, no port)
+  and Next dev (`lingo-site`, port 3000, auto-increments if busy — read the log
+  for the actual port). Verify with `curl -I http://localhost:3000/`.
+- **lefthook postinstall is expected to no-op here.** The root `postinstall`
+  prints a `core.hooksPath is set locally … Custom hooks paths are not supported`
+  warning because Cursor manages git hooks; it exits `|| true`, so install still
+  succeeds. Don't "fix" it.
+- **Noisy but harmless build output.** `tsup` emits many Rollup warnings
+  ("reexported through module … circular dependency", "named and default exports
+  together"). These are pre-existing; the build still reports `Build success`.

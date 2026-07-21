@@ -201,3 +201,5 @@ export namespace lingoInput {
     return registry.get(el)
   }
 }
+
+export type { CandidateResult, LingoFieldFormatOptions } from './format'

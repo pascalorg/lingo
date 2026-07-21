@@ -3,7 +3,7 @@ id: 034
 title: React Native text input
 status: done — shipped 2026-07-20
 created: 2026-07-20
-updated: 2026-07-20
+updated: 2026-07-21
 goal: "Ship a DOM-free React Native hook that gives TextInput the same parse, commit, validation, and completion semantics as lingo's web fields."
 success_criteria:
   - "[MET: handler tests] TextInput handlers parse while typing and canonicalize on blur/submit -> src/react-native/use-lingo-text-input.test.tsx"
@@ -107,8 +107,10 @@ pull in `./complete`.
 - No DOM controller or `react-native` runtime import.
 - No ARIA/Constraint Validation emulation; callers use native accessibility
   props and render `errorMessage`/`hint`.
-- No shared-controller rewrite. The hook reuses existing pure parse/format
-  helpers; broader extraction waits for another non-DOM adapter to justify it.
+- No shared-controller rewrite. The hook reuses DOM-free
+  `LingoFieldFormatOptions` helpers from `dom/format.ts` (parse options,
+  materialize, commit/hint formatting) without casting through DOM callback
+  shapes; broader controller extraction waits for another non-DOM adapter.
 - No date-specific field mode; callers may inject date completions, while this
   field retains the quantity parser semantics of the DOM controller.
 

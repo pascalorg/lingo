@@ -30,8 +30,8 @@ input string
 | `./date` | `src/date/` | NL dates, time-of-day, zones, ranges/slots, reversible humanize, ISO durations |
 | `./dom` | `src/dom/` | headless input controller |
 | `./element` | `src/element/` | `<lingo-input>` form-associated custom element |
-| `./react` | `src/react/` | `useLingoInput` hook (`'use client'`) |
-| `./react-native` | `src/react-native/` | DOM-free `useLingoTextInput` hook for React Native `TextInput` |
+| `./react` | `src/react/` | `useLingoInput` hook (`'use client'`) over the DOM controller |
+| `./react-native` | `src/react-native/` | DOM-free `useLingoTextInput` for RN `TextInput`; reuses `LingoFieldFormatOptions` helpers from `dom/format.ts`, never imports `react-native` |
 | `./describe` | `src/describe/` | resource views: `describeResource`, `describeResult` |
 | `./catalog` | `src/catalog/` | read-only queries over built-in unit/kind/currency data (D56) |
 | `./schema` | `src/schema/` | machine-readable schema for the v3 wire JSON (pure data) |

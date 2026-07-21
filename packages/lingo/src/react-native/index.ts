@@ -13,7 +13,7 @@ import {
   materialize,
   toLingoOptions,
 } from '../dom/format'
-import type { LingoDisplayMode, LingoFieldState, LingoInputOptions } from '../dom/index'
+import type { LingoDisplayMode, LingoFieldState } from '../dom/index'
 import type { LingoIssue, LingoOptions, LingoResult, Quantity, QuantityRange, Span } from '../index'
 import { firstError, lingo, parseQuantity, partialState } from '../index'
 import { optionSignature } from '../react/signature'
@@ -111,15 +111,14 @@ interface ParsedBound {
 const EMPTY_COMPLETIONS: readonly Completion[] = []
 const CONTROLLED_VALUE_EPSILON = 1e-12
 
-function fieldOptions(options: UseLingoTextInputOptions): LingoInputOptions {
-  return options as unknown as LingoInputOptions
-}
-
 function sameControlledValue(expected: number | null, actual: number | null): boolean {
   if (Object.is(expected, actual)) {
     return true
   }
   if (expected === null || actual === null) {
+    return false
+  }
+  if (!(Number.isFinite(expected) && Number.isFinite(actual))) {
     return false
   }
   const scale = Math.max(1, Math.abs(expected), Math.abs(actual))
@@ -133,7 +132,7 @@ function displayTextForValue(value: number | null, options: UseLingoTextInputOpt
   if (!options.unit) {
     return String(value)
   }
-  const parsed = parseQuantity(String(value), toLingoOptions(fieldOptions(options)))
+  const parsed = parseQuantity(String(value), toLingoOptions(options))
   return parsed.ok
     ? formatQuantityForDisplay(parsed.quantity, options.displayUnit ?? options.unit)
     : String(value)
@@ -146,7 +145,7 @@ function parseBound(
   if (value === undefined) {
     return null
   }
-  const parsed = parseQuantity(String(value), toLingoOptions(fieldOptions(options)))
+  const parsed = parseQuantity(String(value), toLingoOptions(options))
   if (!parsed.ok) {
     return null
   }
@@ -160,7 +159,7 @@ function boundsIssue(
   text: string,
   options: UseLingoTextInputOptions,
 ): LingoIssue | null {
-  const quantity = materialize(result, fieldOptions(options)).quantity
+  const quantity = materialize(result, options).quantity
   if (!quantity) {
     return null
   }
@@ -170,10 +169,10 @@ function boundsIssue(
   const min = 'base' in quantity ? quantity : quantity.min()
   const max = 'base' in quantity ? quantity : quantity.max()
   if (minBound && min && min.base < minBound.quantity.base) {
-    return localIssue(fieldOptions(options), 'RANGE_MIN', { min: minBound.label }, span)
+    return localIssue(options, 'RANGE_MIN', { min: minBound.label }, span)
   }
   if (maxBound && max && max.base > maxBound.quantity.base) {
-    return localIssue(fieldOptions(options), 'RANGE_MAX', { max: maxBound.label }, span)
+    return localIssue(options, 'RANGE_MAX', { max: maxBound.label }, span)
   }
   return null
 }
@@ -185,13 +184,13 @@ function viewFor(
   touched: boolean,
   options: UseLingoTextInputOptions,
 ): NativeView {
-  const material = state === 'valid' ? materialize(result, fieldOptions(options)) : null
+  const material = state === 'valid' ? materialize(result, options) : null
   const error = state === 'invalid' && touched ? firstError(result) : null
   const candidate = state === 'invalid' && result && !result.ok ? result.candidate : undefined
   const hint = candidate
     ? (options.formatCandidate?.(candidate) ?? defaultCandidate(candidate))
     : state === 'valid' && result?.ok
-      ? (options.formatHint?.(result) ?? defaultHint(result, fieldOptions(options)))
+      ? (options.formatHint?.(result) ?? defaultHint(result, options))
       : null
   return {
     text,
@@ -237,10 +236,8 @@ export function useLingoTextInput(options: UseLingoTextInputOptions = {}): UseLi
   const initialTextRef = React.useRef(initialText)
   const optionsRef = React.useRef(options)
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
-  const mountedRef = React.useRef(false)
-  const initialView = viewFor(initialText, 'idle', null, false, options)
-  const viewRef = React.useRef(initialView)
-  const [view, setView] = React.useState(initialView)
+  const viewRef = React.useRef(viewFor(initialText, 'idle', null, false, options))
+  const [view, setView] = React.useState(viewRef.current)
   const [completions, setCompletions] = React.useState<readonly Completion[]>(EMPTY_COMPLETIONS)
   const [highlightedIndex, setHighlightedIndexState] = React.useState(-1)
 
@@ -266,7 +263,7 @@ export function useLingoTextInput(options: UseLingoTextInputOptions = {}): UseLi
     if (previous.state !== next.state) {
       optionsRef.current.onStateChange?.(next.state, next.result)
     }
-    if (previous.value !== next.value) {
+    if (!sameControlledValue(previous.value, next.value)) {
       optionsRef.current.onValueChange?.(next.value, next.quantity)
     }
   }, [])
@@ -275,7 +272,6 @@ export function useLingoTextInput(options: UseLingoTextInputOptions = {}): UseLi
     (text: string, committed: boolean, touched: boolean): LingoResult | null => {
       clearTimer()
       const current = optionsRef.current
-      const shared = fieldOptions(current)
       if (committed) {
         updateCompletions(EMPTY_COMPLETIONS)
       } else {
@@ -283,10 +279,10 @@ export function useLingoTextInput(options: UseLingoTextInputOptions = {}): UseLi
         updateCompletions(next)
       }
 
-      const partial = partialState(text, toLingoOptions(shared))
+      const partial = partialState(text, toLingoOptions(current))
       if (partial === 'empty') {
         if (committed && current.required) {
-          const issue = localIssue(shared, 'REQUIRED', {}, { start: 0, end: text.length })
+          const issue = localIssue(current, 'REQUIRED', {}, { start: 0, end: text.length })
           const failed = failResult(text, [issue])
           publish(viewFor(text, 'invalid', failed, touched, current))
           current.onError?.(failed.issues)
@@ -307,7 +303,7 @@ export function useLingoTextInput(options: UseLingoTextInputOptions = {}): UseLi
         return null
       }
 
-      const parsed = acceptedResult(lingo(text, toLingoOptions(shared)), shared)
+      const parsed = acceptedResult(lingo(text, toLingoOptions(current)), current)
       current.onParse?.(parsed)
       if (!parsed.ok) {
         publish(viewFor(text, 'invalid', parsed, touched, current))
@@ -329,7 +325,7 @@ export function useLingoTextInput(options: UseLingoTextInputOptions = {}): UseLi
         }
       }
 
-      const formatted = committed ? formatResultForCommit(parsed, shared) : null
+      const formatted = committed ? formatResultForCommit(parsed, current) : null
       publish(viewFor(formatted ?? text, 'valid', parsed, touched, current))
       if (committed) {
         current.onCommit?.(parsed)
@@ -385,11 +381,8 @@ export function useLingoTextInput(options: UseLingoTextInputOptions = {}): UseLi
     [completions, highlightedIndex, set],
   )
 
-  const signature = optionSignature(fieldOptions(options))
+  const signature = optionSignature(options)
   React.useEffect(() => {
-    if (!mountedRef.current) {
-      mountedRef.current = true
-    }
     if (viewRef.current.text) {
       parseNow(viewRef.current.text, false, viewRef.current.touched)
     }

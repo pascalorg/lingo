@@ -1,7 +1,18 @@
+import type { LingoFieldFormatOptions } from '../dom/format'
 import type { LingoInputOptions } from '../dom/index'
 
 const objectIds = new WeakMap<object, number>()
 let nextObjectId = 0
+
+/** Serializable field knobs shared by DOM and React Native option signatures. */
+export type LingoOptionSignatureInput = LingoFieldFormatOptions &
+  Pick<LingoInputOptions, 'debounce' | 'max' | 'min' | 'required'> &
+  Partial<
+    Pick<
+      LingoInputOptions,
+      'errorElement' | 'hintElement' | 'inputmode' | 'listboxId' | 'name' | 'validationBehavior'
+    >
+  >
 
 export function objectSignature(value: unknown): string {
   if ((typeof value !== 'object' && typeof value !== 'function') || value === null) {
@@ -16,12 +27,12 @@ export function objectSignature(value: unknown): string {
 }
 
 export function elementSignature(
-  value: LingoInputOptions['errorElement'] | LingoInputOptions['hintElement'],
+  value: LingoInputOptions['errorElement'] | LingoInputOptions['hintElement'] | undefined,
 ): string {
   if (typeof value === 'string') {
-    return `selector:${value}`
+    return `s:${value}`
   }
-  return value ? `element:${objectSignature(value)}` : ''
+  return value ? `e:${objectSignature(value)}` : ''
 }
 
 export function stableOptionValue(value: unknown): unknown {
@@ -39,7 +50,7 @@ export function stableOptionValue(value: unknown): unknown {
     }
     return out
   }
-  return typeof value === 'function' ? 'ƒ' : value
+  return typeof value === 'function' ? 'f' : value
 }
 
 export function messagesSignature(messages: LingoInputOptions['messages']): string {
@@ -48,7 +59,7 @@ export function messagesSignature(messages: LingoInputOptions['messages']): stri
         .sort()
         .map((k) => {
           const v = (messages as Record<string, unknown>)[k]
-          return `${k}:${typeof v === 'function' ? 'ƒ' : String(v)}`
+          return `${k}:${typeof v === 'function' ? 'f' : String(v)}`
         })
         .join('|')
     : ''
@@ -65,7 +76,7 @@ export function structuralSignature(value: unknown): string {
  * (React error #185). Function-typed options are intentionally excluded here
  * and are live-read through refs by the hook.
  */
-export function optionSignature(o: LingoInputOptions): string {
+export function optionSignature(o: LingoOptionSignatureInput): string {
   const messagesSig = messagesSignature(o.messages)
   return JSON.stringify([
     o.kind,

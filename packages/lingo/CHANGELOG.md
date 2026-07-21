@@ -21,6 +21,13 @@ change**, even if the API is untouched.
 
 ### Changed
 
+- Shared field format helpers (`toLingoOptions`, `materialize`, commit/hint
+  formatting) now take a DOM-free `LingoFieldFormatOptions` surface so the React
+  Native adapter reuses them without casting through `LingoInputOptions`.
+- The npm `llms.txt` reference now includes full inline React and React Native
+  adapter recipes (completions, capture-phase keyboard notes, `inputProps`,
+  submit/canonical fields) so offline agents can integrate without fetching the
+  site.
 - The docs autocomplete showcase now separates ranked completions, loaded-locale
   examples, and caller-controlled unit suggestions into three focused,
   keyboard-navigable demos instead of one control-heavy panel.

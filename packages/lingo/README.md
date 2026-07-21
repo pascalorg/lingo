@@ -97,6 +97,11 @@ a UX choice, not something the parser needs to survive. Reproduce with
 npm install @pascal-app/lingo
 ```
 
+Coding agents: the package ships an inline reference at
+`node_modules/@pascal-app/lingo/llms.txt` (also at
+[lingo.pascal.app/llms-small.txt](https://lingo.pascal.app/llms-small.txt)).
+Online, start at [lingo.pascal.app/llms.txt](https://lingo.pascal.app/llms.txt).
+
 ## The 5-minute tour
 
 ### Parse
@@ -442,8 +447,10 @@ function WeightField() {
 
 `onChangeText` parses without rewriting, while blur, submit, or `commit()`
 canonicalizes the display. `value` is the canonical number and `submitValue`
-is the backend-ready string. The entry imports React only—there is no DOM
-controller, `react-native` runtime dependency, or bundled completion UI.
+is the backend-ready string. Inject `complete` from `./complete` for ranked
+suggestions (`completions` / `selectCompletion()`); render them with your own
+`FlatList`. The entry imports React only—there is no DOM controller,
+`react-native` runtime dependency, or bundled completion UI.
 
 ### Web components: `@pascal-app/lingo/element`
 

@@ -3,7 +3,7 @@ id: 012
 title: Agent & LLM friendliness
 status: done
 created: 2026-07-03
-updated: 2026-07-08
+updated: 2026-07-21
 ---
 
 # Agent & LLM friendliness
@@ -35,7 +35,7 @@ Two roles, split intentionally:
 
 | Surface | Role |
 |---------|------|
-| `packages/lingo/llms.txt` (npm) | Self-contained compressed API reference with nested headings, fenced examples per entry, issue-code remedies, and canonical input→output examples. Shipped in the tarball; also mirrored at `/llms-small.txt`. |
+| `packages/lingo/llms.txt` (npm) | Self-contained compressed API reference with nested headings, fenced examples per entry (including `./react` and `./react-native` adapter recipes), issue-code remedies, and canonical input→output examples. Shipped in the tarball; also mirrored at `/llms-small.txt`. Agents must be able to integrate from this file alone when offline. |
 | `https://lingo.pascal.app/llms.txt` | Spec-compliant index ([llmstxt.org](https://llmstxt.org/)): H1 + blockquote + H2 link lists to `/docs/<section>.md`, `/llms-full.txt`, schema artifacts, and an `## Optional` section. Generated from `docs-catalog.ts` at build time. |
 | `/llms-full.txt` | Complete `/docs` narrative as markdown (from `docs.md.ts`). |
 | `/docs/<section>.md` | Self-contained per-topic slices with context headers (Mintlify-style append-`.md` convention). |

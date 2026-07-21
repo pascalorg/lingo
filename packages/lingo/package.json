@@ -1,6 +1,6 @@
 {
   "name": "@pascal-app/lingo",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Make forms easier, LLM tools safer. Parse what humans type and what models emit — natural-language quantities, units, dates and ranges — into canonical, validated values. Two-way, zero dependencies.",
   "keywords": [
     "parse",

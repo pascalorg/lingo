@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import type { Completion } from '../complete/types'
 import {
   type LingoField,
   type LingoFieldState,
@@ -26,10 +27,18 @@ export interface UseLingoInputResult<
   T extends HTMLInputElement | HTMLTextAreaElement = HTMLInputElement,
 > {
   commit(): void
+  /** Ranked completions from the injected provider; empty while collapsed. */
+  completions: readonly Completion[]
+  /** Ranked completion currently highlighted, or `-1` when collapsed. */
+  highlightedIndex: number
   quantity: Quantity | QuantityRange | null
   ref: (node: T | null) => void
   result: LingoResult | null
+  /** Select a completion by index, defaulting to `highlightedIndex`. */
+  selectCompletion(index?: number): void
   set(v: number | string): void
+  /** Move the highlight, clamped to the current completion list. */
+  setHighlightedIndex(index: number): void
   /** Mirrors the underlying `LingoField.state` — see `LingoFieldState`. */
   state: LingoFieldState
   value: number | null
@@ -121,6 +130,7 @@ function updateOptions(o: UseLingoInputOptions): Partial<LingoInputOptions> {
     errorElement: o.errorElement,
     hintElement: o.hintElement,
     inputmode: o.inputmode,
+    listboxId: o.listboxId,
     debounce: o.debounce,
   }
 }
@@ -134,18 +144,33 @@ function sameSnapshot(a: Snapshot, b: Snapshot): boolean {
   )
 }
 
+interface CompletionView {
+  completions: readonly Completion[]
+  highlightedIndex: number
+}
+
+const EMPTY_COMPLETION_VIEW: CompletionView = {
+  completions: [],
+  highlightedIndex: -1,
+}
+
 /**
  * React hook wrapping `lingoInput()`: attach `ref` to your `<input>`/
- * `<textarea>` and get back live `state`/`value`/`quantity`/`result`.
+ * `<textarea>` and get back live parse and injected completion state.
  * Options are live-read on every render (see the option-signature note
  * below) so inline objects/callbacks are safe to pass without memoizing.
  * @example
  * ```tsx
+ * import { completions } from '@pascal-app/lingo/complete'
  * import { useLingoInput } from '@pascal-app/lingo/react'
  *
  * function HeightField() {
- *   const { ref, state, value } = useLingoInput({ kind: 'length', unit: 'm', name: 'height_m' })
- *   return <input ref={ref} placeholder={`try 5'11" or 180cm`} data-state={state} />
+ *   const field = useLingoInput({
+ *     kind: 'length',
+ *     unit: 'm',
+ *     complete: (text) => completions(text, { kind: 'length' }),
+ *   })
+ *   return <input ref={field.ref} data-state={field.state} />
  * }
  * ```
  */
@@ -153,9 +178,11 @@ export function useLingoInput<T extends HTMLInputElement | HTMLTextAreaElement =
   opts: UseLingoInputOptions = {},
 ): UseLingoInputResult<T> {
   const fieldRef = React.useRef<LingoField | null>(null)
+  const elementRef = React.useRef<T | null>(null)
   const optsRef = React.useRef(opts)
   const appliedSigRef = React.useRef<string | null>(null)
   const [view, setView] = React.useState<Snapshot>(() => snapshot(null))
+  const [completionView, setCompletionView] = React.useState<CompletionView>(EMPTY_COMPLETION_VIEW)
 
   optsRef.current = opts
 
@@ -164,18 +191,43 @@ export function useLingoInput<T extends HTMLInputElement | HTMLTextAreaElement =
     setView((prev) => (sameSnapshot(prev, next) ? prev : next))
   }, [])
 
+  const updateCompletionView = React.useCallback((completions: readonly Completion[]) => {
+    const next: CompletionView = {
+      completions,
+      highlightedIndex: completions.length ? 0 : -1,
+    }
+    setCompletionView(next)
+  }, [])
+
+  const liveComplete = React.useCallback(
+    (text: string) => optsRef.current.complete?.(text) ?? [],
+    [],
+  )
+
+  const handleCompletions = React.useCallback(
+    (completions: readonly Completion[], field: LingoField) => {
+      const expanded = elementRef.current?.getAttribute('aria-expanded') === 'true'
+      updateCompletionView(expanded ? completions : [])
+      optsRef.current.onComplete?.(completions, field)
+    },
+    [updateCompletionView],
+  )
+
   const ref = React.useCallback(
     (node: T | null) => {
       if (fieldRef.current) {
         fieldRef.current.destroy()
         fieldRef.current = null
       }
+      elementRef.current = node
       if (!node) {
         appliedSigRef.current = null
         setView(snapshot(null))
+        updateCompletionView([])
         return
       }
       const current = optsRef.current
+      const completionEnabled = Boolean(current.complete || current.onComplete)
       appliedSigRef.current = optionSignature(current)
       fieldRef.current = lingoInput(node, {
         ...updateOptions(current),
@@ -204,17 +256,22 @@ export function useLingoInput<T extends HTMLInputElement | HTMLTextAreaElement =
           optsRef.current.onCommit?.(field)
           syncView()
         },
+        ...(completionEnabled && {
+          complete: current.complete ? liveComplete : undefined,
+          onComplete: handleCompletions,
+        }),
         onError: (issues, field) => optsRef.current.onError?.(issues, field),
       })
       syncView()
     },
-    [syncView],
+    [handleCompletions, liveComplete, syncView, updateCompletionView],
   )
 
   React.useEffect(
     () => () => {
       fieldRef.current?.destroy()
       fieldRef.current = null
+      elementRef.current = null
     },
     [],
   )
@@ -257,15 +314,39 @@ export function useLingoInput<T extends HTMLInputElement | HTMLTextAreaElement =
   const set = React.useCallback(
     (value: number | string) => {
       fieldRef.current?.set(typeof value === 'number' ? String(value) : value)
+      updateCompletionView([])
       syncView()
     },
-    [syncView],
+    [syncView, updateCompletionView],
   )
 
   const commit = React.useCallback(() => {
     fieldRef.current?.commit()
+    updateCompletionView([])
     syncView()
-  }, [syncView])
+  }, [syncView, updateCompletionView])
+
+  const setHighlightedIndex = React.useCallback((index: number) => {
+    setCompletionView((current) => ({
+      ...current,
+      highlightedIndex: current.completions.length
+        ? Math.min(Math.max(index, 0), current.completions.length - 1)
+        : -1,
+    }))
+  }, [])
+
+  const selectCompletion = React.useCallback(
+    (index?: number) => {
+      const selected = completionView.completions[index ?? completionView.highlightedIndex]
+      if (!selected) {
+        return
+      }
+      fieldRef.current?.set(selected.text)
+      updateCompletionView([])
+      syncView()
+    },
+    [completionView, syncView, updateCompletionView],
+  )
 
   return {
     ref,
@@ -273,6 +354,10 @@ export function useLingoInput<T extends HTMLInputElement | HTMLTextAreaElement =
     value: view.value,
     quantity: view.quantity,
     result: view.result,
+    completions: completionView.completions,
+    highlightedIndex: completionView.highlightedIndex,
+    setHighlightedIndex,
+    selectCompletion,
     set,
     commit,
   }

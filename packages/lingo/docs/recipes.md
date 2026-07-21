@@ -696,6 +696,112 @@ const heightField = quantityField({ kind: 'length', unit: 'm', min: 0.3, max: 2.
 const weightField = quantityField({ kind: 'mass', unit: 'kg', min: 0 })
 ```
 
+### React ranked completions
+
+Inject `completions()` into the hook and render the listbox yourself. The hook
+owns only ranked-list state and selection; popup markup, option ids, styling,
+and keyboard policy stay in your component:
+
+```tsx
+import { completions } from '@pascal-app/lingo/complete'
+import { useLingoInput } from '@pascal-app/lingo/react'
+
+function HeightInput() {
+  const field = useLingoInput({
+    kind: 'length',
+    unit: 'm',
+    listboxId: 'height-options',
+    complete: (text) => completions(text, { kind: 'length', limit: 6 }),
+  })
+
+  return (
+    <>
+      <input
+        ref={field.ref}
+        aria-activedescendant={
+          field.highlightedIndex >= 0
+            ? `height-option-${field.highlightedIndex}`
+            : undefined
+        }
+        onKeyDownCapture={(event) => {
+          if (event.key === 'ArrowDown') {
+            event.preventDefault()
+            field.setHighlightedIndex(field.highlightedIndex + 1)
+          }
+          if (event.key === 'ArrowUp') {
+            event.preventDefault()
+            field.setHighlightedIndex(field.highlightedIndex - 1)
+          }
+          if (event.key === 'Enter' && field.highlightedIndex >= 0) {
+            event.preventDefault()
+            event.stopPropagation()
+            field.selectCompletion(field.highlightedIndex)
+          }
+        }}
+      />
+      <div id="height-options" role="listbox">
+        {field.completions.map((item, index) => (
+          <button
+            aria-selected={index === field.highlightedIndex}
+            id={`height-option-${index}`}
+            key={`${item.source}-${item.text}`}
+            onClick={() => field.selectCompletion(index)}
+            role="option"
+            type="button"
+          >
+            {item.text}
+          </button>
+        ))}
+      </div>
+    </>
+  )
+}
+```
+
+The `Completion` type is shared through the DOM layer, but the completion
+engine is not: importing `./react` alone never pulls in `./complete`.
+Handle Enter in React's capture phase so completion selection runs before the
+controller's native Enter-to-commit listener.
+
+### React Native `TextInput`
+
+The native adapter owns display text and returns the four props `TextInput`
+needs. It does not import React Native or emulate browser validation:
+
+```tsx
+import { Text, TextInput, View } from 'react-native'
+import { useLingoTextInput } from '@pascal-app/lingo/react-native'
+
+function PackageWeight({ onWeight }: { onWeight: (kg: number | null) => void }) {
+  const field = useLingoTextInput({
+    kind: 'mass',
+    unit: 'kg',
+    min: 0,
+    max: '500 kg',
+    onValueChange: onWeight,
+  })
+
+  return (
+    <View>
+      <TextInput
+        {...field.inputProps}
+        accessibilityLabel="Package weight"
+        accessibilityHint="Enter a weight in kilograms or pounds"
+        placeholder="165 lb or 75 kg"
+      />
+      {field.errorMessage ? <Text accessibilityLiveRegion="polite">{field.errorMessage}</Text> : null}
+      {!field.errorMessage && field.hint ? <Text>{field.hint}</Text> : null}
+    </View>
+  )
+}
+```
+
+`field.text` is display text; `field.value` is the canonical number in `unit`;
+`field.submitValue` is the backend-ready string. Typing never rewrites text.
+Blur, `onSubmitEditing`, and `commit()` apply canonical formatting. Inject
+`completions()` exactly as on web and render the returned items with a
+`FlatList`; the completion engine remains an explicit import.
+
 ### React Hook Form
 
 For a whole form, `lingoObject` drops straight into the resolver:

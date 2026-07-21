@@ -4,7 +4,7 @@
 
 Agent fetch order (online): `https://lingo.pascal.app/llms.txt` (index) → `https://lingo.pascal.app/docs/<section>.md` (per-topic) or `https://lingo.pascal.app/llms-full.txt` (complete narrative). Offline: this file (`node_modules/@pascal-app/lingo/llms.txt`) is the compressed self-contained reference. Keep user measurements as strings in tool schemas; call lingo to convert, validate, surface spans, and handle ambiguity.
 
-Entries: `@pascal-app/lingo` (core+units+fuzzy), `@pascal-app/lingo/date`, `@pascal-app/lingo/dom`, `@pascal-app/lingo/element` (`<lingo-input>`), `@pascal-app/lingo/react`, `@pascal-app/lingo/ai` (LLM tool fields), `@pascal-app/lingo/mcp` (MCP tool helper), `@pascal-app/lingo/describe` (rich value/result descriptions), `@pascal-app/lingo/catalog` (query units/kinds/currencies + ISO country codes), `@pascal-app/lingo/complete` (ranked autocomplete completions), `@pascal-app/lingo/schema` (JSON Schema + OpenAPI + enum reference), `@pascal-app/lingo/locales/{en,en-gb,es,fr,pt,zh,ja}` (tree-shakeable language packs), `@pascal-app/lingo/core`.
+Entries: `@pascal-app/lingo` (core+units+fuzzy), `@pascal-app/lingo/date`, `@pascal-app/lingo/dom`, `@pascal-app/lingo/element` (`<lingo-input>`), `@pascal-app/lingo/react`, `@pascal-app/lingo/react-native`, `@pascal-app/lingo/ai` (LLM tool fields), `@pascal-app/lingo/mcp` (MCP tool helper), `@pascal-app/lingo/describe` (rich value/result descriptions), `@pascal-app/lingo/catalog` (query units/kinds/currencies + ISO country codes), `@pascal-app/lingo/complete` (ranked autocomplete completions), `@pascal-app/lingo/schema` (JSON Schema + OpenAPI + enum reference), `@pascal-app/lingo/locales/{en,en-gb,es,fr,pt,zh,ja}` (tree-shakeable language packs), `@pascal-app/lingo/core`.
 
 ## Core (`@pascal-app/lingo`)
 
@@ -41,7 +41,7 @@ const items = completions("10 kg to 16", { kind: "mass", limit: 8 })
 // [{ text, result, confidence, source }] — source: parse|alternative|unit-ambiguity|unit-prefix|implied-unit|range-implied|cross-kind|date
 ```
 
-Distinct from success `alternatives`, failure `candidate`, and issue `suggestions`. Wire into `lingoInput({ complete, onComplete })` for autocomplete dropdowns. Pass `date: (text) => parseDate(text, { now })` to opt into date completions without bundling `@pascal-app/lingo/date` into `@pascal-app/lingo/complete`.
+Distinct from success `alternatives`, failure `candidate`, and issue `suggestions`. Wire into `lingoInput({ complete, onComplete })` or `useLingoInput({ complete })` for autocomplete dropdowns. The React hook exposes `completions`, `highlightedIndex`, `setHighlightedIndex()`, and `selectCompletion()` while keeping popup UI caller-owned. Pass `date: (text) => parseDate(text, { now })` to opt into date completions without bundling `@pascal-app/lingo/date` into `@pascal-app/lingo/complete`.
 
 ## Locales (`@pascal-app/lingo/locales/*`)
 
@@ -110,7 +110,102 @@ field.set("6ft")
 field.commit() // hidden input submits canonical value
 ```
 
-`field.value` · `.quantity` · `.result` · `.state` ('idle'|'incomplete'|'valid'|'invalid') · `.set()` · `.commit()` · `.update()` · `.destroy()`. Never rewrites while typing; canonicalizes on blur/Enter/submit. With `complete`/`onComplete`, the input gets the headless WAI-ARIA combobox attributes (`role="combobox"`, `aria-autocomplete="list"`, `aria-expanded`); pass `listboxId` to set `aria-controls` for your rendered listbox. React: `useLingoInput(opts)` from `@pascal-app/lingo/react`.
+`field.value` · `.quantity` · `.result` · `.state` ('idle'|'incomplete'|'valid'|'invalid') · `.set()` · `.commit()` · `.update()` · `.destroy()`. Never rewrites while typing; canonicalizes on blur/Enter/submit. With `complete`/`onComplete`, the input gets the headless WAI-ARIA combobox attributes (`role="combobox"`, `aria-autocomplete="list"`, `aria-expanded`); pass `listboxId` to set `aria-controls` for your rendered listbox.
+
+## React (`@pascal-app/lingo/react`)
+
+```tsx
+import { completions } from "@pascal-app/lingo/complete"
+import { useLingoInput } from "@pascal-app/lingo/react"
+
+function HeightField() {
+  const field = useLingoInput({
+    kind: "length",
+    unit: "m",
+    name: "height_m",
+    listboxId: "height-options",
+    complete: (text) => completions(text, { kind: "length" }),
+  })
+  return (
+    <>
+      <input ref={field.ref} data-state={field.state} />
+      <ul id="height-options" role="listbox">
+        {field.completions.map((item, index) => (
+          <li
+            key={item.text}
+            role="option"
+            aria-selected={index === field.highlightedIndex}
+            onMouseDown={(e) => {
+              e.preventDefault()
+              field.selectCompletion(index)
+            }}
+          >
+            {item.text}
+          </li>
+        ))}
+      </ul>
+    </>
+  )
+}
+```
+
+- Attach `field.ref` to `<input>` / `<textarea>` (DOM controller underneath).
+- Live state: `state`, `value` (canonical number), `quantity`, `result`.
+- Completions (when `complete` injected): `completions`, `highlightedIndex`, `setHighlightedIndex(i)`, `selectCompletion(i?)`.
+- Imperative: `set(number|string)`, `commit()`. Controlled: `value: number | null` + `onValueChange`.
+- Keyboard: handle Arrow/Enter in **capture phase** (`onKeyDownCapture`) so selection beats the controller's native Enter-to-commit.
+- `'use client'` entry; React is an optional peer. `./complete` stays an explicit import.
+
+## React Native (`@pascal-app/lingo/react-native`)
+
+```tsx
+import { FlatList, Text, TextInput, Pressable, View } from "react-native"
+import { completions } from "@pascal-app/lingo/complete"
+import { useLingoTextInput } from "@pascal-app/lingo/react-native"
+
+function WeightField({ onWeight }: { onWeight: (kg: number | null) => void }) {
+  const field = useLingoTextInput({
+    kind: "mass",
+    unit: "kg",
+    min: 0,
+    max: "500 kg",
+    required: true,
+    complete: (text) => completions(text, { kind: "mass", limit: 6 }),
+    onValueChange: onWeight,
+  })
+
+  return (
+    <View>
+      <TextInput
+        {...field.inputProps}
+        placeholder="165 lb or 75 kg"
+        accessibilityLabel="Package weight"
+      />
+      {field.errorMessage ? <Text>{field.errorMessage}</Text> : null}
+      {!field.errorMessage && field.hint ? <Text>{field.hint}</Text> : null}
+      <FlatList
+        data={[...field.completions]}
+        keyExtractor={(item) => item.text}
+        renderItem={({ item, index }) => (
+          <Pressable onPress={() => field.selectCompletion(index)}>
+            <Text>{item.text}</Text>
+          </Pressable>
+        )}
+      />
+    </View>
+  )
+}
+```
+
+DOM-free headless adapter — same parse/commit semantics as web, no browser APIs:
+
+- `inputProps`: `{ value, onChangeText, onBlur, onSubmitEditing }` — spread onto RN `TextInput`.
+- Display vs canonical: `text` (what the user sees), `value` (number in `unit`), `submitValue` (backend string), `quantity` / `result`.
+- Lifecycle: typing uses `partialState` (`idle`/`incomplete`/`valid`/`invalid`); blur / submit / `commit()` canonicalizes (`display: 'canonical'|'echo'|'preserve'`).
+- Validation: `required`, `min`/`max` (parseable strings or numbers), `errorMessage`, `hint`, `touched`, `dirty`.
+- Completions (injected): `completions`, `highlightedIndex`, `setHighlightedIndex(i)`, `selectCompletion(i?)` — render with `FlatList`; engine is not bundled.
+- Imperative: `set(number|string)`, `commit()`. Controlled: `value` + `onValueChange`.
+- Imports React only (optional peer). Does **not** import `react-native`, DOM, or `./complete`.
 
 ## Element (`@pascal-app/lingo/element`)
 

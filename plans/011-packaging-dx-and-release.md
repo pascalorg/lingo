@@ -3,7 +3,7 @@ id: 011
 title: Packaging, DX & release
 status: approved
 created: 2026-07-03
-updated: 2026-07-07
+updated: 2026-07-21
 ---
 
 # Packaging, DX & release
@@ -11,10 +11,13 @@ updated: 2026-07-07
 ## Package
 
 - `@pascal-app/lingo`, MIT, `type: module`, dual ESM+CJS via tsup, `.d.ts` for every entry,
-  `sideEffects: false`, `files: ["dist"]`, Node ≥ 18, no runtime deps, React optional
-  peer (`./react` only).
+  `sideEffects: false`, `files: ["dist", "llms.txt", "CHANGELOG.md"]`, Node ≥ 18,
+  no runtime deps, React optional peer (`./react` and `./react-native` only).
 - Entries: `.`, `./core`, `./date`, `./describe`, `./catalog`, `./schema`,
-  `./dom`, `./element`, `./react`, `./ai`, `./mcp` (+ `./package.json`).
+  `./dom`, `./element`, `./react`, `./react-native`, `./complete`, `./ai`,
+  `./mcp`, `./locales/*` (+ `./package.json`).
+- `llms.txt` ships in the tarball as the offline agent reference (inline examples
+  per entry); the site mirrors it at `/llms-small.txt`.
 - The IIFE playground build (`demo/lingo.demo.js`, built by `scripts/demo.mjs`)
   is a repo-local artifact for the zero-build demo only — it is not part of
   `files`/`exports` and does not ship in the npm package (D16); CDN/`<script>`

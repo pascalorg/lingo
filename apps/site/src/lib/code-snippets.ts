@@ -12,6 +12,7 @@ const range = parseRange("between 5 and 10 kg", { kind: "mass" })`
 export const completionsSnippet = `import { completions } from "@pascal-app/lingo/complete"
 import { parseDate, parseDateRange } from "@pascal-app/lingo/date"
 import { lingoInput } from "@pascal-app/lingo/dom"
+import { useLingoInput } from "@pascal-app/lingo/react"
 
 // Debounce in your UI (~120–150ms) — completions() re-parses on every call
 const items = completions("10 kg to 16", { kind: "mass", limit: 8 })
@@ -33,7 +34,17 @@ lingoInput(input, {
   kind: "mass",
   complete: (text) => completions(text, { kind: "mass", limit: 8 }),
   onComplete: (list) => renderGroupedDropdown(list),
-})`
+})
+
+// React exposes the same injected list plus headless highlight/selection state
+const field = useLingoInput({
+  kind: "mass",
+  listboxId: "mass-options",
+  complete: (text) => completions(text, { kind: "mass", limit: 8 }),
+})
+field.completions
+field.setHighlightedIndex(1)
+field.selectCompletion()`
 
 export const strictnessSnippet = `import { lingo } from "@pascal-app/lingo"
 
@@ -69,6 +80,25 @@ function HeightField() {
   })
 
   return <input ref={field.ref} placeholder="5'11\\" or 180cm" />
+}`
+
+export const reactNativeSnippet = `import { Text, TextInput, View } from "react-native"
+import { useLingoTextInput } from "@pascal-app/lingo/react-native"
+
+function WeightField() {
+  const field = useLingoTextInput({
+    kind: "mass",
+    unit: "kg",
+    min: 0,
+    max: "500 kg",
+  })
+
+  return (
+    <View>
+      <TextInput {...field.inputProps} placeholder="165 lb or 75 kg" />
+      {field.errorMessage ? <Text>{field.errorMessage}</Text> : null}
+    </View>
+  )
 }`
 
 export const findSnippet = `import { findQuantities } from "@pascal-app/lingo"

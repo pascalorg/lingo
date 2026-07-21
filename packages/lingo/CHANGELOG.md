@@ -7,11 +7,36 @@ change**, even if the API is untouched.
 
 ## [Unreleased]
 
+### Added
+
+- `@pascal-app/lingo/react-native`: DOM-free `useLingoTextInput()` for React
+  Native `TextInput`, including parse-as-you-type partial states, blur/submit
+  canonicalization, required/bounds validation, backend-ready `submitValue`,
+  and injected ranked completions. The entry imports React only—no
+  `react-native` runtime dependency.
+- `useLingoInput()` now forwards an injected ranked-completion provider and
+  exposes `completions`, `highlightedIndex`, `setHighlightedIndex()`, and
+  `selectCompletion()` for headless React comboboxes. `./complete` remains an
+  explicit, tree-shakeable import; no popup UI or runtime dependency is added.
+
 ### Changed
 
+- Shared field format helpers (`toLingoOptions`, `materialize`, commit/hint
+  formatting) now take a DOM-free `LingoFieldFormatOptions` surface so the React
+  Native adapter reuses them without casting through `LingoInputOptions`.
+- The npm `llms.txt` reference now includes full inline React and React Native
+  adapter recipes (completions, capture-phase keyboard notes, `inputProps`,
+  submit/canonical fields) so offline agents can integrate without fetching the
+  site.
 - The docs autocomplete showcase now separates ranked completions, loaded-locale
   examples, and caller-controlled unit suggestions into three focused,
   keyboard-navigable demos instead of one control-heavy panel.
+
+### Fixed
+
+- The docs autocomplete showcase now handles Enter during React's capture phase,
+  so selecting a highlighted completion wins over the input controller's native
+  primary-parse commit.
 
 ## [0.2.1] - 2026-07-09
 

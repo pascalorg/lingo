@@ -353,6 +353,16 @@ if (has('src/dom/index.ts')) {
   }
 }
 
+if (has('src/react-native/index.ts')) {
+  const withReactNative = await bundleStdin(
+    `export * from './src/index.ts'; export * from './src/react-native/index.ts'`,
+    ['react'],
+  )
+  // Plan 034 — DOM-free TextInput state, commit formatting, bounds, and
+  // injected completions. React stays external; react-native is never imported.
+  check('./react-native (marginal over full)', withReactNative - full, 2800)
+}
+
 if (has('src/describe/index.ts')) {
   const withDescribe = await bundleStdin(
     `export * from './src/index.ts'; export * from './src/describe/index.ts'`,

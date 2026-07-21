@@ -40,14 +40,14 @@ describe('React option signatures', () => {
     )
   })
 
-  it('ignores live callback identities but tracks registry and element identity', () => {
+  it('tracks registry and element identity; callbacks stay off the signature type', () => {
     const registryA = {}
     const registryB = {}
     const elementA = {}
     const elementB = {}
 
-    expect(optionSignature({ formatHint: () => 'a' })).toBe(
-      optionSignature({ formatHint: () => 'b' }),
+    expect(optionSignature({ kind: 'length', debounce: 150 })).toBe(
+      optionSignature({ kind: 'length', debounce: 150 }),
     )
     expect(optionSignature({ registry: registryA as never })).toBe(
       optionSignature({ registry: registryA as never }),
@@ -55,11 +55,11 @@ describe('React option signatures', () => {
     expect(optionSignature({ registry: registryA as never })).not.toBe(
       optionSignature({ registry: registryB as never }),
     )
-    expect(elementSignature(elementA as HTMLElement)).toBe(`element:${objectSignature(elementA)}`)
+    expect(elementSignature(elementA as HTMLElement)).toBe(`e:${objectSignature(elementA)}`)
     expect(elementSignature(elementA as HTMLElement)).not.toBe(
       elementSignature(elementB as HTMLElement),
     )
-    expect(elementSignature('#hint')).toBe('selector:#hint')
+    expect(elementSignature('#hint')).toBe('s:#hint')
   })
 
   it('normalizes nested option values and snapshots', () => {

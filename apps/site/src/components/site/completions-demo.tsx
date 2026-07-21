@@ -9,7 +9,8 @@ import { fr } from '@pascal-app/lingo/locales/fr'
 import { ja } from '@pascal-app/lingo/locales/ja'
 import { pt } from '@pascal-app/lingo/locales/pt'
 import { zh } from '@pascal-app/lingo/locales/zh'
-import { useEffect, useId, useMemo, useState } from 'react'
+import { useLingoInput } from '@pascal-app/lingo/react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 
 import { DocsPane, DocsSplitPaneSection } from '@/components/site/docs-split-pane'
 import { LocaleBadge } from '@/components/site/locale-select'
@@ -34,19 +35,6 @@ const UNIT_PRESETS = [
 type UnitPreset = (typeof UNIT_PRESETS)[number]
 
 const localeLingo = createLingo({ locales: [es, fr, pt, zh, ja, enGb] })
-
-function useDebouncedValue<T>(value: T, delayMs: number) {
-  const [debounced, setDebounced] = useState(value)
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setDebounced(value)
-    }, delayMs)
-    return () => window.clearTimeout(timer)
-  }, [delayMs, value])
-
-  return { debounced, pending: debounced !== value }
-}
 
 function completionOptions() {
   return {
@@ -92,7 +80,7 @@ function RankedList({
   pending = false,
 }: {
   activeIndex: number
-  items: Completion[]
+  items: readonly Completion[]
   listId: string
   onActiveIndexChange: (index: number) => void
   onPick: (item: Completion) => void
@@ -139,17 +127,35 @@ function RankedList({
 
 function RankedAutocompleteDemo() {
   const listId = useId()
-  const [value, setValue] = useState('2 f')
-  const [activeIndex, setActiveIndex] = useState(0)
-  const { debounced: query, pending } = useDebouncedValue(value, DEBOUNCE_MS)
-  const items = useMemo(() => completions(query, completionOptions()), [query])
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const field = useLingoInput({
+    debounce: DEBOUNCE_MS,
+    listboxId: listId,
+    complete: (text: string) => completions(text, completionOptions()),
+  })
+  const items = field.completions as readonly Completion[]
+  const { highlightedIndex: activeIndex } = field
   const activeId =
-    items.length > 0 ? `${listId}-item-${Math.min(activeIndex, items.length - 1)}` : undefined
+    activeIndex >= 0 && items.length > 0 ? `${listId}-item-${activeIndex}` : undefined
 
-  function updateValue(next: string) {
-    setValue(next)
-    setActiveIndex(0)
-  }
+  const setInputRef = useCallback(
+    (node: HTMLInputElement | null) => {
+      inputRef.current = node
+      field.ref(node)
+    },
+    [field.ref],
+  )
+
+  const updateValue = useCallback((next: string) => {
+    const input = inputRef.current
+    if (!input) {
+      return
+    }
+    input.value = next
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+  }, [])
+
+  useEffect(() => updateValue('2 f'), [updateValue])
 
   return (
     <DocsSplitPaneSection aria-label="Ranked autocomplete example">
@@ -159,47 +165,35 @@ function RankedAutocompleteDemo() {
           title="Autocomplete anything"
         />
         <div className="flex flex-col gap-2">
-          <div className="flex items-end justify-between gap-3">
-            <Label htmlFor={`${listId}-input`}>Type a partial value</Label>
-            <span
-              aria-live="polite"
-              className={cn(
-                'font-mono text-[10px] text-muted-foreground uppercase transition-opacity duration-150',
-                pending ? 'opacity-100' : 'opacity-0',
-              )}
-            >
-              Updating…
-            </span>
-          </div>
+          <Label htmlFor={`${listId}-input`}>Type a partial value</Label>
           <Input
             aria-activedescendant={activeId}
-            aria-autocomplete="list"
-            aria-busy={pending}
-            aria-controls={listId}
-            aria-expanded={items.length > 0}
             autoComplete="off"
             className="rounded-[6px]"
             id={`${listId}-input`}
-            onChange={(event) => updateValue(event.target.value)}
-            onKeyDown={(event) => {
+            onKeyDownCapture={(event) => {
               if (items.length === 0) {
                 return
               }
               if (event.key === 'ArrowDown') {
                 event.preventDefault()
-                setActiveIndex((index) => Math.min(index + 1, items.length - 1))
+                field.setHighlightedIndex(activeIndex + 1)
               }
               if (event.key === 'ArrowUp') {
                 event.preventDefault()
-                setActiveIndex((index) => Math.max(index - 1, 0))
+                field.setHighlightedIndex(activeIndex - 1)
               }
-              if (event.key === 'Enter' && items[activeIndex]) {
+              if (event.key === 'Enter' && activeIndex >= 0) {
                 event.preventDefault()
-                updateValue(items[activeIndex]!.text)
+                event.stopPropagation()
+                field.selectCompletion(activeIndex)
+              }
+              if (event.key === 'Escape') {
+                event.preventDefault()
+                event.currentTarget.blur()
               }
             }}
-            role="combobox"
-            value={value}
+            ref={setInputRef}
           />
         </div>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs">
@@ -226,9 +220,8 @@ function RankedAutocompleteDemo() {
           activeIndex={activeIndex}
           items={items}
           listId={listId}
-          onActiveIndexChange={setActiveIndex}
-          onPick={(item) => updateValue(item.text)}
-          pending={pending}
+          onActiveIndexChange={field.setHighlightedIndex}
+          onPick={(item) => field.selectCompletion(items.indexOf(item))}
         />
       </DocsPane>
     </DocsSplitPaneSection>

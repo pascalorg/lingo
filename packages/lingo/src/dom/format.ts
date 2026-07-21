@@ -14,6 +14,28 @@ import type { LingoInputOptions } from './index'
 
 export type CandidateResult = Exclude<LingoResult, { ok: false }>
 
+/**
+ * Parse/format knobs shared by the DOM controller and the React Native
+ * headless field. Deliberately excludes DOM wiring (`name`, elements, ARIA)
+ * and callback shapes so both adapters can pass options without casting.
+ */
+export type LingoFieldFormatOptions = Pick<
+  LingoInputOptions,
+  | 'accept'
+  | 'display'
+  | 'displayUnit'
+  | 'escalate'
+  | 'kind'
+  | 'messages'
+  | 'numberFormat'
+  | 'profile'
+  | 'registry'
+  | 'strictness'
+  | 'system'
+  | 'tolerance'
+  | 'unit'
+>
+
 export interface Material {
   approximate: boolean
   canonical: string | null
@@ -22,7 +44,7 @@ export interface Material {
   value: number | null
 }
 
-export function toLingoOptions(opts: LingoInputOptions): LingoOptions {
+export function toLingoOptions(opts: LingoFieldFormatOptions): LingoOptions {
   const out: LingoOptions = {}
   if (opts.kind !== undefined) {
     out.kind = opts.kind
@@ -64,7 +86,7 @@ export function toLingoOptions(opts: LingoInputOptions): LingoOptions {
 // pack registered via setDefaultMessages -> the code string) so pack
 // overrides reach DOM-produced RANGE_MIN/RANGE_MAX/REQUIRED issues too.
 export function localIssue<C extends 'RANGE_MIN' | 'RANGE_MAX' | 'REQUIRED'>(
-  opts: LingoInputOptions,
+  opts: LingoFieldFormatOptions,
   code: C,
   data: IssueInputData<C>,
   span: Span,
@@ -120,7 +142,7 @@ export function defaultHiddenValue(q: Quantity | QuantityRange, unit: string | u
   return `${minValue}..${maxValue}`
 }
 
-export function materialize(result: LingoResult | null, opts: LingoInputOptions): Material {
+export function materialize(result: LingoResult | null, opts: LingoFieldFormatOptions): Material {
   if (!result?.ok) {
     return { quantity: null, value: null, kind: null, approximate: false, canonical: null }
   }
@@ -177,7 +199,7 @@ export function materialize(result: LingoResult | null, opts: LingoInputOptions)
   return { quantity: null, value: null, kind: null, approximate: false, canonical: null }
 }
 
-export function acceptedResult(result: LingoResult, opts: LingoInputOptions): LingoResult {
+export function acceptedResult(result: LingoResult, opts: LingoFieldFormatOptions): LingoResult {
   if (!result.ok) {
     return result
   }
@@ -187,7 +209,10 @@ export function acceptedResult(result: LingoResult, opts: LingoInputOptions): Li
   return result
 }
 
-export function formatResultForCommit(result: LingoResult, opts: LingoInputOptions): string | null {
+export function formatResultForCommit(
+  result: LingoResult,
+  opts: LingoFieldFormatOptions,
+): string | null {
   if (!result.ok) {
     return null
   }
@@ -230,7 +255,7 @@ export function formatResultForCommit(result: LingoResult, opts: LingoInputOptio
   return String(result.value)
 }
 
-export function defaultHint(result: LingoResult, opts: LingoInputOptions): string {
+export function defaultHint(result: LingoResult, opts: LingoFieldFormatOptions): string {
   if (!result.ok) {
     return ''
   }

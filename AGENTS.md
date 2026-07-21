@@ -15,7 +15,8 @@ This file is the canonical agent guide for every tool (`CLAUDE.md` is just
 
 1. **Zero runtime dependencies.** Nothing under `dependencies`, ever. `Intl.*` is
    allowed (built into every runtime). React appears only as an optional peer for
-   `./react`. Mechanically gated: `packages/lingo/scripts/check-zero-deps.mjs`
+   `./react` and `./react-native`. Mechanically gated:
+   `packages/lingo/scripts/check-zero-deps.mjs`
    (part of `bun run check` and CI).
 2. **Size budgets are enforced** (`bun run size`, min+gzip via esbuild).
    **`packages/lingo/scripts/size.mjs` is the single source of truth for budget
@@ -127,6 +128,7 @@ Inside `packages/lingo/` the same scripts run directly (`bun run test`, etc.).
 - `dom/` — headless input controller (entry `./dom`)
 - `element/` — custom-element wrapper over the DOM controller (entry `./element`)
 - `react/` — React hook adapter (entry `./react`)
+- `react-native/` — DOM-free React Native TextInput hook (entry `./react-native`)
 - `ai/` — Standard Schema fields for LLM structured output (entry `./ai`)
 - `mcp/` — Model Context Protocol tool helpers (entry `./mcp`)
 

@@ -27,28 +27,46 @@ const nextConfig: NextConfig = {
     turbopackPluginRuntimeStrategy: 'workerThreads',
   },
   async redirects() {
+    // Permanent (308): these legacy paths are retired for good, and permanent
+    // redirects let crawlers consolidate signals onto /docs.
     return [
       {
         source: '/escalation',
         destination: '/docs#strictness',
-        permanent: false,
+        permanent: true,
       },
       {
         source: '/forms',
         destination: '/docs#forms',
-        permanent: false,
+        permanent: true,
       },
       {
         source: '/coverage',
         destination: '/docs#coverage',
-        permanent: false,
+        permanent: true,
       },
       {
         source: '/integrations',
         destination: '/docs#integrations',
-        permanent: false,
+        permanent: true,
       },
     ]
+  },
+  async rewrites() {
+    // /docs/<section>.md (agent markdown) and /docs/<section> (indexable HTML)
+    // share the [slug] segment, and Next can't put a route handler and a page
+    // in the same segment. beforeFiles keeps the public .md URLs stable while
+    // the handler lives at /docs-md/[slug].
+    return {
+      beforeFiles: [
+        {
+          source: '/docs/:slug([^/]+\\.md)',
+          destination: '/docs-md/:slug',
+        },
+      ],
+      afterFiles: [],
+      fallback: [],
+    }
   },
 }
 

@@ -38,7 +38,8 @@ Two roles, split intentionally:
 | `packages/lingo/llms.txt` (npm) | Self-contained compressed API reference with nested headings, fenced examples per entry (including `./react` and `./react-native` adapter recipes), issue-code remedies, and canonical input→output examples. Shipped in the tarball; also mirrored at `/llms-small.txt`. Agents must be able to integrate from this file alone when offline. |
 | `https://lingo.pascal.app/llms.txt` | Spec-compliant index ([llmstxt.org](https://llmstxt.org/)): H1 + blockquote + H2 link lists to `/docs/<section>.md`, `/llms-full.txt`, schema artifacts, and an `## Optional` section. Generated from `docs-catalog.ts` at build time. |
 | `/llms-full.txt` | Complete `/docs` narrative as markdown (from `docs.md.ts`). |
-| `/docs/<section>.md` | Self-contained per-topic slices with context headers (Mintlify-style append-`.md` convention). |
+| `/docs/<section>.md` | Self-contained per-topic slices with context headers (Mintlify-style append-`.md` convention). Served by the `/docs-md/[slug]` route handler behind a `beforeFiles` rewrite, because the indexable HTML page below owns the `/docs/[slug]` segment. |
+| `/docs/<section>` | Indexable HTML twin of each `.md` slice (SSG, own title/description/canonical, TechArticle + BreadcrumbList JSON-LD) — the search-engine counterpart to the agent markdown. |
 
 Agent fetch order: index → section `.md` or full narrative → keep measurements as strings in tool schemas until lingo validates.
 

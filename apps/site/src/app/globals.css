@@ -1290,6 +1290,120 @@ p {
   }
 }
 
+/* Rendered-markdown prose for the standalone /docs/<section> pages. Scoped
+   here (not Tailwind typography) so the type scale matches the hand-built
+   /docs page. */
+.docs-prose {
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--muted-foreground);
+}
+
+.docs-prose > * + * {
+  margin-top: 1rem;
+}
+
+.docs-prose h2,
+.docs-prose h3,
+.docs-prose h4 {
+  font-weight: 600;
+  color: var(--foreground);
+  letter-spacing: -0.01em;
+  scroll-margin-top: 5rem;
+}
+
+.docs-prose h2 {
+  padding-top: 1.5rem;
+  margin-top: 2.5rem;
+  font-size: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.docs-prose h3 {
+  margin-top: 2rem;
+  font-size: 0.9375rem;
+}
+
+.docs-prose h4 {
+  margin-top: 1.5rem;
+  font-size: 0.875rem;
+}
+
+.docs-prose strong {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.docs-prose a {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.docs-prose ul,
+.docs-prose ol {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding-left: 1.25rem;
+}
+
+.docs-prose ul {
+  list-style: disc;
+}
+
+.docs-prose ol {
+  list-style: decimal;
+}
+
+.docs-prose code:not(.shiki code) {
+  padding: 0.2rem 0.3rem;
+  font-family: var(--font-mono-stack);
+  font-size: 0.8125rem;
+  color: var(--foreground);
+  overflow-wrap: anywhere;
+  background: var(--muted);
+  border-radius: 0.25rem;
+}
+
+.docs-prose .docs-prose-code {
+  min-width: 0;
+  max-width: 100%;
+  margin: 1.25rem 0;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.docs-prose table {
+  width: 100%;
+  font-size: 0.8125rem;
+  border-collapse: collapse;
+}
+
+.docs-prose th,
+.docs-prose td {
+  padding: 0.5rem 0.75rem 0.5rem 0;
+  vertical-align: top;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.docs-prose th {
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.docs-prose hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.docs-prose blockquote {
+  padding-left: 1rem;
+  font-style: italic;
+  border-left: 2px solid var(--border-strong);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .parse-input[data-parse-shake="true"],
   [data-lingo][data-state="invalid"][data-touched] {

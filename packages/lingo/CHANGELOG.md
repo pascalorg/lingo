@@ -7,6 +7,21 @@ change**, even if the API is untouched.
 
 ## [Unreleased]
 
+### Changed
+
+- README (npm): repo-relative links (`docs/recipes.md`, `plans/`, `wiki/`) now
+  point at absolute GitHub URLs so they resolve on npmjs.com, and the docs
+  site plus the agent `llms.txt` index are linked from the top.
+- Root README: links the docs site, the npm package, and the agent `llms.txt`
+  index directly, with an install one-liner.
+- Docs site: every markdown section now also renders as a standalone,
+  indexable HTML page at `/docs/<section>` (agent markdown stays at
+  `/docs/<section>.md`); legacy demo redirects (`/forms`, `/escalation`,
+  `/coverage`, `/integrations`) became permanent (308); the landing page
+  gained server-rendered parse-example, forms-vs-LLM, tool-boundary, and FAQ
+  content (FAQPage/TechArticle/BreadcrumbList structured data included); docs
+  section headings no longer leak kicker text into the extracted HTML outline.
+
 ## [0.3.0] - 2026-07-21
 
 ### Added

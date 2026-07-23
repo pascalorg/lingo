@@ -49,8 +49,13 @@ import {
   strictnessSnippet,
   typeSafetySnippet,
 } from '@/lib/code-snippets'
-import { docsMarkdown, getDocsMarkdownSection, getDocsMarkdownSectionUrl } from '@/lib/docs.md'
-import { docsNavGroups, docsTopLevelPages } from '@/lib/docs-catalog'
+import {
+  docsMarkdown,
+  getDocsMarkdownSection,
+  getDocsMarkdownSectionUrl,
+  markdownSectionIds,
+} from '@/lib/docs.md'
+import { docsNavGroups, docsTopLevelPages, getDocsPage } from '@/lib/docs-catalog'
 import { formUxExampleRows } from '@/lib/form-ux-examples'
 import { highlightCode } from '@/lib/highlight'
 
@@ -1007,6 +1012,31 @@ export default async function Home() {
               </div>
             </div>
           </Section>
+
+          <nav aria-label="Section pages" className="mt-20 border-border border-t pt-8 text-sm">
+            <p className="font-semibold text-[14px] tracking-tight">Section pages</p>
+            <p className="mt-2 max-w-[65ch] text-muted-foreground">
+              Every section is also a standalone page (append <Code>.md</Code> to any of them for
+              the markdown version an agent can fetch).
+            </p>
+            <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-muted-foreground">
+              {markdownSectionIds.map((id) => {
+                const sectionPage = getDocsPage(id)
+                return sectionPage ? (
+                  <li key={id}>
+                    {/* Plain <a>: standalone pages are statically generated;
+                        client nav would re-mount this whole demo page anyway. */}
+                    <a
+                      className="underline underline-offset-2 transition-colors hover:text-foreground"
+                      href={`/docs/${id}`}
+                    >
+                      {id === 'introduction' ? 'Introduction' : sectionPage.title}
+                    </a>
+                  </li>
+                ) : null
+              })}
+            </ul>
+          </nav>
         </article>
       </div>
     </>

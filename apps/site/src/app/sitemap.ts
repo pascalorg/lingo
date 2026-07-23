@@ -5,6 +5,12 @@ import { markdownSectionIds } from '@/lib/docs.md'
 const SITE = 'https://lingo.pascal.app'
 
 export default function sitemap(): MetadataRoute.Sitemap {
+  // Indexable HTML page per section, plus its agent-facing .md counterpart.
+  const sectionPageEntries = markdownSectionIds.map((id) => ({
+    url: `${SITE}/docs/${id}`,
+    changeFrequency: 'weekly' as const,
+    priority: 0.85,
+  }))
   const sectionEntries = markdownSectionIds.map((id) => ({
     url: `${SITE}/docs/${id}.md`,
     changeFrequency: 'weekly' as const,
@@ -42,6 +48,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'weekly',
       priority: 0.8,
     },
+    ...sectionPageEntries,
     ...sectionEntries,
   ]
 }

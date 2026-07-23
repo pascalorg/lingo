@@ -8,6 +8,15 @@
 
 **Make forms easier, LLM tools safer.**
 
+```sh
+npm install @pascal-app/lingo
+```
+
+Docs with live demos: **[lingo.pascal.app](https://lingo.pascal.app)** ·
+npm: [`@pascal-app/lingo`](https://www.npmjs.com/package/@pascal-app/lingo) ·
+coding agents start at
+[lingo.pascal.app/llms.txt](https://lingo.pascal.app/llms.txt)
+
 People type fast and loose: `180cm`, `5ft 11`, `1.5 cups`, `90 min`,
 `next friday`, `1,5 kg`, typos included. Models emit fluent, over-formatted
 strings: `"5'11\""`, `"1½ cups"`, `"twenty-five kg"`, `"3pm EST"`,

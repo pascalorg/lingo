@@ -2,6 +2,10 @@
 
 **Make forms easier, LLM tools safer.**
 
+Docs with live demos: [lingo.pascal.app](https://lingo.pascal.app) · every
+section as agent-readable markdown:
+[lingo.pascal.app/llms.txt](https://lingo.pascal.app/llms.txt)
+
 lingo parses what humans type and what models emit: natural-language quantities,
 units, dates, and ranges. It turns them into canonical, validated values and
 humanizes them back. Zero runtime dependencies. The size gate lives in
@@ -474,7 +478,7 @@ and `formResetCallback` behave like any native control, in Vue, Svelte,
 Angular, or plain HTML.
 
 Using React Hook Form, TanStack Form, Formik, Vue, Angular, or shadcn
-instead? Each has its own recipe in [`docs/recipes.md`](docs/recipes.md).
+instead? Each has its own recipe in [`docs/recipes.md`](https://github.com/pascalorg/lingo/blob/main/packages/lingo/docs/recipes.md).
 They use the same fields and the same scoped form-UX case: collapse one value + one unit
 dropdown into a single text field, not "replace the whole form with a
 sentence."
@@ -580,7 +584,7 @@ two tiers of convenience.
 ## Recipes
 
 Three common field shapes, straight from the public API. The full set lives
-in [`docs/recipes.md`](docs/recipes.md): field recipes (ingredients, fuzzy
+in [`docs/recipes.md`](https://github.com/pascalorg/lingo/blob/main/packages/lingo/docs/recipes.md): field recipes (ingredients, fuzzy
 temperature, strict scientific fields), server-side validation, AI SDK /
 OpenAI / Anthropic / Gemini / LangChain / MCP / eval recipes, form-library
 recipes (React Hook Form, TanStack Form, Formik, Vue, Angular, shadcn,
@@ -878,12 +882,12 @@ else showError(formatIssue(firstError(r)!), candidateOf(r)?.quantity)
 
 ## Design notes
 
-The specs live in [`plans/`](../../plans/README.md) (grammar, unit hazard tables, exact
-conversion factors, ambiguity policy) and the as-built docs in [`wiki/`](../../wiki/README.md).
-More field recipes live in [`docs/recipes.md`](docs/recipes.md).
+The specs live in [`plans/`](https://github.com/pascalorg/lingo/blob/main/plans/README.md) (grammar, unit hazard tables, exact
+conversion factors, ambiguity policy) and the as-built docs in [`wiki/`](https://github.com/pascalorg/lingo/blob/main/wiki/README.md).
+More field recipes live in [`docs/recipes.md`](https://github.com/pascalorg/lingo/blob/main/packages/lingo/docs/recipes.md).
 The full credits ledger for libphonenumber-js, date-fns, Humanizer, inclusive-dates,
 chrono-node, react-aria, Maskito, and other references is
-[`wiki/inspiration.md`](../../wiki/inspiration.md).
+[`wiki/inspiration.md`](https://github.com/pascalorg/lingo/blob/main/wiki/inspiration.md).
 
 ## License
 

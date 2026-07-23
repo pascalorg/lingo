@@ -3,6 +3,7 @@ import Link from 'next/link'
 
 import { BrandIcon } from '@/components/site/brand-icon'
 import { CommandBlock } from '@/components/site/command-block'
+import { LandingSections } from '@/components/site/landing-sections'
 import { LegacyHashRedirect } from '@/components/site/legacy-hash-redirect'
 import { UniversalInput } from '@/components/site/universal-input'
 import { buttonVariants } from '@/components/ui/button'
@@ -35,8 +36,10 @@ export default function Home() {
         }}
         type="application/ld+json"
       />
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pt-6 pb-8 sm:px-6 sm:pt-10 lg:h-full lg:justify-center lg:px-8 lg:py-4">
-        <section className="grid gap-5 py-4 sm:gap-10 sm:py-8 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] lg:items-center">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pt-6 pb-8 sm:px-6 sm:pt-10 lg:px-8 lg:py-4">
+        {/* The hero keeps its full-height feel on lg; the crawlable content
+            sections flow beneath it. */}
+        <section className="grid gap-5 py-4 sm:gap-10 sm:py-8 lg:min-h-[calc(100dvh-12rem)] lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] lg:content-center lg:items-center">
           <div className="relative z-30 flex min-w-0 max-w-lg flex-col gap-5">
             <h1 className="text-balance font-semibold text-3xl tracking-normal sm:text-5xl min-[360px]:text-4xl">
               <span className="block text-nowrap">Make forms easier,</span>
@@ -67,6 +70,7 @@ export default function Home() {
               and fights the typewriter demo (Codex a11y review). */}
           <UniversalInput />
         </section>
+        <LandingSections />
       </div>
     </>
   )

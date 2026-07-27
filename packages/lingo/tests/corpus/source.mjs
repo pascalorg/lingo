@@ -190,6 +190,13 @@ export const breadthRows = [
   ['one hundred and five kg'],
   ['two point five six kg'],
   ['three point one four kg'],
+  // "between A and B" where both sides are spelled scale words: the and-word
+  // separates the range instead of composing a single number.
+  ['between one thousand and two thousand meters'],
+  ['between two hundred and five hundred meters'],
+  ['between five and a half and ten kg'],
+  ['nineteen hundred kg'],
+  ['two hundred thousand kg'],
   [''],
   ['   '],
   ['banana'],

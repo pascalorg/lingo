@@ -7,8 +7,56 @@ change**, even if the API is untouched.
 
 ## [Unreleased]
 
+### Added
+
+- Chinese and Japanese calendar and clock grammar: numeric dates written with
+  suffixes (`2026年3月5日`, `3月5日`, and years spelled digit-by-digit as
+  `二〇二六年`), weekdays (`星期三`, `周三`, `水曜日`), clocks closed by
+  `点`/`時`/`分`/`秒` with day periods (`下午3点`, `午前9時半`, `3点一刻`), and
+  date+time compounds written with no separating space (`明天下午3点`,
+  `明日午後3時`).
+- Postpositional bound phrases for scripts that put the comparator after the
+  quantity: `5キロ未満`, `5キロ以上`, `5公斤以下`, `5公斤以内`, `5キロ超`.
+  Previously `5キロ未満` parsed as a bare `5 kg`, dropping the bound.
+- Chinese and Japanese default currencies, so the shared `¥`/`￥` symbol
+  resolves per locale (`￥100` is CNY under `zh`, JPY under `ja`), plus the
+  `元`/`圆`/`块`/`人民币` and `円`/`えん` aliases.
+- French long-scale number words (`milliard` = 10^9, `billion` = 10^12),
+  Spanish `mil millones`/`billón`, Portuguese `cento`, and Romance ordinal
+  day-of-month forms (`le 1er mars`, `el 1º de marzo`).
+- A per-locale benchmark suite (`bun run bench`) so multi-language throughput is
+  measured rather than assumed.
+- Per-locale corpus contracts gained 96 rows and the English contract 5,
+  covering the grammar above plus the number-word fixes below.
+
+### Fixed
+
+- Number words: hundreds now multiply only the 1..99 group in front of them, so
+  French `mille cinq cents` is 1500 (was 100500). A banked smaller scale
+  multiplies the next one, so Spanish `mil millones` is 10^9 (was 1,001,000) and
+  `dos mil millones` is 2×10^9. Both were silent wrong answers.
+- `between A and B` now keeps the and-word for the range when both sides are
+  spelled scale words: `between one thousand and two thousand meters`,
+  `entre mille et deux mille`, `entre mil y dos mil` (all previously failed to
+  parse). `between five and a half and ten kg` still reads 5.5..10 — the
+  fraction tail binds tighter than the range separator.
+- Portuguese `cento e vinte` (120) and `mil e quinhentos` (1500) parse; the
+  and-word after a bare scale word links it to its remainder.
+- Portuguese locative contractions are date fillers, so
+  `na proxima segunda-feira` resolves.
+- Scripts written without word spaces no longer swallow grammar words glued to a
+  quantity (`三至五天`, `5公斤左右`). Unit aliases stay atomic through the split,
+  so `一時間半` remains 1.5 hours rather than splitting at the range word `間`.
+
 ### Changed
 
+- Resolved language profiles and locale-detection scans are memoized per pack
+  set, so repeated parses with `locale`/auto-detection no longer re-merge packs
+  or re-tokenize for detection on every call.
+- Size budgets recalibrated once for this wave (see D70 in `wiki/decisions.md`
+  for the measured numbers and rationale); `scripts/size.mjs` remains the source
+  of truth. No previously-pinned corpus interpretation changed — the wave is
+  additive.
 - README (npm): repo-relative links (`docs/recipes.md`, `plans/`, `wiki/`) now
   point at absolute GitHub URLs so they resolve on npmjs.com, and the docs
   site plus the agent `llms.txt` index are linked from the top.

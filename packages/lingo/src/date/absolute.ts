@@ -2,6 +2,7 @@ import type { LingoIssue } from '../core/types'
 import { parseYear, sameDay, startOfDay, validDateTime } from './civil'
 import type { DateAlternative, DateGrain } from './parse'
 import { type CoreDate, core, issue, knownFor, needsNow, type P, stripDateFillers } from './state'
+import { parseSuffixDate } from './suffix'
 import { MONTHS as EN_MONTHS } from './vocab'
 
 export function parseAbsolute(p: P, start: number, end: number): CoreDate | null {
@@ -38,10 +39,13 @@ export function parseAbsolute(p: P, start: number, end: number): CoreDate | null
     return numericDateCore(p, numeric, start, end)
   }
 
-  const md = new RegExp(
-    `^(${monthAlternation(p)})\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:,?\\s+('?\\d{2}|\\d{4}))?$`,
-    'i',
-  ).exec(source)
+  const suffixed = parseSuffixDate(p, start, end)
+  if (suffixed) {
+    return suffixed
+  }
+
+  const patterns = monthPatterns(p)
+  const md = patterns.monthDay.exec(source)
   if (md) {
     return monthDayCore(
       p,
@@ -53,10 +57,7 @@ export function parseAbsolute(p: P, start: number, end: number): CoreDate | null
       end,
     )
   }
-  const dm = new RegExp(
-    `^(\\d{1,2})(?:st|nd|rd|th)?(?:\\s+of)?\\s+(${monthAlternation(p)})(?:,?\\s+('?\\d{2}|\\d{4}))?$`,
-    'i',
-  ).exec(source)
+  const dm = patterns.dayMonth.exec(source)
   if (dm) {
     return monthDayCore(
       p,
@@ -68,7 +69,7 @@ export function parseAbsolute(p: P, start: number, end: number): CoreDate | null
       end,
     )
   }
-  const my = new RegExp(`^(${monthAlternation(p)})\\s+('?\\d{2}|\\d{4})$`, 'i').exec(source)
+  const my = patterns.monthYear.exec(source)
   if (my) {
     const year = parseYear(my[2])
     if (year === undefined) {
@@ -141,10 +142,50 @@ export function monthDayCore(
   return year === undefined ? needsNow(parsed) : parsed
 }
 
-function monthAlternation(p: P): string {
-  return Object.keys(dateMonths(p))
+interface MonthPatterns {
+  dayMonth: RegExp
+  monthDay: RegExp
+  monthYear: RegExp
+}
+
+const EN_ORDINAL_SUFFIXES: readonly string[] = ['st', 'nd', 'rd', 'th']
+const patternCache = new WeakMap<Record<string, number>, MonthPatterns>()
+
+/**
+ * Month alternations are derived from the profile's month table, so they are
+ * compiled once per table rather than rebuilt (sort + join + three `RegExp`
+ * constructions) on every date parse.
+ */
+function monthPatterns(p: P): MonthPatterns {
+  const months = dateMonths(p)
+  const cached = patternCache.get(months)
+  if (cached) {
+    return cached
+  }
+  const alternation = Object.keys(months)
     .sort((a, b) => b.length - a.length)
     .join('|')
+  const ord = ordinalSuffixPattern(p)
+  const year = "(?:,?\\s+('?\\d{2}|\\d{4}))?"
+  const patterns: MonthPatterns = {
+    dayMonth: new RegExp(`^(\\d{1,2})${ord}(?:\\s+of)?\\s+(${alternation})${year}$`, 'i'),
+    monthDay: new RegExp(`^(${alternation})\\s+(\\d{1,2})${ord}${year}$`, 'i'),
+    monthYear: new RegExp(`^(${alternation})\\s+('?\\d{2}|\\d{4})$`, 'i'),
+  }
+  patternCache.set(months, patterns)
+  return patterns
+}
+
+/**
+ * Ordinal markers allowed between a day number and its month. Packs that do not
+ * declare their own keep the English suffixes, which are inert in other
+ * languages because the marker is optional.
+ */
+function ordinalSuffixPattern(p: P): string {
+  const suffixes = p.profile.date?.ordinalSuffixes?.length
+    ? p.profile.date.ordinalSuffixes
+    : EN_ORDINAL_SUFFIXES
+  return `(?:${suffixes.map((s) => s.replace(/[^\w]/g, '\\$&')).join('|')})?`
 }
 
 function dateMonths(p: P): Record<string, number> {

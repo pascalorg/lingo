@@ -105,6 +105,18 @@ Published packs:
    dates like `12 de julio de 2026`, and compact CJK offset units/suffixes.
    The date parser reads those tables through `LanguageProfile.date`; language
    strings do not live in the core date grammar.
+9. Suffix-delimited date/clock vocabulary (D70): `DateVocabPack` gained
+   `numericDateSuffixes` (年/月/日), `clockSuffix` (点/時/分/秒 plus minute words
+   such as 半/一刻), `dayPeriods` (上午/下午, 午前/午後), and `ordinalSuffixes`
+   (Romance `1er`/`1º`). `date/suffix.ts` consumes them; `date/numeral.ts` reads
+   locale numerals (positional `十`-tens plus digit-run years like `二〇二六`).
+   A pack that declares none of these fields never enters those paths.
+10. Glued-script tokenization and postpositional bounds (D70): the tokenizer
+   splits word tokens at the profile's non-Latin grammar vocabulary so glued
+   grammar is visible to the parser, suppressed inside unit aliases (`一時間半`
+   stays one hour-and-a-half, not a range at `間`). `GrammarBoundPhrase.suffix`
+   marks comparators that follow the quantity (`以上`, `未満`), read by
+   `parseTrailingBound` in the quantity and range paths.
 
 ## Date locale policy
 
@@ -130,7 +142,9 @@ Published packs:
 - Translating the built-in English unit tables.
 - Shipping all locale packs through the default `.` entry.
 - Localized `humanizeDate()` / `humanizeDuration()` output in Phase 0.
-- Full CJK segmentation or compound numeral grammar.
+- Full CJK segmentation or compound numeral grammar. (D70 splits word tokens at
+  pack-declared grammar vocabulary; that is targeted grammar-boundary cutting,
+  not general segmentation — there is still no dictionary or statistical model.)
 - Changing serialized result JSON in the v3 contract.
 
 ## Acceptance

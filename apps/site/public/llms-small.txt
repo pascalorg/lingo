@@ -49,12 +49,19 @@ Distinct from success `alternatives`, failure `candidate`, and issue `suggestion
 import { createLingo } from "@pascal-app/lingo"
 import { es } from "@pascal-app/lingo/locales/es"
 import { fr } from "@pascal-app/lingo/locales/fr"
+import { ja } from "@pascal-app/lingo/locales/ja"
 import { zh } from "@pascal-app/lingo/locales/zh"
 
-const lingo = createLingo({ locales: [es, fr, zh] })
+const lingo = createLingo({ locales: [es, fr, ja, zh] })
 lingo.parseQuantity("dos kg") // auto-detected as es; result.locale === "es"
 lingo.parseRange("entre 5 et 10 kg", { locale: "fr" })
 lingo.parseQuantity("5公斤", { locale: "zh" })
+lingo.parseQuantity("mille cinq cents metres", { locale: "fr" }) // 1500 m
+
+// Comparators that FOLLOW the quantity (CJK); these return ranges, not quantities.
+lingo.parseRange("5キロ未満", { locale: "ja" })  // { min: null, max: 5 kg }
+lingo.parseRange("5公斤以上", { locale: "zh" })  // { min: 5 kg, max: null }
+lingo.parseQuantity("100元", { locale: "zh" })   // 100 CNY (pack currency default)
 ```
 
 Packs: `en`, `en-gb`, `es`, `fr`, `pt`, `zh`, `ja`. Omit `locale` to detect among loaded packs plus English; pass `locale` for known fields. English is built in and does not require a pack. `parseDate(text, { locale, localePacks, now })` can use loaded packs for relative date vocabulary.
@@ -62,11 +69,13 @@ Packs: `en`, `en-gb`, `es`, `fr`, `pt`, `zh`, `ja`. Omit `locale` to detect amon
 Pack notes:
 - `en`: built-in English quantity/date grammar; wave-1 adds spoken decimals and date idioms such as `two point five kg` and `quarter of five`.
 - `en-gb`: English plus day-first numeric dates and UK weekday offsets (`Monday week`, `Tuesday fortnight`).
-- `es`: Spanish number/range words, Romance composition, spoken decimals, approximants, and date clock/edge idioms.
-- `fr`: French number/range words, exhaustive CLDR-style vigesimal compounds, spoken decimals, approximants, and weekday-offset/clock idioms.
-- `pt`: Portuguese number/range words, compound hundreds/tens, spoken decimals, approximants, and clock/day-offset idioms.
-- `zh`: Chinese CJK number walker, scale grouping, post-unit half, duration counters, period edges, and day offsets. CJK spoken clock (`下午3点半`) is deferred.
-- `ja`: Japanese CJK number walker, scale grouping, post-unit half, duration counters, wave-dash ranges, and double-step period modifiers. CJK spoken clock (`午後3時半`) is deferred.
+- `es`: Spanish number/range words, Romance composition, spoken decimals, approximants, and date clock/edge idioms. Long scale: `mil millones` = 1e9, `billón` = 1e12. Ordinal days (`el 1º de marzo`).
+- `fr`: French number/range words, exhaustive CLDR-style vigesimal compounds, spoken decimals, approximants, and weekday-offset/clock idioms. Long scale: `milliard` = 1e9, `billion` = 1e12. Ordinal days (`le 1er mars`).
+- `pt`: Portuguese number/range words, compound hundreds/tens (`cento e vinte`, `mil e quinhentos`), spoken decimals, approximants, clock/day-offset idioms, `-feira` weekdays, and locative date fillers (`na proxima segunda-feira`).
+- `zh`: Chinese CJK number walker, scale grouping, post-unit half, duration counters, period edges, day offsets, postpositional bounds (`5公斤以上`, `5公斤以下`, `5公斤以内`), CNY default plus `元`/`块` aliases, suffix dates (`2026年3月5日`, `3月5日`), weekdays (`星期三`, `周三`), and spoken clocks with day periods (`下午3点半`, `三点一刻`, `明天下午3点`).
+- `ja`: Japanese CJK number walker, scale grouping, post-unit half, duration counters, wave-dash ranges, double-step period modifiers, postpositional bounds (`5キロ未満`, `5キロ以上`, `5キロ超`), JPY default plus `円` aliases, suffix dates (`2026年3月5日`), weekdays (`水曜日`), and spoken clocks with day periods (`午後3時半`, `明日午後3時`).
+
+Note: `以上`/`未満`-style comparators produce an open RANGE, so read them with `parseRange`/`rangeField`, not `parseQuantity`. The shared `￥`/`¥` symbol resolves per locale (CNY under `zh`, JPY under `ja`).
 
 Verified locale examples (fixed `now = 2026-07-03 14:30` local time for date examples):
 

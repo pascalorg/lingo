@@ -13,6 +13,37 @@ const DIST_DOM = join(ROOT, 'dist/dom/index.js')
 const DEFAULT_BASELINE = join(ROOT, 'bench/baseline-node.json')
 const NOW = new Date(2026, 6, 3, 14, 30, 0)
 
+/**
+ * Locale corpora stay hand-written: the point is to measure the profile
+ * resolution and auto-detection paths on realistic native input, not to
+ * re-measure the English grammar through a translated alias table.
+ */
+const LOCALE_CORPORA = {
+  cjk: [
+    '5公斤',
+    '三十五公斤',
+    '一百五十米',
+    '5公斤左右',
+    '3万5千公斤',
+    '5キロ',
+    '三十五キロ',
+    '約5キロ',
+  ],
+  english: ['5 kg', '72 in to cm', 'between 5 and 10 kg', '5\'11"', 'two hundred grams'],
+  romance: [
+    'cinq kg',
+    'deux virgule cinq kg',
+    'quatre-vingt-dix kg',
+    'environ 5 kilos',
+    'entre 5 et 10 kg',
+    'treinta y cinco kg',
+    'mas o menos 5 kilos',
+    'quinientos gramos',
+    'dois virgula cinco kg',
+    'mais ou menos 5 quilos',
+  ],
+}
+
 const args = parseArgs(process.argv.slice(2))
 let sink = 0
 
@@ -565,6 +596,7 @@ async function runBackend() {
   const main = await import(`../dist/index.js?bench=${Date.now()}`)
   const date = await import(`../dist/date/index.js?bench=${Date.now()}`)
   const complete = await import(`../dist/complete/index.js?bench=${Date.now()}`)
+  const localePacks = await loadLocalePacks()
   const corpora = buildBackendCorpora(main.allKinds)
   const lengthMeters = { kind: 'length', unit: 'm' }
   const massKind = { kind: 'mass' }
@@ -663,6 +695,7 @@ async function runBackend() {
       samples: corpora.freeText,
       fn: (input) => main.findQuantities(input),
     },
+    ...localeSuites(main, localePacks),
   ]
 
   const probes = [
@@ -711,6 +744,73 @@ async function runBackend() {
     printReport(report)
   }
   return report
+}
+
+async function loadLocalePacks() {
+  const ids = ['es', 'fr', 'pt', 'zh', 'ja']
+  const stamp = Date.now()
+  const packs = {}
+  for (const id of ids) {
+    packs[id] = (await import(`../dist/locales/${id}.js?bench=${stamp}`)).default
+  }
+  return packs
+}
+
+/**
+ * Locale suites exist to keep the multi-language paths honest: a resolved
+ * profile is ~40 merged tables, and auto-detection scores every loaded pack, so
+ * both are cached. These suites fail loudly (as a throughput drop) if a change
+ * reintroduces per-parse profile merging or per-pack re-tokenization.
+ */
+function localeSuites(main, packs) {
+  const all = [packs.es, packs.fr, packs.pt, packs.zh, packs.ja]
+  const single = main.createLingo({ locales: [packs.fr] })
+  const loaded = main.createLingo({ locales: all })
+  return [
+    {
+      name: 'locale explicit (1 pack)',
+      group: 'backend/locale',
+      samples: LOCALE_CORPORA.romance.slice(0, 4),
+      fn: (input) => single.parse(input, { locale: 'fr' }),
+    },
+    {
+      name: 'locale explicit (5 packs)',
+      group: 'backend/locale',
+      samples: LOCALE_CORPORA.romance,
+      fn: (input) => loaded.parse(input, { locale: localeFor(input) }),
+    },
+    {
+      name: 'locale english w/ packs loaded',
+      group: 'backend/locale',
+      samples: LOCALE_CORPORA.english,
+      fn: (input) => loaded.parse(input, { locale: 'en' }),
+    },
+    {
+      name: 'locale auto-detect romance',
+      group: 'backend/locale',
+      samples: LOCALE_CORPORA.romance,
+      fn: (input) => loaded.parse(input),
+    },
+    {
+      name: 'locale auto-detect cjk',
+      group: 'backend/locale',
+      samples: LOCALE_CORPORA.cjk,
+      fn: (input) => loaded.parse(input),
+    },
+    {
+      name: 'locale auto-detect english',
+      group: 'backend/locale',
+      samples: LOCALE_CORPORA.english,
+      fn: (input) => loaded.parse(input),
+    },
+  ]
+}
+
+function localeFor(input) {
+  if (LOCALE_CORPORA.romance.indexOf(input) < 5) {
+    return 'fr'
+  }
+  return LOCALE_CORPORA.romance.indexOf(input) < 8 ? 'es' : 'pt'
 }
 
 function runSuites(suites) {

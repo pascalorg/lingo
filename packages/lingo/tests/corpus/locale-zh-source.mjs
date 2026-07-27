@@ -18,6 +18,26 @@ export const breadthRows = [
   ['差不多5公斤', { locale: 'zh' }],
   ['三 或 四 公斤', { locale: 'zh' }],
   ['七八天', { locale: 'zh' }],
+  // Currency: the pack default disambiguates ￥ from the yen
+  ['100元', { locale: 'zh' }],
+  ['一百元', { locale: 'zh' }],
+  ['50块', { locale: 'zh' }],
+  ['￥100', { locale: 'zh' }],
+  // Postpositional bounds
+  ['5公斤以上', { locale: 'zh' }],
+  ['5公斤以下', { locale: 'zh' }],
+  ['5公斤以内', { locale: 'zh' }],
+  // Prepositional bounds
+  ['大于5公斤', { locale: 'zh' }],
+  ['小于5公斤', { locale: 'zh' }],
+  ['不超过5公斤', { locale: 'zh' }],
+  ['至少5公斤', { locale: 'zh' }],
+  // Trailing approximation
+  ['五公斤左右', { locale: 'zh' }],
+  ['5公斤左右', { locale: 'zh' }],
+  // Range separators
+  ['三至五天', { locale: 'zh' }],
+  ['三到五天', { locale: 'zh' }],
 ]
 
 export const dateRows = [
@@ -34,6 +54,23 @@ export const dateRows = [
   ['年底', { locale: 'zh' }],
   ['年初', { locale: 'zh' }],
   ['周末', { locale: 'zh' }],
+  // Numeric dates written with 年/月/日 suffixes
+  ['2026年3月5日', { locale: 'zh' }],
+  ['3月5日', { locale: 'zh' }],
+  ['二〇二六年三月五日', { locale: 'zh' }],
+  // Weekdays
+  ['星期三', { locale: 'zh' }],
+  ['周三', { locale: 'zh' }],
+  ['下周一', { locale: 'zh' }],
+  ['上周五', { locale: 'zh' }],
+  // Clock with 点 and day periods
+  ['下午3点', { locale: 'zh' }],
+  ['上午9点半', { locale: 'zh' }],
+  ['3点一刻', { locale: 'zh' }],
+  ['晚上8点30分', { locale: 'zh' }],
+  // Date + time with no separating space
+  ['明天下午3点', { locale: 'zh' }],
+  ['昨天上午9点', { locale: 'zh' }],
 ]
 
 export const dateRangeRows = []

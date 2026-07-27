@@ -1,6 +1,7 @@
 import type { LingoIssue } from '../core/types'
 import type { DateGrain } from './parse'
 import { issue, type P, trimRange } from './state'
+import { parseSuffixClock } from './suffix'
 import { TIME_ALIASES, type TimeAlias, UNIT_WORDS } from './vocab'
 import { type DateZone, stripTrailingZone } from './zone'
 
@@ -48,6 +49,11 @@ export function parseTimeCore(p: P, source: string, issues: LingoIssue[]): TimeC
   const alias = timeAliases(p)[lower]
   if (alias) {
     return aliasTime(alias, issues)
+  }
+
+  const suffixed = parseSuffixClock(p, source, issues)
+  if (suffixed) {
+    return suffixed
   }
 
   const meridiem = /^(?:(?:at|@)\s*)?(\d{1,2})(?:[:.](\d{2})(?::(\d{2}))?)?\s*(am|pm)$/i.exec(

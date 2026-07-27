@@ -34,6 +34,9 @@ export interface Quals {
 /** True when a bound phrase ("under", "over", "at least"…) begins at `pos`. */
 function startsBound(p: ParserState, pos: number): boolean {
   for (const phrase of p.profile.grammar.boundPhrases) {
+    if (phrase.suffix) {
+      continue
+    }
     const nx = eatPhrase(p, pos, phrase.phrase)
     if (nx >= 0) {
       // "min"/"max" only count as bounds when a value follows.
@@ -44,6 +47,27 @@ function startsBound(p: ParserState, pos: number): boolean {
     }
   }
   return false
+}
+
+/**
+ * A bound phrase that FOLLOWS the quantity (`5キロ未満`, `5公斤以上`). Only
+ * phrases the pack marks `suffix` are read here, so a leading-only phrase can
+ * never be mistaken for a postposition.
+ */
+export function parseTrailingBound(
+  p: ParserState,
+  pos: number,
+): { bound: BoundQual; next: number } | null {
+  for (const phrase of p.profile.grammar.boundPhrases) {
+    if (!phrase.suffix) {
+      continue
+    }
+    const next = eatPhrase(p, pos, phrase.phrase)
+    if (next >= 0) {
+      return { bound: { bound: phrase.bound, exclusive: phrase.exclusive }, next }
+    }
+  }
+  return null
 }
 
 export function parseQualifiers(p: ParserState, i: number): Quals {
@@ -136,6 +160,9 @@ export function parseQualifiers(p: ParserState, i: number): Quals {
       }
       let matched = false
       for (const phrase of p.profile.grammar.boundPhrases) {
+        if (phrase.suffix) {
+          continue
+        }
         const nx = eatPhrase(p, pos, phrase.phrase)
         if (nx >= 0) {
           // "min"/"max" only count as qualifiers when a value follows.
@@ -286,7 +313,7 @@ export function parseQty(
   expectKind?: Kind,
   flags?: QtyFlags,
 ): QtyNode | null {
-  const ctx = valueCtx(p, expectKind ?? p.opts.kind)
+  const ctx = valueCtx(p, expectKind ?? p.opts.kind, flags?.noAnd)
   const prefix = parseCurrencyPrefixQty(p, i, atStart, expectKind, ctx)
   if (prefix) {
     return prefix

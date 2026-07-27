@@ -2539,6 +2539,89 @@
       },
       "confidence": 1
     },
+    "between one thousand and two thousand meters": {
+      "input": "between one thousand and two thousand meters",
+      "type": "range",
+      "kind": "length",
+      "base": {
+        "min": 1000,
+        "max": 2000
+      },
+      "unit": {
+        "min": "m",
+        "max": "m"
+      },
+      "issues": [],
+      "span": {
+        "start": 8,
+        "end": 44
+      },
+      "confidence": 1
+    },
+    "between two hundred and five hundred meters": {
+      "input": "between two hundred and five hundred meters",
+      "type": "range",
+      "kind": "length",
+      "base": {
+        "min": 200,
+        "max": 500
+      },
+      "unit": {
+        "min": "m",
+        "max": "m"
+      },
+      "issues": [],
+      "span": {
+        "start": 8,
+        "end": 43
+      },
+      "confidence": 1
+    },
+    "between five and a half and ten kg": {
+      "input": "between five and a half and ten kg",
+      "type": "range",
+      "kind": "mass",
+      "base": {
+        "min": 5.5,
+        "max": 10
+      },
+      "unit": {
+        "min": "kg",
+        "max": "kg"
+      },
+      "issues": [],
+      "span": {
+        "start": 8,
+        "end": 34
+      },
+      "confidence": 1
+    },
+    "nineteen hundred kg": {
+      "input": "nineteen hundred kg",
+      "type": "quantity",
+      "kind": "mass",
+      "base": 1900,
+      "unit": "kg",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 19
+      },
+      "confidence": 1
+    },
+    "two hundred thousand kg": {
+      "input": "two hundred thousand kg",
+      "type": "quantity",
+      "kind": "mass",
+      "base": 200000,
+      "unit": "kg",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 23
+      },
+      "confidence": 1
+    },
     "": {
       "input": "",
       "type": "fail",

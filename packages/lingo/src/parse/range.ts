@@ -28,6 +28,7 @@ import {
   minorCurrencyScale,
   parseQty as parseQtyBase,
   parseQualifiers,
+  parseTrailingBound,
   type QtyFlags,
   type QtyNode,
   type QualifiedQty,
@@ -80,24 +81,27 @@ export function parseRangeOrQty(p: ParserState, i: number, atStart: boolean): Pa
     return { result: fail(p), nextToken: a.nextToken }
   }
 
-  // Open bound from qualifier: "under 10 min".
-  if (quals.bound) {
+  // Open bound, from a leading qualifier ("under 10 min") or a trailing one
+  // ("5キロ未満") — the same range either way, only the word order differs.
+  const trailing = quals.bound ? null : parseTrailingBound(p, a.nextToken)
+  const openBound = quals.bound ?? trailing?.bound
+  if (openBound) {
     const withUnit = ensureUnit(p, a)
     if (!withUnit) {
       return numberish(p, a, quals.approximate)
     }
     const { kind, base, unitId } = withUnit
-    const bound = quals.bound
+    const end = trailing ? p.tokens[trailing.next - 1]!.end : a.normEnd
     const range = new QuantityRange(p.reg, kind, {
-      min: bound.bound === 'min' ? { base, unit: unitId } : undefined,
-      max: bound.bound === 'max' ? { base, unit: unitId } : undefined,
-      exclusiveMin: bound.bound === 'min' ? bound.exclusive : false,
-      exclusiveMax: bound.bound === 'max' ? bound.exclusive : false,
+      min: openBound.bound === 'min' ? { base, unit: unitId } : undefined,
+      max: openBound.bound === 'max' ? { base, unit: unitId } : undefined,
+      exclusiveMin: openBound.bound === 'min' ? openBound.exclusive : false,
+      exclusiveMax: openBound.bound === 'max' ? openBound.exclusive : false,
       approximate: quals.approximate || a.approximate,
     })
     return {
-      result: okRange(p, range, i, a.normEnd),
-      nextToken: a.nextToken,
+      result: okRange(p, range, i, end),
+      nextToken: trailing?.next ?? a.nextToken,
     }
   }
 

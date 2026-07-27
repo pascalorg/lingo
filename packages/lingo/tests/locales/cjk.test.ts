@@ -387,3 +387,139 @@ describe('CJK locale packs', () => {
     }
   })
 })
+
+// ─── Suffix-delimited dates and clocks ──────────────────────────────────────
+
+describe('CJK suffix dates and clocks', () => {
+  const dates = [
+    ['zh', '2026年3月5日', new Date(2026, 2, 5)],
+    ['zh', '3月5日', new Date(2026, 2, 5)],
+    ['zh', '二〇二六年三月五日', new Date(2026, 2, 5)],
+    ['ja', '2026年3月5日', new Date(2026, 2, 5)],
+    ['ja', '3月5日', new Date(2026, 2, 5)],
+  ] as const
+
+  it.each(dates)('%s %s reads the 年/月/日 suffixes', (locale, input, expected) => {
+    const result = parseDate(input, { now: NOW, locale, localePacks: [zh, ja] })
+    expect(result.ok, `${input}: ${JSON.stringify(result.ok ? '' : result.issues)}`).toBe(true)
+    if (result.ok) {
+      expect(result.date).toEqual(expected)
+      expect(result.grain).toBe('day')
+    }
+  })
+
+  const clocks = [
+    ['zh', '下午3点', new Date(2026, 6, 8, 15)],
+    ['zh', '上午9点半', new Date(2026, 6, 9, 9, 30)],
+    ['zh', '3点一刻', new Date(2026, 6, 9, 3, 15)],
+    ['zh', '晚上8点30分', new Date(2026, 6, 8, 20, 30)],
+    ['ja', '午後3時', new Date(2026, 6, 8, 15)],
+    ['ja', '午前9時半', new Date(2026, 6, 9, 9, 30)],
+    ['ja', '3時15分', new Date(2026, 6, 9, 3, 15)],
+  ] as const
+
+  it.each(clocks)('%s %s reads the day period and clock suffix', (locale, input, expected) => {
+    const result = parseDate(input, { now: NOW, locale, localePacks: [zh, ja] })
+    expect(result.ok, `${input}: ${JSON.stringify(result.ok ? '' : result.issues)}`).toBe(true)
+    if (result.ok) {
+      expect(result.date).toEqual(expected)
+    }
+  })
+
+  // Date and time run together with no separating space.
+  const unspaced = [
+    ['zh', '明天下午3点', new Date(2026, 6, 9, 15)],
+    ['zh', '昨天上午9点', new Date(2026, 6, 7, 9)],
+    ['ja', '明日午後3時', new Date(2026, 6, 9, 15)],
+  ] as const
+
+  it.each(unspaced)('%s %s splits date from time without a space', (locale, input, expected) => {
+    const result = parseDate(input, { now: NOW, locale, localePacks: [zh, ja] })
+    expect(result.ok, `${input}: ${JSON.stringify(result.ok ? '' : result.issues)}`).toBe(true)
+    if (result.ok) {
+      expect(result.date).toEqual(expected)
+    }
+  })
+
+  const weekdays = [
+    ['zh', '星期三', new Date(2026, 6, 8)],
+    ['zh', '周三', new Date(2026, 6, 8)],
+    ['ja', '水曜日', new Date(2026, 6, 8)],
+    ['ja', '水曜', new Date(2026, 6, 8)],
+  ] as const
+
+  it.each(weekdays)('%s %s resolves the weekday', (locale, input, expected) => {
+    const result = parseDate(input, { now: NOW, locale, localePacks: [zh, ja] })
+    expect(result.ok, `${input}: ${JSON.stringify(result.ok ? '' : result.issues)}`).toBe(true)
+    if (result.ok) {
+      expect(result.date).toEqual(expected)
+    }
+  })
+})
+
+// ─── Postpositional bounds ──────────────────────────────────────────────────
+
+describe('CJK postpositional bounds', () => {
+  const lingo = createLingo({ locales: [zh, ja] })
+
+  const bounds = [
+    ['zh', '5公斤以上', 5, null],
+    ['zh', '5公斤以下', null, 5],
+    ['zh', '5公斤以内', null, 5],
+    ['zh', '大于5公斤', 5, null],
+    ['zh', '小于5公斤', null, 5],
+    ['zh', '不超过5公斤', null, 5],
+    ['zh', '至少5公斤', 5, null],
+    ['ja', '5キロ未満', null, 5],
+    ['ja', '5キロ以上', 5, null],
+    ['ja', '5キロ以下', null, 5],
+    ['ja', '5キロ以内', null, 5],
+    ['ja', '5キロ超', 5, null],
+    ['ja', '最低5キロ', 5, null],
+  ] as const
+
+  it.each(bounds)('%s %s bounds the range', (locale, input, min, max) => {
+    const result = lingo.parseRange(input, { locale })
+    expect(result.ok, `${input}: ${JSON.stringify(result.ok ? '' : result.issues)}`).toBe(true)
+    if (!result.ok) {
+      return
+    }
+    expect(result.range.min()?.value ?? null).toBe(min)
+    expect(result.range.max()?.value ?? null).toBe(max)
+  })
+
+  // GUARD: 間 is a range word but 時間 is a unit — the unit must stay whole.
+  it('keeps 一時間半 as 1.5 hours, not a range across 間', () => {
+    const result = lingo.parseQuantity('一時間半', { locale: 'ja' })
+    expect(result.ok, JSON.stringify(result.ok ? '' : result.issues)).toBe(true)
+    if (result.ok) {
+      expect(result.quantity.unit).toBe('h')
+      expect(result.quantity.value).toBe(1.5)
+    }
+  })
+})
+
+// ─── Currency defaults ──────────────────────────────────────────────────────
+
+describe('CJK currency', () => {
+  const lingo = createLingo({ locales: [zh, ja] })
+
+  const money = [
+    ['zh', '100元', 100, 'CNY'],
+    ['zh', '一百元', 100, 'CNY'],
+    ['zh', '50块', 50, 'CNY'],
+    // ￥ is shared between the two currencies; the pack default decides.
+    ['zh', '￥100', 100, 'CNY'],
+    ['ja', '1000円', 1000, 'JPY'],
+    ['ja', '￥1000', 1000, 'JPY'],
+  ] as const
+
+  it.each(money)('%s %s reads as %d %s', (locale, input, value, unit) => {
+    const result = lingo.parseQuantity(input, { locale })
+    expect(result.ok, `${input}: ${JSON.stringify(result.ok ? '' : result.issues)}`).toBe(true)
+    if (result.ok) {
+      expect(result.quantity.value).toBe(value)
+      expect(result.quantity.unit).toBe(unit)
+    }
+  })
+})

@@ -1,43 +1,73 @@
 import { normalizeInput } from '../parse/normalize'
-import { tokenize } from '../parse/tokenize'
+import { type Token, tokenize } from '../parse/tokenize'
 import { englishLanguageProfile } from './en-core'
 import { normalizeLocale, resolveLanguageProfile } from './profile'
 import type { LanguageProfile, LocalePack } from './types'
 
-const packAliasCache = new WeakMap<LocalePack, ReadonlySet<string>>()
+const packAliasCache = new WeakMap<LocalePack, PackAliases>()
+const packDetectionCache = new WeakMap<LocalePack, ReadonlySet<string>>()
 const englishWordCache = new WeakMap<LanguageProfile, ReadonlySet<string>>()
+const boundPhraseCache = new WeakMap<
+  LanguageProfile,
+  { all: readonly string[]; uniqueVsEnglish: readonly string[] }
+>()
+
+/**
+ * Normalization + tokenization of the input under test. Detection scores every
+ * loaded pack against the same input, and the caller (`prepare()`) has usually
+ * done this work already — sharing one scan keeps detection O(packs) in table
+ * lookups instead of O(packs) in full re-tokenization.
+ */
+export interface LocaleScan {
+  lower: string
+  raw: string
+  tokens: readonly Token[]
+}
+
+export function localeScan(input: string): LocaleScan {
+  const n = normalizeInput(input)
+  return { lower: n.text.toLowerCase(), raw: input, tokens: tokenize(n) }
+}
 
 export function detectLanguageProfile(
   packs: readonly LocalePack[],
   input: string,
+  scan?: LocaleScan,
 ): LanguageProfile {
-  const locale = detectLocale(packs, input)
+  const locale = detectLocale(packs, input, scan)
   return resolveLanguageProfile(packs, locale)
 }
 
-export function detectLocale(packs: readonly LocalePack[], input: string): string | undefined {
-  let best: { locale: string; score: number } = {
-    locale: 'en',
-    score: scoreProfile(englishLanguageProfile, input),
-  }
+export function detectLocale(
+  packs: readonly LocalePack[],
+  input: string,
+  scan: LocaleScan = localeScan(input),
+): string | undefined {
+  let bestLocale = 'en'
+  let bestScore = scoreScan(englishLanguageProfile, scan, {})
   for (let i = 0; i < packs.length; i++) {
-    if (normalizeLocale(packs[i]!.locale) === 'en') {
+    const pack = packs[i]!
+    if (normalizeLocale(pack.locale) === 'en') {
       continue
     }
-    const profile = resolveLanguageProfile(packs, packs[i]!.locale)
-    const score = scoreProfile(profile, input, {
-      aliasWords: unitAliasWords(packs[i]!),
-      detectionWords: packs[i]!.detectionWords,
+    const profile = resolveLanguageProfile(packs, pack.locale)
+    const aliases = unitAliases(pack)
+    const score = scoreScan(profile, scan, {
+      aliasPhrases: aliases.phrases,
+      aliasWords: aliases.words,
+      detectionWords: packDetectionWords(pack),
       uniqueAgainst: englishLanguageProfile,
     })
-    if (score > best.score) {
-      best = { locale: profile.locale, score }
+    if (score > bestScore) {
+      bestLocale = profile.locale
+      bestScore = score
     }
   }
-  return best.score > 0 ? best.locale : undefined
+  return bestScore > 0 ? bestLocale : undefined
 }
 
 interface ScoreOptions {
+  aliasPhrases?: readonly string[]
   aliasWords?: ReadonlySet<string>
   detectionWords?: readonly string[] | ReadonlySet<string>
   uniqueAgainst?: LanguageProfile
@@ -48,9 +78,11 @@ export function scoreProfile(
   input: string,
   options: ScoreOptions = {},
 ): number {
-  const n = normalizeInput(input)
-  const lower = n.text.toLowerCase()
-  const tokens = tokenize(n)
+  return scoreScan(profile, localeScan(input), options)
+}
+
+function scoreScan(profile: LanguageProfile, scan: LocaleScan, options: ScoreOptions): number {
+  const { lower, tokens } = scan
   const uniqueAgainst = options.uniqueAgainst ? profileWords(options.uniqueAgainst) : undefined
   const detectionWordSet = detectionWords(options.detectionWords)
   let score = 0
@@ -114,19 +146,19 @@ export function scoreProfile(
     }
   }
 
-  for (const phrase of profile.grammar.boundPhrases) {
-    if (isUniquePhrase(phrase.phrase, uniqueAgainst) && hasPhrase(lower, phrase.phrase)) {
+  for (const phrase of boundPhrases(profile, uniqueAgainst)) {
+    if (hasPhrase(lower, phrase)) {
       score += 2
     }
   }
-  for (const alias of options.aliasWords ?? []) {
-    if (alias.includes(' ') && isUniquePhrase(alias, uniqueAgainst) && hasPhrase(lower, alias)) {
+  for (const alias of options.aliasPhrases ?? []) {
+    if (isUniquePhrase(alias, uniqueAgainst) && hasPhrase(lower, alias)) {
       score += 3
     }
   }
 
   if (profile.numerals) {
-    for (const ch of input) {
+    for (const ch of scan.raw) {
       if (profile.numerals[ch] !== undefined) {
         score += 3
       }
@@ -136,7 +168,12 @@ export function scoreProfile(
   return score
 }
 
-function unitAliasWords(pack: LocalePack): ReadonlySet<string> {
+interface PackAliases {
+  phrases: readonly string[]
+  words: ReadonlySet<string>
+}
+
+function unitAliases(pack: LocalePack): PackAliases {
   const cached = packAliasCache.get(pack)
   if (cached) {
     return cached
@@ -154,13 +191,57 @@ function unitAliasWords(pack: LocalePack): ReadonlySet<string> {
       words.add(normalizeInput(alias).text.toLowerCase())
     }
   }
-  packAliasCache.set(pack, words)
+  const aliases: PackAliases = {
+    phrases: [...words].filter((alias) => alias.includes(' ')),
+    words,
+  }
+  packAliasCache.set(pack, aliases)
+  return aliases
+}
+
+/**
+ * Bound phrases are scanned as substrings on every candidate pack, so the
+ * uniqueness filter is precomputed per profile rather than re-split per parse.
+ */
+function boundPhrases(
+  profile: LanguageProfile,
+  uniqueAgainst: ReadonlySet<string> | undefined,
+): readonly string[] {
+  let cached = boundPhraseCache.get(profile)
+  if (!cached) {
+    const all = profile.grammar.boundPhrases.map((entry) => entry.phrase)
+    cached = {
+      all,
+      uniqueVsEnglish: all.filter((phrase) =>
+        isUniquePhrase(phrase, profileWords(englishLanguageProfile)),
+      ),
+    }
+    boundPhraseCache.set(profile, cached)
+  }
+  if (!uniqueAgainst) {
+    return cached.all
+  }
+  if (uniqueAgainst === profileWords(englishLanguageProfile)) {
+    return cached.uniqueVsEnglish
+  }
+  return cached.all.filter((phrase) => isUniquePhrase(phrase, uniqueAgainst))
+}
+
+const EMPTY_WORDS: ReadonlySet<string> = new Set()
+
+function packDetectionWords(pack: LocalePack): ReadonlySet<string> {
+  const cached = packDetectionCache.get(pack)
+  if (cached) {
+    return cached
+  }
+  const words = detectionWords(pack.detectionWords)
+  packDetectionCache.set(pack, words)
   return words
 }
 
 function detectionWords(words: ScoreOptions['detectionWords']): ReadonlySet<string> {
   if (!words) {
-    return new Set()
+    return EMPTY_WORDS
   }
   return new Set([...words].map((word) => normalizeInput(word).text.toLowerCase()))
 }

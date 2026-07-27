@@ -620,3 +620,184 @@ describe('F5: approximatePhrases longest-first + trailing variants', () => {
     }
   })
 })
+
+// ─── F6: hundreds bind to the group in front of them ────────────────────────
+
+describe('F6: hundreds multiply only the preceding 1..99 group', () => {
+  const value = (input: string, pack: LocalePack) => {
+    const r = qty(input, pack)
+    expect(r.ok, JSON.stringify(r.ok ? [] : r.issues)).toBe(true)
+    return r.ok ? r.quantity.value : Number.NaN
+  }
+
+  it('"mille cinq cents kg" = 1500, not 1005 x 100 (FR)', () => {
+    expect(value('mille cinq cents kg', fr)).toBe(1500)
+  })
+
+  it('"deux cent cinquante mille kg" = 250,000 (FR)', () => {
+    expect(value('deux cent cinquante mille kg', fr)).toBe(250_000)
+  })
+
+  it('"cent vingt kg" = 120 (FR)', () => {
+    expect(value('cent vingt kg', fr)).toBe(120)
+  })
+
+  it('"nineteen hundred kg" = 1900 (EN, unchanged)', () => {
+    const lingo = createLingo()
+    const r = lingo.parseQuantity('nineteen hundred kg')
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.quantity.value).toBe(1900)
+    }
+  })
+
+  it('"one thousand five hundred kg" = 1500 (EN, unchanged)', () => {
+    const lingo = createLingo()
+    const r = lingo.parseQuantity('one thousand five hundred kg')
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.quantity.value).toBe(1500)
+    }
+  })
+})
+
+// ─── F7: scale chaining ("mil millones") ────────────────────────────────────
+
+describe('F7: a banked smaller scale multiplies the next one', () => {
+  const value = (input: string, pack: LocalePack) => {
+    const r = qty(input, pack)
+    expect(r.ok, JSON.stringify(r.ok ? [] : r.issues)).toBe(true)
+    return r.ok ? r.quantity.value : Number.NaN
+  }
+
+  it('"mil millones de kg" = 10^9, not 1,001,000 (ES)', () => {
+    expect(value('mil millones de kg', es)).toBe(1e9)
+  })
+
+  it('"dos mil millones de kg" = 2 x 10^9 (ES)', () => {
+    expect(value('dos mil millones de kg', es)).toBe(2e9)
+  })
+
+  it('"mil milhoes de kg" = 10^9 (PT)', () => {
+    expect(value('mil milhoes de kg', pt)).toBe(1e9)
+  })
+
+  it('"mille millions de kg" = 10^9 (FR)', () => {
+    expect(value('mille millions de kg', fr)).toBe(1e9)
+  })
+
+  it('a larger banked scale still adds: "dos millones mil kg" = 2,001,000 (ES)', () => {
+    expect(value('dos millones mil kg', es)).toBe(2_001_000)
+  })
+
+  it('"two hundred thousand kg" = 200,000 (EN, unchanged)', () => {
+    const lingo = createLingo()
+    const r = lingo.parseQuantity('two hundred thousand kg')
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.quantity.value).toBe(200_000)
+    }
+  })
+})
+
+// ─── F8: and-word links a bare scale to its remainder ───────────────────────
+
+describe('F8: bare scale + and-word + remainder', () => {
+  it('"cento e vinte kg" = 120 (PT)', () => {
+    const r = qty('cento e vinte kg', pt)
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.quantity.value).toBe(120)
+    }
+  })
+
+  it('"mil e quinhentos kg" = 1500 (PT)', () => {
+    const r = qty('mil e quinhentos kg', pt)
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.quantity.value).toBe(1500)
+    }
+  })
+
+  // GUARD: a scale word after the and-word is a range side, not a remainder.
+  it('"entre cien y mil metros" stays a range (ES)', () => {
+    const r = range('entre cien y mil metros', es)
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.range.min()?.value).toBe(100)
+      expect(r.range.max()?.value).toBe(1000)
+    }
+  })
+
+  // GUARD: the fraction tail still owns the and-word.
+  it('"mil e meio metros" = 1000.5 (PT)', () => {
+    const r = qty('mil e meio metros', pt)
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.quantity.value).toBe(1000.5)
+    }
+  })
+})
+
+// ─── F9: "between A and B" with spelled scale words on both sides ────────────
+
+describe('F9: the range and-word wins over number composition', () => {
+  const bounds = (input: string, pack: LocalePack) => {
+    const r = range(input, pack)
+    expect(r.ok, JSON.stringify(r.ok ? [] : r.issues)).toBe(true)
+    return r.ok ? [r.range.min()?.value, r.range.max()?.value] : []
+  }
+
+  it('"between one thousand and two thousand meters" = 1000..2000 (EN)', () => {
+    const lingo = createLingo()
+    const r = lingo.parseRange('between one thousand and two thousand meters')
+    expect(r.ok, JSON.stringify(r.ok ? [] : r.issues)).toBe(true)
+    if (r.ok) {
+      expect(r.range.min()?.value).toBe(1000)
+      expect(r.range.max()?.value).toBe(2000)
+    }
+  })
+
+  it('"between two hundred and five hundred meters" = 200..500 (EN)', () => {
+    const lingo = createLingo()
+    const r = lingo.parseRange('between two hundred and five hundred meters')
+    expect(r.ok, JSON.stringify(r.ok ? [] : r.issues)).toBe(true)
+    if (r.ok) {
+      expect(r.range.min()?.value).toBe(200)
+      expect(r.range.max()?.value).toBe(500)
+    }
+  })
+
+  it('"entre mille et deux mille metres" = 1000..2000 (FR)', () => {
+    expect(bounds('entre mille et deux mille metres', fr)).toEqual([1000, 2000])
+  })
+
+  it('"entre mil y dos mil metros" = 1000..2000 (ES)', () => {
+    expect(bounds('entre mil y dos mil metros', es)).toEqual([1000, 2000])
+  })
+
+  it('"entre mil e dois mil metros" = 1000..2000 (PT)', () => {
+    expect(bounds('entre mil e dois mil metros', pt)).toEqual([1000, 2000])
+  })
+
+  // GUARD: the fraction tail still binds tighter than the range separator.
+  it('"between five and a half and ten kg" = 5.5..10 (EN)', () => {
+    const lingo = createLingo()
+    const r = lingo.parseRange('between five and a half and ten kg')
+    expect(r.ok, JSON.stringify(r.ok ? [] : r.issues)).toBe(true)
+    if (r.ok) {
+      expect(r.range.min()?.value).toBe(5.5)
+      expect(r.range.max()?.value).toBe(10)
+    }
+  })
+
+  // GUARD: outside a "between", the and-word still composes numbers.
+  it('"two hundred and five meters" is still 205 (EN)', () => {
+    const lingo = createLingo()
+    const r = lingo.parseQuantity('two hundred and five meters')
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.quantity.value).toBe(205)
+    }
+  })
+})

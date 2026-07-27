@@ -69,6 +69,12 @@ export const fr: LocalePack = {
     articles: ['un', 'une'],
     bareScales: { cent: 100, mille: 1000 },
     composed: {
+      // Teens are dix + ones. Without these the tokenizer's "-" between them
+      // reads "dix-sept" as the range 10-7, so 17/18/19 must match as one unit
+      // before range splitting sees the hyphen.
+      'dix sept': 17,
+      'dix huit': 18,
+      'dix neuf': 19,
       'soixante dix': 70,
       'soixante et onze': 71,
       'soixante douze': 72,
@@ -140,9 +146,6 @@ export const fr: LocalePack = {
       quatorze: 14,
       quinze: 15,
       seize: 16,
-      dixsept: 17,
-      dixhuit: 18,
-      dixneuf: 19,
     },
     scales: {
       cent: 100,
@@ -152,6 +155,10 @@ export const fr: LocalePack = {
       millions: 1_000_000,
       milliard: 1_000_000_000,
       milliards: 1_000_000_000,
+      // Long scale: French "billion" is 10^12, not the English 10^9 (that is
+      // "milliard").
+      billion: 1_000_000_000_000,
+      billions: 1_000_000_000_000,
     },
     tens: {
       vingt: 20,
@@ -218,6 +225,8 @@ export const fr: LocalePack = {
       decembre: 11,
       dec: 11,
     },
+    // "1er juillet"; the feminine "1re/1ère" is rare for dates but free here.
+    ordinalSuffixes: ['er', 'ere', 're'],
     periodEdgePhrases: {
       debut: { edge: 'start', period: 'month' },
       mi: { edge: 'mid', period: 'month' },

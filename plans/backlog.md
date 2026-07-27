@@ -285,11 +285,11 @@ full context.
 
 ## Wave-1 idiom deferrals (2026-07-09, D69)
 
-- **No-space CJK trailing approx** — `五公斤左右` / `五キロぐらい` still fail:
-  the suffix particle merges into the unit token; the unit matcher needs
-  approx-suffix stripping for CJK word tokens (spaced forms work today).
-- **CJK spoken clock** — `午後3時半` / `三点一刻` need the D69 clock fields to
-  compose with the CJK tokenizer path; deferred from the date-grammar package.
+Delivered by wave 2 (D70): no-space CJK trailing approx (`五公斤左右`,
+`五キロぐらい`, `五公斤上下`) via profile-driven splitting of glued grammar
+words, and the CJK spoken clock (`午後3時半`, `三点一刻`, `下午三点半`) via the
+suffix clock grammar. Still open:
+
 - **Unit-first implied-1 quantities** — `kilo y medio`, `hora y media`,
   `metro e meio`: unit-before-number with implied quantity 1; needs a
   quantity-grammar seam, was cut from D69 for size.
@@ -298,3 +298,29 @@ full context.
 - **`个` classifier before duration units in ranges** — `三四个小时` composes
   adjacent-number range + classifier + unit; blocked on the classifier field
   (see counters/classifiers item above).
+
+## Wave-2 idiom deferrals (2026-07-27, D70)
+
+- **Japanese era years** — `令和8年3月5日` / `平成30年`: the numeric-suffix date
+  path reads `年` but not an era prefix. Needs an `eraNames` pack field mapping
+  era → Gregorian offset, and a policy for the transition year. `Intl` knows the
+  Japanese calendar, but using it would make date parsing environment-dependent
+  (D5-adjacent: determinism is the guarantee).
+- **CJK numeric-suffix date ranges** — `3月5日から3月10日` / `3月5日~10日`: the
+  suffix date parser is single-date; a range needs the same
+  `から`/`~` separator handling the quantity range path has, plus elliptical
+  right sides (`10日` inheriting the month from the left).
+- **Weekday + numeric-suffix date agreement** — `3月5日(木)` is the standard
+  written form on Japanese schedules; the parenthesized weekday is currently
+  trailing input. Cheap to accept, but it should *validate* agreement (warn when
+  the weekday contradicts the date) rather than silently ignore it, which needs
+  a new issue code.
+- **Glued splitting for spaced scripts** — the D70 splitter deliberately only
+  runs on non-Latin vocabulary (`!/[a-z]/i`). A pack for a spaced script that
+  still glues grammar (Finnish/Turkish agglutination, German compounds) would
+  need a different filter and a much stronger alias guard.
+- **`readLocaleNumber` positional coverage** — the CJK numeral reader handles
+  bare numerals, `十`-based tens, and digit runs (for years), but not
+  `百`/`千` positional composition (`三百五十日` as a day-of-month is nonsense,
+  yet `二千二十六年` is a legal year spelling). Unify with the CJK number
+  walker in `number/` instead of growing a second reader.

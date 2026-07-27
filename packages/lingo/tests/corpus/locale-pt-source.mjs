@@ -56,6 +56,18 @@ export const breadthRows = [
   ['dezanove kg', { locale: 'pt' }],
   ['dezesseis kg', { locale: 'pt' }],
   ['dezasseis kg', { locale: 'pt' }],
+  // "cento" is a bare scale; the and-word links it to the remainder
+  ['cento e vinte kg', { locale: 'pt' }],
+  ['mil e quinhentos kg', { locale: 'pt' }],
+  ['dois mil e quinhentos kg', { locale: 'pt' }],
+  // Brazilian short scale
+  ['um milhao de kg', { locale: 'pt' }],
+  ['um bilhao de kg', { locale: 'pt' }],
+  ['mil milhoes de kg', { locale: 'pt' }],
+  // Currency
+  ['20 reais', { locale: 'pt' }],
+  // The range and-word wins over number composition on both sides
+  ['entre mil e dois mil kg', { locale: 'pt' }],
 ]
 
 export const dateRows = [
@@ -79,6 +91,14 @@ export const dateRows = [
   ['meio de julho', { locale: 'pt' }],
   ['fim de julho', { locale: 'pt' }],
   ['final de julho', { locale: 'pt' }],
+  // -feira weekdays, bare and with a locative contraction
+  ['segunda-feira', { locale: 'pt' }],
+  ['terca-feira', { locale: 'pt' }],
+  ['sexta-feira', { locale: 'pt' }],
+  ['proxima segunda-feira', { locale: 'pt' }],
+  ['na proxima segunda-feira', { locale: 'pt' }],
+  ['segunda-feira que vem', { locale: 'pt' }],
+  ['3 de marco', { locale: 'pt' }],
 ]
 
 export const dateRangeRows = []

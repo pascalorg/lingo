@@ -638,6 +638,204 @@
         "end": 11
       },
       "confidence": 0.9
+    },
+    "dix-sept kg": {
+      "input": "dix-sept kg",
+      "opts": {
+        "locale": "fr"
+      },
+      "type": "quantity",
+      "kind": "mass",
+      "base": 17,
+      "unit": "kg",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 11
+      },
+      "confidence": 1
+    },
+    "dix-huit kg": {
+      "input": "dix-huit kg",
+      "opts": {
+        "locale": "fr"
+      },
+      "type": "quantity",
+      "kind": "mass",
+      "base": 18,
+      "unit": "kg",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 11
+      },
+      "confidence": 1
+    },
+    "dix-neuf kg": {
+      "input": "dix-neuf kg",
+      "opts": {
+        "locale": "fr"
+      },
+      "type": "quantity",
+      "kind": "mass",
+      "base": 19,
+      "unit": "kg",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 11
+      },
+      "confidence": 1
+    },
+    "mille cinq cents kg": {
+      "input": "mille cinq cents kg",
+      "opts": {
+        "locale": "fr"
+      },
+      "type": "quantity",
+      "kind": "mass",
+      "base": 1500,
+      "unit": "kg",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 19
+      },
+      "confidence": 1
+    },
+    "deux cent cinquante mille kg": {
+      "input": "deux cent cinquante mille kg",
+      "opts": {
+        "locale": "fr"
+      },
+      "type": "quantity",
+      "kind": "mass",
+      "base": 250000,
+      "unit": "kg",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 28
+      },
+      "confidence": 1
+    },
+    "cent vingt kg": {
+      "input": "cent vingt kg",
+      "opts": {
+        "locale": "fr"
+      },
+      "type": "quantity",
+      "kind": "mass",
+      "base": 120,
+      "unit": "kg",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 13
+      },
+      "confidence": 1
+    },
+    "un million de kg": {
+      "input": "un million de kg",
+      "opts": {
+        "locale": "fr"
+      },
+      "type": "quantity",
+      "kind": "mass",
+      "base": 1000000,
+      "unit": "kg",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 16
+      },
+      "confidence": 1
+    },
+    "deux milliards de kg": {
+      "input": "deux milliards de kg",
+      "opts": {
+        "locale": "fr"
+      },
+      "type": "quantity",
+      "kind": "mass",
+      "base": 2000000000,
+      "unit": "kg",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 20
+      },
+      "confidence": 1
+    },
+    "un billion de kg": {
+      "input": "un billion de kg",
+      "opts": {
+        "locale": "fr"
+      },
+      "type": "quantity",
+      "kind": "mass",
+      "base": 1000000000000,
+      "unit": "kg",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 16
+      },
+      "confidence": 1
+    },
+    "mille millions de kg": {
+      "input": "mille millions de kg",
+      "opts": {
+        "locale": "fr"
+      },
+      "type": "quantity",
+      "kind": "mass",
+      "base": 1000000000,
+      "unit": "kg",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 20
+      },
+      "confidence": 1
+    },
+    "20 euros": {
+      "input": "20 euros",
+      "opts": {
+        "locale": "fr"
+      },
+      "type": "quantity",
+      "kind": "currency",
+      "base": 20,
+      "unit": "EUR",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 8
+      },
+      "confidence": 1
+    },
+    "entre mille et deux mille kg": {
+      "input": "entre mille et deux mille kg",
+      "opts": {
+        "locale": "fr"
+      },
+      "type": "range",
+      "kind": "mass",
+      "base": {
+        "min": 1000,
+        "max": 2000
+      },
+      "unit": {
+        "min": "kg",
+        "max": "kg"
+      },
+      "issues": [],
+      "span": {
+        "start": 6,
+        "end": 28
+      },
+      "confidence": 1
     }
   },
   "date": {
@@ -937,6 +1135,75 @@
       "span": {
         "start": 0,
         "end": 15
+      },
+      "confidence": 1
+    },
+    "le 1er mars": {
+      "input": "le 1er mars",
+      "opts": {
+        "locale": "fr"
+      },
+      "type": "date",
+      "kind": "date",
+      "base": {
+        "year": 2027,
+        "month": 3,
+        "day": 1,
+        "hour": 0,
+        "minute": 0,
+        "second": 0
+      },
+      "unit": "day",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 11
+      },
+      "confidence": 1
+    },
+    "le 3 mars": {
+      "input": "le 3 mars",
+      "opts": {
+        "locale": "fr"
+      },
+      "type": "date",
+      "kind": "date",
+      "base": {
+        "year": 2027,
+        "month": 3,
+        "day": 3,
+        "hour": 0,
+        "minute": 0,
+        "second": 0
+      },
+      "unit": "day",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 9
+      },
+      "confidence": 1
+    },
+    "lundi prochain": {
+      "input": "lundi prochain",
+      "opts": {
+        "locale": "fr"
+      },
+      "type": "date",
+      "kind": "date",
+      "base": {
+        "year": 2026,
+        "month": 7,
+        "day": 6,
+        "hour": 0,
+        "minute": 0,
+        "second": 0
+      },
+      "unit": "day",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 14
       },
       "confidence": 1
     }

@@ -3,7 +3,7 @@ id: 033
 title: Locale idiom coverage
 status: in-progress
 created: 2026-07-09
-updated: 2026-07-09
+updated: 2026-07-27
 ---
 
 # Locale idiom coverage — parse how people actually write and speak
@@ -70,6 +70,40 @@ scale, new locales (de/it/nl/ko/ar incl. RTL + Eastern Arabic numerals),
 localized humanize output (D66 deferral stands), counters/classifiers beyond
 filler handling, height/weight elliptical speech ("uno ochenta"), currency
 slang ("a grand", "5 lucas").
+
+## Wave 2 (D70, 2026-07-27)
+
+Wave 1 shipped CJK *numbers* but not CJK *calendars*, and shipped prefix bounds
+but not postpositional ones. Wave 2 closes both, again through pack data
+consumed by language-neutral engine seams:
+
+- **Glued-token grammar splitting** — scripts without word spaces write grammar
+  and content as one token, so the tokenizer cuts word tokens at the profile's
+  non-Latin grammar vocabulary (range separators, bound phrases, trailing
+  approximants) before the grammar runs. The cut is suppressed inside a unit
+  alias, so `一時間半` never splits at the range word `間`. This retires the
+  wave-1 deferral for no-space trailing approximants (`五公斤左右`).
+- **Postpositional bounds** — `GrammarBoundPhrase.suffix` marks comparators that
+  follow the quantity (`以上`, `以下`, `未満`, `以内`, `超`), consumed by
+  `parseTrailingBound` in both the quantity and range paths. Previously
+  `5キロ未満` silently parsed as a bare `5 kg`.
+- **Suffix-delimited dates and clocks** — new `DateNumericSuffixVocab`
+  (年/月/日), `DateClockSuffixVocab` (点/時/分/秒 plus minute words 半/一刻), and
+  `DateDayPeriod` (上午/下午, 午前/午後) fields, consumed by `date/suffix.ts`;
+  `date/numeral.ts` reads locale numerals including digit-by-digit years
+  (`二〇二六年`). Unspaced date+time compounds (`明天下午3点`) split at day-period
+  and clock-suffix anchors. This retires the wave-1 CJK spoken-clock deferral.
+- **Localized calendars** — weekday and month vocabulary for zh/ja, `ordinalSuffixes`
+  for Romance day-of-month (`le 1er mars`), Portuguese locative date fillers.
+- **Number-word arithmetic corrections** — three silent wrong answers fixed
+  (hundreds binding, scale chaining, and-word after bare scales) plus `noAnd`
+  threading so `between one thousand and two thousand` reads as a range. See D70.
+- **Per-locale benchmarks and profile memoization** — resolved profiles and
+  detection scans are cached per pack set; `bun run bench` covers each locale.
+
+Wave-3 candidates are in `plans/backlog.md` under "Wave-2 idiom deferrals"
+(Japanese era years, CJK suffix-date ranges, `3月5日(木)` weekday agreement,
+positional CJK numerals in dates).
 
 ## Acceptance
 

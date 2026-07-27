@@ -14,6 +14,13 @@ export interface GrammarBoundPhrase {
   bound: 'min' | 'max'
   exclusive: boolean
   phrase: string
+  /**
+   * The phrase follows the quantity instead of leading it (`5キロ未満`,
+   * `5公斤以下`). Postposition is a property of the phrase, not of the
+   * language, so each entry declares it: an unmarked phrase is only ever read
+   * before the value.
+   */
+  suffix?: boolean
 }
 
 export interface GrammarWords {
@@ -161,6 +168,37 @@ export interface DateCompactOffsetVocab {
   unitWords: Record<string, DateOffsetUnit>
 }
 
+/**
+ * Clocks whose parts are closed by a suffix rather than separated by a colon:
+ * `3点`, `3时15分`, `15時30分`. Hour numbers may be digits or, when the pack
+ * declares `numerals`, its own digits (`三時`). A minute part spelled as a word
+ * rather than a number (`3時半`, `三点一刻`) comes from `clockMinuteWords`.
+ */
+export interface DateClockSuffixVocab {
+  hour: readonly string[]
+  minute?: readonly string[]
+  second?: readonly string[]
+}
+
+/**
+ * A word that fixes a 12-hour clock reading to a half of the day, the way
+ * am/pm does: `上午`/`下午`, `午前`/`午後`. `am` maps 12 to 0 and leaves 1–11
+ * alone; `pm` maps 1–11 to 13–23.
+ */
+export interface DateDayPeriod {
+  meridiem: 'am' | 'pm'
+}
+
+/**
+ * Civil date parts closed by a suffix instead of a separator, as in
+ * `2026年3月5日` or `3月5号`.
+ */
+export interface DateNumericSuffixVocab {
+  day?: readonly string[]
+  month?: readonly string[]
+  year?: readonly string[]
+}
+
 export interface DateRelativeVocab {
   anchorWords?: readonly string[]
   futurePrefixes?: readonly string[]
@@ -172,15 +210,26 @@ export interface DateVocabPack {
   calendarPeriodPhrases?: Record<string, DateCalendarPeriodPhrase>
   clockMinuteWords?: Record<string, number>
   clockPastWords?: readonly string[]
+  clockSuffix?: DateClockSuffixVocab
   clockToWords?: readonly string[]
   compactOffset?: DateCompactOffsetVocab
   dayOffsets?: Record<string, number>
   dayPartWords?: Record<string, { grain?: 'hour'; hour: number }>
+  dayPeriods?: Record<string, DateDayPeriod>
   dayTimePhrases?: Record<string, DateDayTimePhrase>
   durationUnitSeconds?: Record<string, number>
   fillerWords?: readonly string[]
   modifiers?: Partial<Record<DateRelativeModifier, readonly string[]>>
   months: Record<string, number>
+  numericDateSuffixes?: DateNumericSuffixVocab
+  /**
+   * Ordinal markers that may follow a day number in a written date
+   * (`1er juillet`, `1º de julho`). Defaults to the English `st/nd/rd/th`.
+   * Normalization folds the masculine/feminine ordinal indicators `º`/`ª` to
+   * the degree sign (they are degree look-alikes), so Romance packs list `°`
+   * next to the ASCII `o`/`a` spellings.
+   */
+  ordinalSuffixes?: readonly string[]
   periodEdgePhrases?: Record<string, DatePeriodEdgePhrase>
   periodWords?: Partial<Record<DatePeriodUnit, readonly string[]>>
   relative?: DateRelativeVocab

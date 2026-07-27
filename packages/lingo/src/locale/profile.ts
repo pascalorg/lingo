@@ -1,5 +1,7 @@
 import { enCore, englishLanguageProfile } from './en-core'
 import type {
+  DateClockSuffixVocab,
+  DateNumericSuffixVocab,
   DateVocabPack,
   GrammarBoundPhrase,
   GrammarWords,
@@ -59,6 +61,14 @@ const DATE_RELATIVE_KEYS = [
   'pastSuffixes',
 ] as const
 
+/**
+ * Merging a profile allocates ~40 Sets/Records, so doing it per parse dominates
+ * the parse itself. Packs are module-level constants held for the lifetime of a
+ * `createLingo()` instance, so the merge result is cached per pack-array
+ * identity (weakly) and per requested locale.
+ */
+const profileCache = new WeakMap<readonly LocalePack[], Map<string, LanguageProfile>>()
+
 export function resolveLanguageProfile(
   packs: readonly LocalePack[] = DEFAULT_LOCALE_PACKS,
   locale?: string,
@@ -67,9 +77,20 @@ export function resolveLanguageProfile(
   if (!hasNonEnglishLocalePacks(packs) && matchesLocale(enCore, requested)) {
     return englishLanguageProfile
   }
+  let byLocale = profileCache.get(packs)
+  if (!byLocale) {
+    byLocale = new Map()
+    profileCache.set(packs, byLocale)
+  }
+  const cached = byLocale.get(requested)
+  if (cached) {
+    return cached
+  }
   const all = uniquePacks([...DEFAULT_LOCALE_PACKS, ...packs])
-  const pack = findPack(all, locale) ?? findPack(all, 'en')!
-  return buildProfile(pack, all, new Set())
+  const pack = findPack(all, requested) ?? findPack(all, 'en')!
+  const profile = buildProfile(pack, all, new Set())
+  byLocale.set(requested, profile)
+  return profile
 }
 
 export function hasNonEnglishLocalePacks(packs?: readonly LocalePack[]): boolean {
@@ -214,6 +235,7 @@ function mergeDate(
     calendarPeriodPhrases: mergeRecord(base?.calendarPeriodPhrases, overlay?.calendarPeriodPhrases),
     clockMinuteWords: mergeRecord(base?.clockMinuteWords, overlay?.clockMinuteWords),
     clockPastWords: mergeList(base?.clockPastWords ?? [], overlay?.clockPastWords),
+    clockSuffix: mergeClockSuffix(base?.clockSuffix, overlay?.clockSuffix),
     clockToWords: mergeList(base?.clockToWords ?? [], overlay?.clockToWords),
     compactOffset:
       base?.compactOffset || overlay?.compactOffset
@@ -234,11 +256,17 @@ function mergeDate(
         : undefined,
     dayOffsets: mergeRecord(base?.dayOffsets, overlay?.dayOffsets),
     dayPartWords: mergeRecord(base?.dayPartWords, overlay?.dayPartWords),
+    dayPeriods: mergeRecord(base?.dayPeriods, overlay?.dayPeriods),
     dayTimePhrases: mergeRecord(base?.dayTimePhrases, overlay?.dayTimePhrases),
     durationUnitSeconds: mergeRecord(base?.durationUnitSeconds, overlay?.durationUnitSeconds),
     fillerWords: mergeList(base?.fillerWords ?? [], overlay?.fillerWords),
     modifiers: mergeListRecord(base?.modifiers, overlay?.modifiers, DATE_MODIFIER_KEYS),
     months: mergeRecord(base?.months, overlay?.months),
+    numericDateSuffixes: mergeNumericDateSuffixes(
+      base?.numericDateSuffixes,
+      overlay?.numericDateSuffixes,
+    ),
+    ordinalSuffixes: mergeList(base?.ordinalSuffixes ?? [], overlay?.ordinalSuffixes),
     periodEdgePhrases: mergeRecord(base?.periodEdgePhrases, overlay?.periodEdgePhrases),
     periodWords: mergeListRecord(base?.periodWords, overlay?.periodWords, DATE_PERIOD_KEYS),
     relative: mergeListRecord(base?.relative, overlay?.relative, DATE_RELATIVE_KEYS),
@@ -255,6 +283,34 @@ function mergeDate(
 
 function mergeRecord<T>(base?: Record<string, T>, overlay?: Record<string, T>): Record<string, T> {
   return { ...(base ?? {}), ...overlay }
+}
+
+function mergeClockSuffix(
+  base?: DateClockSuffixVocab,
+  overlay?: DateClockSuffixVocab,
+): DateClockSuffixVocab | undefined {
+  if (!(base || overlay)) {
+    return
+  }
+  return {
+    hour: mergeList(base?.hour ?? [], overlay?.hour),
+    minute: mergeList(base?.minute ?? [], overlay?.minute),
+    second: mergeList(base?.second ?? [], overlay?.second),
+  }
+}
+
+function mergeNumericDateSuffixes(
+  base?: DateNumericSuffixVocab,
+  overlay?: DateNumericSuffixVocab,
+): DateNumericSuffixVocab | undefined {
+  if (!(base || overlay)) {
+    return
+  }
+  return {
+    day: mergeList(base?.day ?? [], overlay?.day),
+    month: mergeList(base?.month ?? [], overlay?.month),
+    year: mergeList(base?.year ?? [], overlay?.year),
+  }
 }
 
 function mergeListRecord<K extends string>(

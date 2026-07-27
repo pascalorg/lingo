@@ -34,6 +34,7 @@ export function parseNumberWords(
   tokens: Token[],
   i: number,
   tables: NumberWordTables = EN_NUMBER_WORDS,
+  noAnd = false,
 ): WordNumberResult | null {
   let pos = i
   let negative = false
@@ -43,7 +44,7 @@ export function parseNumberWords(
     pos++
   }
 
-  const result = parseCore(tokens, pos, tables)
+  const result = parseCore(tokens, pos, tables, noAnd)
   if (!result) {
     return null
   }
@@ -56,7 +57,12 @@ export function parseNumberWords(
   return result
 }
 
-function parseCore(tokens: Token[], i: number, tables: NumberWordTables): WordNumberResult | null {
+function parseCore(
+  tokens: Token[],
+  i: number,
+  tables: NumberWordTables,
+  noAnd: boolean,
+): WordNumberResult | null {
   const pos = i
   const w = word(tokens[pos])
   if (w === null) {
@@ -67,7 +73,7 @@ function parseCore(tokens: Token[], i: number, tables: NumberWordTables): WordNu
   if (tables.articles.has(w)) {
     const nextW = word(tokens[pos + 1])
     if (nextW && tables.scales[nextW] !== undefined) {
-      return finishScaled(tokens, pos + 1, 1, tables)
+      return finishScaled(tokens, pos + 1, 1, tables, noAnd)
     }
     if (nextW && tables.dozenWords.has(nextW)) {
       return withHalfDozenTail(tokens, pos + 2, 12, tables)
@@ -125,16 +131,22 @@ function parseCore(tokens: Token[], i: number, tables: NumberWordTables): WordNu
   // Composed table: longest-match phrase lookup (quinientos, quatre-vingt-dix, etc.)
   const comp = tryComposed(tokens, pos, tables)
   if (comp) {
-    return cardinalLoop(tokens, comp.next, 0, comp.value, true, tables)
+    return cardinalLoop(tokens, comp.next, 0, comp.value, true, tables, noAnd)
   }
 
-  // Bare scale words: "cien gramos", "mil metros"
-  if (tables.bareScales?.[w] !== undefined) {
-    return cardinalLoop(tokens, pos + 1, 0, tables.bareScales[w]!, true, tables)
+  // Bare scale words: "cien gramos", "mil metros". A thousand and up seeds the
+  // total so a following hundreds group stays its own term ("mille cinq
+  // cents" = 1000 + 500, not 1005 × 100).
+  const bare = tables.bareScales?.[w]
+  if (bare !== undefined) {
+    const next = eatAndLink(tokens, pos + 1, tables, noAnd)
+    return bare >= 1000
+      ? cardinalLoop(tokens, next, bare, 0, true, tables, noAnd)
+      : cardinalLoop(tokens, next, 0, bare, true, tables, noAnd)
   }
 
   // Standard cardinal grammar.
-  return cardinalLoop(tokens, pos, 0, 0, false, tables)
+  return cardinalLoop(tokens, pos, 0, 0, false, tables, noAnd)
 }
 
 /** Longest-match against composed table; hyphens transparent. */
@@ -178,6 +190,7 @@ function cardinalLoop(
   current: number,
   any: boolean,
   tables: NumberWordTables,
+  noAnd: boolean,
 ): WordNumberResult | null {
   let pos = startPos
   let t_ = total
@@ -212,7 +225,7 @@ function cardinalLoop(
       const skip =
         nxt && nxt.type === 'sym' && nxt.text === '-'
           ? 1
-          : word(tokens[pos]) && tables.andWords.has(word(tokens[pos])!)
+          : !noAnd && word(tokens[pos]) && tables.andWords.has(word(tokens[pos])!)
             ? 1
             : 0
       if (skip) {
@@ -231,25 +244,21 @@ function cardinalLoop(
       continue
     }
     if (tables.scales[tw] !== undefined && any) {
-      if (tables.scales[tw] === 100) {
-        c_ = (c_ === 0 ? 1 : c_) * 100
+      const scale = tables.scales[tw]!
+      if (scale === 100) {
+        // Hundreds multiply only the 1..99 group in front of them; anything
+        // already accumulated above that is a separate term.
+        const group = c_ % 100
+        c_ += group === 0 ? 100 : group * 99
+      } else if (c_ === 0 && t_ > 0 && t_ < scale) {
+        // Scale chaining: "mil millones" (10^9), "dos mil millones" — the
+        // smaller scale already banked in the total is the multiplicand.
+        t_ *= scale
       } else {
-        t_ += (c_ === 0 ? 1 : c_) * tables.scales[tw]!
+        t_ += (c_ === 0 ? 1 : c_) * scale
         c_ = 0
       }
-      pos++
-      const j = word(tokens[pos])
-      if (j && tables.andWords.has(j)) {
-        const a = word(tokens[pos + 1])
-        if (
-          a &&
-          (tables.ones[a] !== undefined ||
-            tables.tens[a] !== undefined ||
-            tables.composed?.[a] !== undefined)
-        ) {
-          pos++
-        }
-      }
+      pos = eatAndLink(tokens, eatScaleLink(tokens, pos + 1, scale, tables), tables, noAnd)
       continue
     }
     break
@@ -301,6 +310,8 @@ function cardinalLoop(
   if (dozen) {
     return withHalfDozenTail(tokens, pos, value, tables)
   }
+  // The fraction tail keeps the and-word even under `noAnd`: in "between five
+  // and a half and ten kg" the first join builds 5.5, the second is the range.
   const tail = parseAndFractionTail(tokens, pos, tables)
   if (tail) {
     value += tail.add
@@ -314,14 +325,60 @@ function finishScaled(
   scalePos: number,
   multiplier: number,
   tables: NumberWordTables,
+  noAnd: boolean,
 ): WordNumberResult {
   const scaleWord = word(tokens[scalePos])!
-  const scaleValue = multiplier * tables.scales[scaleWord]!
-  const pos = scalePos + 1
+  const scale = tables.scales[scaleWord]!
+  const pos = eatScaleLink(tokens, scalePos + 1, scale, tables)
   // Continue into cardinalLoop to consume further composed/scale chains.
   // E.g. "un millon quinientos mil" seeds total with 1,000,000, then
   // cardinalLoop picks up "quinientos mil" (500*1000).
-  return cardinalLoop(tokens, pos, scaleValue, 0, true, tables)!
+  return cardinalLoop(tokens, pos, multiplier * scale, 0, true, tables, noAnd)!
+}
+
+/**
+ * Romance languages link big scales to the noun they count with "of": "un
+ * millón de euros", "un million de kilos", "um milhão de quilos". Smaller
+ * scales do not ("mil euros"), and below a million "de" is far more likely to
+ * be opening a range ("de 5 a 10"), so the link is only eaten from 10^6 up and
+ * only when something follows it.
+ */
+function eatScaleLink(
+  tokens: Token[],
+  pos: number,
+  scale: number,
+  tables: NumberWordTables,
+): number {
+  if (scale < 1_000_000) {
+    return pos
+  }
+  const link = word(tokens[pos])
+  return link && tables.ofWords.has(link) && word(tokens[pos + 1]) !== null ? pos + 1 : pos
+}
+
+/**
+ * "two hundred and five", "mil e quinhentos", "cento e vinte" — the and-word
+ * joining a scale to its remainder is punctuation. It is only skipped when a
+ * plain number word follows: "and a half" belongs to the fraction tail, and a
+ * following scale word ("entre cien y mil") is a range side, not a remainder.
+ */
+function eatAndLink(
+  tokens: Token[],
+  pos: number,
+  tables: NumberWordTables,
+  noAnd: boolean,
+): number {
+  const j = word(tokens[pos])
+  if (noAnd || !(j && tables.andWords.has(j))) {
+    return pos
+  }
+  const a = word(tokens[pos + 1])
+  const known =
+    a !== null &&
+    (tables.ones[a] !== undefined ||
+      tables.tens[a] !== undefined ||
+      tables.composed?.[a] !== undefined)
+  return known ? pos + 1 : pos
 }
 
 /**

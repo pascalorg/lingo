@@ -15,6 +15,12 @@ import { parseAndFractionTail, parseNumberWords } from './words'
 export interface ValueCtx {
   kind?: Kind
   n: Normalized
+  /**
+   * Inside "between A and B" the and-word belongs to the range, so the A-side
+   * must not read it as number composition ("between one thousand and two
+   * thousand").
+   */
+  noAnd?: boolean
   numberFormat: NumberFormatPolicy
   numberWords?: boolean
   profile?: LanguageProfile
@@ -118,7 +124,7 @@ export function parseValue(ctx: ValueCtx, i: number, atStart = false): ValueNode
         }
       }
     }
-    const wn = parseNumberWords(tokens, i, ctx.profile?.numberWords)
+    const wn = parseNumberWords(tokens, i, ctx.profile?.numberWords, ctx.noAnd)
     if (!wn) {
       return null
     }

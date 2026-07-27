@@ -544,3 +544,54 @@ and `./core` D68 budgets hold. Deferred to wave 2 (backlog): no-space CJK
 trailing approx (五公斤左右 needs suffix-stripping in the unit matcher), CJK
 spoken clock (午後3時半), unit-first implied-1 (`hora y media`, `kilo y
 medio`), 三点五 CJK decimal composition, `uno ochenta` elliptical heights.
+
+**D70 · 2026-07-27 · Wave-2 locale depth: glued-script tokenization, suffix
+date/clock grammar, and number-word arithmetic corrections.** Four mechanisms,
+each a real trade-off:
+
+(1) **Profile-driven splitting of glued grammar words.** Scripts without word
+spaces write grammar and content as one token (`5キロ未満`, `三至五天`), so the
+tokenizer now cuts word tokens at the profile's non-Latin grammar vocabulary
+(range separators, bound phrases, trailing approximants) before the grammar sees
+them. The cut is *suppressed inside a unit alias* — `間` is a range word but
+`時間` is the hour unit, so `一時間半` must not split. That guard needs the unit
+matcher during tokenization, which is why `prepare()` passes an alias-length
+callback into `splitGluedWords`. Rejected: teaching each grammar rule to match
+mid-token (the same ambiguity re-litigated at a dozen call sites).
+
+(2) **Postpositional bounds are declared, not inferred.** `GrammarBoundPhrase`
+gained `suffix?: boolean`, because `以上`/`未満` follow the quantity while
+`大于`/`最低` precede it, and a phrase that reads as both would silently pick
+one. Marked phrases are skipped by the prefix scanner and picked up by
+`parseTrailingBound`. Before this, `5キロ未満` parsed as a bare `5 kg` — a
+silent wrong answer, the worst failure mode for a validation library.
+
+(3) **Suffix-delimited dates and clocks** (`date/suffix.ts`, `date/numeral.ts`):
+`2026年3月5日`, `3時15分`, `下午3点半`, plus unspaced date+time compounds
+(`明天下午3点`) split at day-period and clock-suffix anchors rather than at every
+offset. Years spelled digit-by-digit (`二〇二六年`) read as a digit run, since
+positional reading would give 2+0+2+6. All of it is pack-data-gated: a pack that
+declares no `numericDateSuffixes`/`clockSuffix` never enters the path.
+
+(4) **Number-word arithmetic was wrong in three ways**, all silent: hundreds
+multiplied the whole running total instead of the 1..99 group in front of them
+(`mille cinq cents` = 100500, not 1500); a banked smaller scale added instead of
+multiplying (`mil millones` = 1,001,000, not 10^9); and the and-word linking a
+scale to its remainder was not offered after bare scales (`cento e vinte`
+failed). Fixing the third exposed the mirror bug — inside `between A and B` the
+and-word belongs to the range, so the existing `noAnd` flag now threads from
+`range.ts` through `ValueCtx` into the word engine. It suppresses the scale and
+tens links but deliberately NOT the fraction tail, so `between five and a half
+and ten kg` still reads 5.5..10.
+
+Budgets recalibrate once for the wave (D19 escalation honored, owner approved):
+main entry 38.3 → 39.4, `./core` 25.6 → 26.8, `./date` standalone 41.0 → 43.3
+and marginal 14.4 → 15.7, `./ai` 17.4 → 18.6 (cascade only, no `/ai` code
+changed), zh/ja packs 1.3/1.4 → 2.0 each, cjk marginal 2.0 → 3.0, all-locales
+6.3 → 6.9. Every existing corpus contract row is unchanged — the whole wave is
+additive (+96 locale rows, +5 English rows). Also landed: zh/ja default
+currencies so the shared `¥` resolves per locale, Portuguese `cento` and
+locative fillers (`na proxima segunda-feira`), and a per-locale benchmark suite
+so multi-language throughput is tracked rather than assumed. Revisit if a pack
+wants glued splitting for a *Latin* script — the current filter is deliberately
+`!/[a-z]/i`, on the theory that spaced scripts already tokenize correctly.

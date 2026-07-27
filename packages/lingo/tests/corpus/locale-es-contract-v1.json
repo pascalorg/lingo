@@ -662,6 +662,146 @@
         "end": 12
       },
       "confidence": 0.9
+    },
+    "ciento veinte kg": {
+      "input": "ciento veinte kg",
+      "opts": {
+        "locale": "es"
+      },
+      "type": "quantity",
+      "kind": "mass",
+      "base": 120,
+      "unit": "kg",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 16
+      },
+      "confidence": 1
+    },
+    "un millon de kg": {
+      "input": "un millon de kg",
+      "opts": {
+        "locale": "es"
+      },
+      "type": "quantity",
+      "kind": "mass",
+      "base": 1000000,
+      "unit": "kg",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 15
+      },
+      "confidence": 1
+    },
+    "mil millones de kg": {
+      "input": "mil millones de kg",
+      "opts": {
+        "locale": "es"
+      },
+      "type": "quantity",
+      "kind": "mass",
+      "base": 1000000000,
+      "unit": "kg",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 18
+      },
+      "confidence": 1
+    },
+    "dos mil millones de kg": {
+      "input": "dos mil millones de kg",
+      "opts": {
+        "locale": "es"
+      },
+      "type": "quantity",
+      "kind": "mass",
+      "base": 2000000000,
+      "unit": "kg",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 22
+      },
+      "confidence": 1
+    },
+    "un billon de kg": {
+      "input": "un billon de kg",
+      "opts": {
+        "locale": "es"
+      },
+      "type": "quantity",
+      "kind": "mass",
+      "base": 1000000000000,
+      "unit": "kg",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 15
+      },
+      "confidence": 1
+    },
+    "20 euros": {
+      "input": "20 euros",
+      "opts": {
+        "locale": "es"
+      },
+      "type": "quantity",
+      "kind": "currency",
+      "base": 20,
+      "unit": "EUR",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 8
+      },
+      "confidence": 1
+    },
+    "entre mil y dos mil kg": {
+      "input": "entre mil y dos mil kg",
+      "opts": {
+        "locale": "es"
+      },
+      "type": "range",
+      "kind": "mass",
+      "base": {
+        "min": 1000,
+        "max": 2000
+      },
+      "unit": {
+        "min": "kg",
+        "max": "kg"
+      },
+      "issues": [],
+      "span": {
+        "start": 6,
+        "end": 22
+      },
+      "confidence": 1
+    },
+    "entre cien y mil kg": {
+      "input": "entre cien y mil kg",
+      "opts": {
+        "locale": "es"
+      },
+      "type": "range",
+      "kind": "mass",
+      "base": {
+        "min": 100,
+        "max": 1000
+      },
+      "unit": {
+        "min": "kg",
+        "max": "kg"
+      },
+      "issues": [],
+      "span": {
+        "start": 6,
+        "end": 19
+      },
+      "confidence": 1
     }
   },
   "date": {
@@ -938,6 +1078,98 @@
       "span": {
         "start": 0,
         "end": 18
+      },
+      "confidence": 1
+    },
+    "el 1º de marzo": {
+      "input": "el 1º de marzo",
+      "opts": {
+        "locale": "es"
+      },
+      "type": "date",
+      "kind": "date",
+      "base": {
+        "year": 2027,
+        "month": 3,
+        "day": 1,
+        "hour": 0,
+        "minute": 0,
+        "second": 0
+      },
+      "unit": "day",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 14
+      },
+      "confidence": 1
+    },
+    "el 3 de marzo": {
+      "input": "el 3 de marzo",
+      "opts": {
+        "locale": "es"
+      },
+      "type": "date",
+      "kind": "date",
+      "base": {
+        "year": 2027,
+        "month": 3,
+        "day": 3,
+        "hour": 0,
+        "minute": 0,
+        "second": 0
+      },
+      "unit": "day",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 13
+      },
+      "confidence": 1
+    },
+    "el proximo lunes": {
+      "input": "el proximo lunes",
+      "opts": {
+        "locale": "es"
+      },
+      "type": "date",
+      "kind": "date",
+      "base": {
+        "year": 2026,
+        "month": 7,
+        "day": 6,
+        "hour": 0,
+        "minute": 0,
+        "second": 0
+      },
+      "unit": "day",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 16
+      },
+      "confidence": 1
+    },
+    "lunes que viene": {
+      "input": "lunes que viene",
+      "opts": {
+        "locale": "es"
+      },
+      "type": "date",
+      "kind": "date",
+      "base": {
+        "year": 2026,
+        "month": 7,
+        "day": 6,
+        "hour": 0,
+        "minute": 0,
+        "second": 0
+      },
+      "unit": "day",
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 15
       },
       "confidence": 1
     }

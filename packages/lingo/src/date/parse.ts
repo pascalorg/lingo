@@ -26,6 +26,7 @@ import {
   type SerializedDateRange,
 } from './serialize'
 import { type CoreDate, confidence, issue, knownFor, type P, trimRange } from './state'
+import { suffixTimeStarts, trimTrailingFillers } from './suffix'
 import { parseTimeOnly, type TimeCore } from './time'
 import { TIME_PATTERN } from './vocab'
 import { applyZoneToCivil, type DateZone, stripTrailingZone } from './zone'
@@ -224,6 +225,11 @@ function parseWithOptionalTime(p: P, start: number, end: number): CoreDate | nul
     }
   }
 
+  const unspaced = parseUnspacedDateTime(p, start, end)
+  if (unspaced) {
+    return unspaced
+  }
+
   const dateOnly = parseDateOnly(p, start, end, true)
   if (dateOnly) {
     return dateOnly
@@ -258,6 +264,31 @@ function parseWithOptionalTime(p: P, start: number, end: number): CoreDate | nul
 
 function dateTimePattern(p: P): string {
   return p.profile.date?.timePattern ?? TIME_PATTERN
+}
+
+/**
+ * Date and clock written as one unbroken run (`明天下午3点`, `明日の午後3時半`).
+ * Candidate split points come from the pack's clock vocabulary, so this scan
+ * only runs for packs that declare one and only tries the few offsets where a
+ * clock can actually begin.
+ */
+function parseUnspacedDateTime(p: P, start: number, end: number): CoreDate | null {
+  const source = p.text.slice(start, end)
+  for (const at of suffixTimeStarts(p, source)) {
+    const timeCore = parseTimeOnly(p, start + at, end)
+    if (!timeCore) {
+      continue
+    }
+    const head = trimTrailingFillers(p, source.slice(0, at))
+    if (head.length === 0) {
+      continue
+    }
+    const dateCore = parseDateOnly(p, start, start + head.length, true)
+    if (dateCore) {
+      return attachTime(dateCore, timeCore, start, end)
+    }
+  }
+  return null
 }
 
 function attachTime(core: CoreDate, time: TimeCore, start: number, end: number): CoreDate {

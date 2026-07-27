@@ -23,7 +23,7 @@ import type { LanguageProfile, LocalePack } from '../locale/types'
 import { parseValue, type ValueCtx } from '../number/value'
 import { type Normalized, normalizeInput, toSourceSpan } from './normalize'
 import type { SerializedResult } from './serialize'
-import { type Token, tokenize } from './tokenize'
+import { splitGluedWords, type Token, tokenize } from './tokenize'
 
 /**
  * Options shared by `lingo()`/`parseQuantity()`/`parseRange()`/`partialState()`
@@ -318,6 +318,40 @@ export function resolveConfig(opts: ParseOptions): ParserConfig {
   }
 }
 
+const gluedVocabularyCache = new WeakMap<LanguageProfile, readonly string[]>()
+
+/**
+ * Grammar words a space-free script can glue onto its neighbours. Only
+ * non-Latin entries qualify: in a spaced language the space already marks the
+ * boundary, and cutting inside a Latin word would invent tokens that were never
+ * written. Sorted longest-first so `不超过` wins over the `超过` inside it.
+ */
+function gluedWordVocabulary(profile: LanguageProfile): readonly string[] {
+  const cached = gluedVocabularyCache.get(profile)
+  if (cached) {
+    return cached
+  }
+  const g = profile.grammar
+  const vocabulary = [
+    ...g.boundPhrases.map((entry) => entry.phrase),
+    ...g.rangeSeparatorWords,
+    ...g.rangeAndWords,
+    ...g.rangeAlternativeWords,
+    ...g.rangeBetweenWords,
+    ...g.rangeFromWords,
+    ...g.conversionWords,
+    ...g.approximateWords,
+    ...g.approximatePhrases,
+    ...g.trailingApproxWords,
+    ...g.trailingApproxPhrases,
+  ]
+    .filter((word) => word.length > 0 && !/[a-z]/i.test(word))
+    .sort((a, b) => b.length - a.length)
+  const unique = [...new Set(vocabulary)]
+  gluedVocabularyCache.set(profile, unique)
+  return unique
+}
+
 export function prepare(input: string, opts: ParseOptions): ParserState {
   if (!opts.registry) {
     throw new Error(
@@ -326,6 +360,8 @@ export function prepare(input: string, opts: ParseOptions): ParserState {
   }
   const n = normalizeInput(input)
   const text = n.text
+  const lower = text.toLowerCase()
+  const tokens = tokenize(n)
   const localePacks = opts.localePacks
   const localeNotLoaded =
     opts.locale && !isLocaleLoaded(localePacks, opts.locale)
@@ -334,14 +370,19 @@ export function prepare(input: string, opts: ParseOptions): ParserState {
   const profile = opts.locale
     ? resolveLanguageProfile(localePacks, opts.locale)
     : hasNonEnglishLocalePacks(localePacks)
-      ? detectLanguageProfile(localePacks!, input)
+      ? // Detection reuses this pass instead of re-normalizing per loaded pack.
+        detectLanguageProfile(localePacks!, input, { lower, raw: input, tokens })
       : englishLanguageProfile
   return {
     src: input,
     n,
     text,
-    lower: text.toLowerCase(),
-    tokens: tokenize(n),
+    lower,
+    tokens: splitGluedWords(
+      tokens,
+      gluedWordVocabulary(profile),
+      (at) => opts.registry!.matchUnitsAt(text, lower, at, opts.kind)[0]?.length ?? 0,
+    ),
     reg: opts.registry,
     opts,
     profile,
@@ -415,7 +456,11 @@ export function tokenAfter(p: ParserState, pos: number): number {
  * The one place a `ValueCtx` is assembled from parser state — call sites only
  * choose the `kind` fallback (`expectKind ?? p.opts.kind`, `a.kind ?? …`).
  */
-export function valueCtx(p: ParserState, kind: Kind | undefined = p.opts.kind): ValueCtx {
+export function valueCtx(
+  p: ParserState,
+  kind: Kind | undefined = p.opts.kind,
+  noAnd = false,
+): ValueCtx {
   return {
     tokens: p.tokens,
     n: p.n,
@@ -424,6 +469,7 @@ export function valueCtx(p: ParserState, kind: Kind | undefined = p.opts.kind): 
     kind,
     numberWords: p.config.numberWords,
     profile: p.profile,
+    noAnd,
   }
 }
 

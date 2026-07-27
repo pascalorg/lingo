@@ -50,6 +50,23 @@ export const breadthRows = [
   ['une centaine de kg', { locale: 'fr' }],
   ['un millier de kg', { locale: 'fr' }],
   ['quelques kg', { locale: 'fr' }],
+  // Teens: the hyphen must not read as a range separator
+  ['dix-sept kg', { locale: 'fr' }],
+  ['dix-huit kg', { locale: 'fr' }],
+  ['dix-neuf kg', { locale: 'fr' }],
+  // Hundreds attach to the group in front of them, not the running total
+  ['mille cinq cents kg', { locale: 'fr' }],
+  ['deux cent cinquante mille kg', { locale: 'fr' }],
+  ['cent vingt kg', { locale: 'fr' }],
+  // Long scale: milliard is 10^9, billion is 10^12
+  ['un million de kg', { locale: 'fr' }],
+  ['deux milliards de kg', { locale: 'fr' }],
+  ['un billion de kg', { locale: 'fr' }],
+  ['mille millions de kg', { locale: 'fr' }],
+  // Currency
+  ['20 euros', { locale: 'fr' }],
+  // The range and-word wins over number composition on both sides
+  ['entre mille et deux mille kg', { locale: 'fr' }],
 ]
 
 export const dateRows = [
@@ -71,6 +88,10 @@ export const dateRows = [
   // localized weekday offsets
   ['lundi en huit', { locale: 'fr' }],
   ['mardi en quinze', { locale: 'fr' }],
+  // Ordinal day-of-month ("1er" only; other days are cardinal in French)
+  ['le 1er mars', { locale: 'fr' }],
+  ['le 3 mars', { locale: 'fr' }],
+  ['lundi prochain', { locale: 'fr' }],
 ]
 
 export const dateRangeRows = []

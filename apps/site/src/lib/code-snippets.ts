@@ -164,13 +164,19 @@ humanizeDuration(5400, { style: "natural" })     // "an hour and a half"`
 export const localeSnippet = `import { createLingo } from "@pascal-app/lingo"
 import { es } from "@pascal-app/lingo/locales/es"
 import { fr } from "@pascal-app/lingo/locales/fr"
+import { ja } from "@pascal-app/lingo/locales/ja"
 import { zh } from "@pascal-app/lingo/locales/zh"
 
-const lingo = createLingo({ locales: [es, fr, zh] })
+const lingo = createLingo({ locales: [es, fr, ja, zh] })
 
 lingo.parseQuantity("dos kg")                    // auto-detected as es
 lingo.parseRange("entre 5 et 10 kg", { locale: "fr" })
 lingo.parseQuantity("5公斤", { locale: "zh" })
+lingo.parseQuantity("mille cinq cents metres", { locale: "fr" })  // 1500 m
+
+// Comparators that follow the quantity, as CJK writes them.
+lingo.parseRange("5キロ未満", { locale: "ja" })    // < 5 kg
+lingo.parseRange("5公斤以上", { locale: "zh" })    // >= 5 kg
 
 // Success results expose the resolved profile.
 lingo.parse("dos kg").locale                      // "es"`

@@ -559,6 +559,11 @@ spanish.ok && spanish.quantity.to('kg').value   // 35
 const chinese = app.parseQuantity('三十五公斤', { locale: 'zh' })
 chinese.ok && chinese.quantity.to('kg').value   // 35
 
+// comparators that follow the quantity, as CJK writes them
+app.parse('5キロ未満', { locale: 'ja' })          // < 5 kg  (open range)
+app.parse('5公斤以上', { locale: 'zh' })          // ≥ 5 kg
+app.parse('100元', { locale: 'zh' })             // 100 CNY
+
 const clock = parseDate('las tres menos cuarto', {
   locale: 'es',
   localePacks: [es],
@@ -566,17 +571,22 @@ const clock = parseDate('las tres menos cuarto', {
 })
 clock.ok && [clock.date.getHours(), clock.date.getMinutes()] // [2, 45]
 
+const cjkDate = parseDate('2026年3月5日', { locale: 'zh', localePacks: [zh] })
+cjkDate.ok && [cjkDate.date.getMonth() + 1, cjkDate.date.getDate()] // [3, 5] (local)
+
 // omit `locale` to auto-detect among the loaded packs
 ```
 
 Packs (`en`, `en-gb`, `es`, `fr`, `pt`, `zh`, `ja`) are additive and tree-shakeable;
 they add number words, units, ranges, and relative dates (through
-`@pascal-app/lingo/date`) for their language. The first idiom wave includes
-Romance tens/hundreds/decimal words, CJK scale/grouped numbers and post-unit
-half, localized clock phrases, period edges, weekday offsets, and locale unit
-words in date/duration parsing. Requesting an unloaded locale returns
-`LOCALE_NOT_LOADED` rather than silently parsing as English; `humanizeDate()` output
-stays English for now.
+`@pascal-app/lingo/date`) for their language. Coverage includes Romance
+tens/hundreds/scale words (`ciento veinte`, `mille cinq cents`, `mil millones`),
+CJK scale/grouped numbers and post-unit half, postpositional comparators
+(`5キロ未満`, `5公斤以上`), per-locale currency defaults (`￥` is CNY under `zh`,
+JPY under `ja`), localized clock phrases and period edges, and CJK calendar
+dates and clocks (`2026年3月5日`, `午後3時半`, `明天下午3点`). Requesting an
+unloaded locale returns `LOCALE_NOT_LOADED` rather than silently parsing as
+English; `humanizeDate()` output stays English for now.
 
 The global `lingo()` is itself a `createLingo()` singleton. One code path,
 two tiers of convenience.

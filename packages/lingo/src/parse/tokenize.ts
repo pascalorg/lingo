@@ -110,6 +110,85 @@ export function tokenize(n: Normalized): Token[] {
   return tokens
 }
 
+/** How many characters of a unit alias start at this offset in the token. */
+export type AliasLengthAt = (start: number) => number
+
+/**
+ * Scripts written without word spaces hand the tokenizer one long run
+ * (`三至五公斤`, `5キロ未満`), which hides the grammar words inside it: the
+ * range separator never matches, and a bound or approximant glued behind the
+ * unit is silently swallowed with the rest of the token. Cutting the run at the
+ * profile's own grammar words restores the token boundaries the grammar
+ * expects, so no per-language parser branch is needed.
+ *
+ * Only non-Latin vocabulary splits, so spaced languages tokenize unchanged.
+ */
+export function splitGluedWords(
+  tokens: Token[],
+  vocabulary: readonly string[],
+  aliasLengthAt: AliasLengthAt,
+): Token[] {
+  if (vocabulary.length === 0) {
+    return tokens
+  }
+  let out: Token[] | null = null
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i]!
+    const pieces = token.type === 'word' ? cutAtVocabulary(token, vocabulary, aliasLengthAt) : null
+    if (pieces) {
+      out ??= tokens.slice(0, i)
+      out.push(...pieces)
+    } else {
+      out?.push(token)
+    }
+  }
+  return out ?? tokens
+}
+
+function cutAtVocabulary(
+  token: Token,
+  vocabulary: readonly string[],
+  aliasLengthAt: AliasLengthAt,
+): Token[] | null {
+  // A token that IS a grammar word stays whole: `不超过` must not be cut into
+  // `不` + the `超过` nested inside it.
+  if (token.text.length < 2 || isLetter(token.text[0]!) || vocabulary.includes(token.text)) {
+    return null
+  }
+  const cuts: number[] = []
+  for (let at = 0; at < token.text.length; ) {
+    const hit = vocabulary.find(
+      (word) => word.length <= token.text.length - at && token.text.startsWith(word, at),
+    )
+    // A unit alias is a word too: never cut inside one, or `一時間半` loses its
+    // hour to the `間` that Japanese also uses as a range word.
+    const alias = aliasLengthAt(token.start + at)
+    if (hit && hit.length >= alias) {
+      cuts.push(at, at + hit.length)
+      at += hit.length
+    } else {
+      at += Math.max(alias, 1)
+    }
+  }
+  if (cuts.length === 0) {
+    return null
+  }
+  const bounds = [...new Set([0, ...cuts, token.text.length])].sort((a, b) => a - b)
+  const pieces: Token[] = []
+  for (let i = 1; i < bounds.length; i++) {
+    const from = bounds[i - 1]!
+    const to = bounds[i]!
+    pieces.push({
+      type: 'word',
+      text: token.text.slice(from, to),
+      start: token.start + from,
+      end: token.start + to,
+      spaceBefore: i === 1 ? token.spaceBefore : false,
+    })
+  }
+  return pieces
+}
+
 function sameOriginFraction(n: Normalized, i: number): boolean {
   if (n.start.length === 0) {
     return false

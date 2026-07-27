@@ -27,7 +27,7 @@ input string
 |-------|--------|----------|
 | `.` (main) | `src/index.ts` | batteries-included: parse, convert, format, `createLingo`, extension points |
 | `./core` | `src/core/` + `src/parse/` + `src/number/` + `src/format/` | engine without bundled unit data — BYO registry, copy-free (D14) |
-| `./date` | `src/date/` | NL dates, time-of-day, zones, ranges/slots, reversible humanize, ISO durations |
+| `./date` | `src/date/` | NL dates, time-of-day, zones, ranges/slots, reversible humanize, ISO durations; `suffix.ts`/`numeral.ts` handle suffix-delimited CJK dates and clocks (D70) |
 | `./dom` | `src/dom/` | headless input controller |
 | `./element` | `src/element/` | `<lingo-input>` form-associated custom element |
 | `./react` | `src/react/` | `useLingoInput` hook (`'use client'`) over the DOM controller |
@@ -82,6 +82,19 @@ resolver + detector; the packs themselves live in `src/locales/`).
   (5K is kelvin, 70k is 70 000).
 - **Registry refs are liberal**: `.to('L')`, `convert(1,'gal','L')` resolve
   through aliases; `Quantity.unit` canonicalizes to the id ('l').
+- **Glued-grammar splitting is alias-guarded** (D70): scripts without word spaces
+  glue grammar to content (`5キロ未満`), so `prepare()` cuts word tokens at the
+  profile's non-Latin grammar vocabulary before parsing. The cut must be
+  suppressed *inside a unit alias* — `間` is a range word but `時間` is the hour
+  unit, so `一時間半` would otherwise split into a range. That is why
+  `splitGluedWords` takes an alias-length callback: tokenization has to consult
+  the unit matcher. If a CJK unit ever parses as a range, look here first.
+- **`noAnd` is threaded, not global** (D70): inside `between A and B` the and-word
+  belongs to the range, so `range.ts` passes `noAnd` through `QtyFlags` →
+  `ValueCtx` → the number-word engine, where it suppresses the scale link
+  (`one thousand and two thousand`) and the tens+ones link. It deliberately does
+  NOT suppress the fraction tail, so `between five and a half and ten kg` reads
+  5.5..10. Blanking `andWords` wholesale looks equivalent and breaks that case.
 - **No hidden clock**: `parseDate()` reads no wall clock; reference-dependent
   inputs without `now` fail with `NOW_REQUIRED` (D36). The `/ai` date fields'
   `requireNow: false` is the one explicit opt-in to the host clock, at field

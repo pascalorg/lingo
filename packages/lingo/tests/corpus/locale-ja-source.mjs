@@ -19,6 +19,20 @@ export const breadthRows = [
   ['約5キロ', { locale: 'ja' }],
   ['5キロ ほど', { locale: 'ja' }],
   ['三個', { locale: 'ja' }],
+  // Currency: the pack default disambiguates ￥ from the yuan
+  ['1000円', { locale: 'ja' }],
+  ['￥1000', { locale: 'ja' }],
+  // Postpositional bounds
+  ['5キロ未満', { locale: 'ja' }],
+  ['5キロ以上', { locale: 'ja' }],
+  ['5キロ以下', { locale: 'ja' }],
+  ['5キロ以内', { locale: 'ja' }],
+  ['5キロ超', { locale: 'ja' }],
+  // Prepositional bound
+  ['最低5キロ', { locale: 'ja' }],
+  // Trailing approximation, unspaced
+  ['5キロほど', { locale: 'ja' }],
+  ['5キロ前後', { locale: 'ja' }],
 ]
 
 export const dateRows = [
@@ -38,6 +52,19 @@ export const dateRows = [
   ['先々月', { locale: 'ja' }],
   ['週末', { locale: 'ja' }],
   ['月末', { locale: 'ja' }],
+  // Numeric dates written with 年/月/日 suffixes
+  ['2026年3月5日', { locale: 'ja' }],
+  ['3月5日', { locale: 'ja' }],
+  // Weekdays
+  ['水曜日', { locale: 'ja' }],
+  ['水曜', { locale: 'ja' }],
+  ['来週の月曜日', { locale: 'ja' }],
+  // Clock with 時/分 and day periods
+  ['午後3時', { locale: 'ja' }],
+  ['午前9時半', { locale: 'ja' }],
+  ['3時15分', { locale: 'ja' }],
+  // Date + time with no separating space
+  ['明日午後3時', { locale: 'ja' }],
 ]
 
 export const dateRangeRows = []

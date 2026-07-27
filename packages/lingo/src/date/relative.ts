@@ -14,6 +14,7 @@ import {
   startOfWeek,
   withTime,
 } from './civil'
+import { readLocaleNumber } from './numeral'
 import type { DateAlternative, DateGrain } from './parse'
 import {
   type CoreDate,
@@ -25,6 +26,7 @@ import {
   stripDateFillers,
   trimRange,
 } from './state'
+import { matchAffix, trimLeadingFillers, trimTrailingFillers } from './suffix'
 import {
   type DayTimePhrase,
   DAY_OFFSETS as EN_DAY_OFFSETS,
@@ -379,11 +381,13 @@ function parseWeekday(p: P, start: number, end: number): CoreDate | null {
 function extractWeekdayOffset(p: P, source: string): { days: number; source: string } | null {
   const phrases = dateWeekdayOffsetPhrases(p)
   for (const phrase of Object.keys(phrases)) {
-    if (source.endsWith(` ${phrase}`)) {
-      return { source: source.slice(0, -phrase.length - 1).trim(), days: phrases[phrase]! }
+    const trailing = matchAffix(source, phrase, 'end')
+    if (trailing !== null) {
+      return { source: trailing.trim(), days: phrases[phrase]! }
     }
-    if (source.startsWith(`${phrase} `)) {
-      return { source: source.slice(phrase.length + 1).trim(), days: phrases[phrase]! }
+    const leading = matchAffix(source, phrase, 'start')
+    if (leading !== null) {
+      return { source: leading.trim(), days: phrases[phrase]! }
     }
   }
   return null
@@ -408,11 +412,13 @@ function matchWordModifier(
   const modifiers = dateModifiers(p)
   for (const modifier of RELATIVE_MODIFIERS) {
     for (const modWord of modifiers[modifier]) {
-      if (source.startsWith(`${modWord} `)) {
-        return { modifier, word: source.slice(modWord.length + 1) }
+      const leading = matchAffix(source, modWord, 'start')
+      if (leading !== null) {
+        return { modifier, word: trimLeadingFillers(p, leading) }
       }
-      if (source.endsWith(` ${modWord}`)) {
-        return { modifier, word: source.slice(0, -modWord.length - 1) }
+      const trailing = matchAffix(source, modWord, 'end')
+      if (trailing !== null) {
+        return { modifier, word: trailing }
       }
     }
   }
@@ -736,11 +742,12 @@ function parseDayPartCompound(
 ): CoreDate | null {
   const parts = dateDayPartWords(p)
   for (const phrase of Object.keys(parts)) {
-    if (!source.endsWith(` ${phrase}`)) {
+    const head = matchAffix(source, phrase, 'end')
+    if (head === null) {
       continue
     }
-    const partStart = end - phrase.length
-    const { end: anchorEnd } = trimRange(p.text, start, partStart)
+    const trimmedHead = trimTrailingFillers(p, head)
+    const { end: anchorEnd } = trimRange(p.text, start, start + trimmedHead.length)
     if (anchorEnd <= start) {
       continue
     }
@@ -929,27 +936,8 @@ function parseCompactOffsetBody(
   if (!unitEntry) {
     return null
   }
-  const value = parseCompactNumber(p, body.slice(0, -unitEntry.length))
+  const value = readLocaleNumber(p, body.slice(0, -unitEntry.length))
   return value === null ? null : { unit: units[unitEntry]!, value }
-}
-
-function parseCompactNumber(p: P, text: string): number | null {
-  if (/^\d+$/.test(text)) {
-    return Number(text)
-  }
-  if (text === '十') {
-    return 10
-  }
-  const ten = text.indexOf('十')
-  if (ten >= 0) {
-    const left = ten === 0 ? 1 : (p.profile.numerals?.[text.slice(0, ten)] ?? Number.NaN)
-    const right =
-      ten === text.length - 1 ? 0 : (p.profile.numerals?.[text.slice(ten + 1)] ?? Number.NaN)
-    const value = left * 10 + right
-    return Number.isFinite(value) ? value : null
-  }
-  const value = p.profile.numerals?.[text]
-  return value === undefined ? null : value
 }
 
 function isJoinWord(p: P, pos: number): boolean {

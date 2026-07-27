@@ -52,6 +52,18 @@ export const breadthRows = [
   ['de 5 a 10 kg', { locale: 'es' }],
   // fuzzyAmounts
   ['un par de kg', { locale: 'es' }],
+  // Hundreds attach to the group in front of them, not the running total
+  ['ciento veinte kg', { locale: 'es' }],
+  // Long scale: "mil millones" is 10^9, "billón" is 10^12
+  ['un millon de kg', { locale: 'es' }],
+  ['mil millones de kg', { locale: 'es' }],
+  ['dos mil millones de kg', { locale: 'es' }],
+  ['un billon de kg', { locale: 'es' }],
+  // Currency
+  ['20 euros', { locale: 'es' }],
+  // The range and-word wins over number composition on both sides
+  ['entre mil y dos mil kg', { locale: 'es' }],
+  ['entre cien y mil kg', { locale: 'es' }],
 ]
 
 export const dateRows = [
@@ -71,6 +83,11 @@ export const dateRows = [
   ['a mediados de julio', { locale: 'es' }],
   ['a finales de mes', { locale: 'es' }],
   ['a finales de julio', { locale: 'es' }],
+  // Day-of-month, ordinal and cardinal
+  ['el 1º de marzo', { locale: 'es' }],
+  ['el 3 de marzo', { locale: 'es' }],
+  ['el proximo lunes', { locale: 'es' }],
+  ['lunes que viene', { locale: 'es' }],
 ]
 
 export const dateRangeRows = []

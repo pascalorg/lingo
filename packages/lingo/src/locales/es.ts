@@ -145,6 +145,12 @@ export const es: LocalePack = {
       mil: 1000,
       millon: 1_000_000,
       millones: 1_000_000,
+      millardo: 1_000_000_000,
+      millardos: 1_000_000_000,
+      // Spanish is a long-scale language: "billón" is 10^12, NOT the English
+      // billion. 10^9 is "mil millones" (or the rarer "millardo").
+      billon: 1_000_000_000_000,
+      billones: 1_000_000_000_000,
     },
     tens: {
       veinte: 20,
@@ -210,6 +216,8 @@ export const es: LocalePack = {
       diciembre: 11,
       dic: 11,
     },
+    // "1º de julio" / "1er día" — º normalizes to the degree sign.
+    ordinalSuffixes: ['o', 'a', 'er', '°'],
     periodEdgePhrases: {
       principios: { edge: 'start', period: 'month' },
       mediados: { edge: 'mid', period: 'month' },

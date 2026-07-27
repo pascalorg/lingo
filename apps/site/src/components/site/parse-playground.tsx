@@ -24,12 +24,31 @@ const localeLingo = createLingo({ locales: [es, fr, pt, zh, ja, enGb] })
 
 const EXAMPLES: Record<LocaleChoice, readonly string[]> = {
   auto: ['72 in to cm', 'dos kg', 'entre 5 et 10 kg', '5公斤', '暑い'],
-  en: ['2 ft', '72 in to cm', 'between 5 and 10 kg', '5 meters', "it's hot"],
-  es: ['dos kg', 'entre 5 y 10 kg', '72 pulgadas a cm', 'dos metros y medio', 'al menos 2 m'],
-  fr: ['deux kg', 'entre 5 et 10 kg', '72 pouces en cm', 'deux metres et demi', 'au moins 2 m'],
-  pt: ['dois kg', 'entre 5 e 10 kg', '72 polegadas em cm', 'pelo menos 2 m'],
-  zh: ['5公斤', '3米', '5到10公斤', '很热'],
-  ja: ['5キロ', '3メートル', '5から10キロ', '暑い'],
+  en: [
+    '2 ft',
+    '72 in to cm',
+    'between 5 and 10 kg',
+    'between one thousand and two thousand meters',
+    "it's hot",
+  ],
+  es: [
+    'dos kg',
+    'entre 5 y 10 kg',
+    '72 pulgadas a cm',
+    'ciento veinte kg',
+    'mil millones de kg',
+    'al menos 2 m',
+  ],
+  fr: [
+    'deux kg',
+    'entre 5 et 10 kg',
+    '72 pouces en cm',
+    'mille cinq cents metres',
+    'deux metres et demi',
+  ],
+  pt: ['dois kg', 'entre 5 e 10 kg', 'cento e vinte metros', 'mil e quinhentos metros'],
+  zh: ['5公斤', '5公斤以上', '5公斤以下', '五公斤左右', '100元', '很热'],
+  ja: ['5キロ', '5キロ未満', '5キロ以上', '5キロぐらい', '1000円', '暑い'],
   'en-gb': ['12 stone', '3 quid', 'roundabout 2 m'],
 }
 

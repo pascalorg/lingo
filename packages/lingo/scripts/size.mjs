@@ -143,8 +143,12 @@ function check(label, size, budget) {
 // approximatePhrases) + CJK number engine (sub-token segmentation, 万/亿
 // grouping, elliptical/mixed forms, wave-dash + adjacent ranges, post-unit 半).
 // Measured 38.19 after golfing; capability is product (D14 pattern).
+// 39.4 (was 38.3): D70 — wave-2 idiom engine: profile-driven splitting of glued
+// CJK grammar words, postpositional bounds (5キロ未満), and number-word
+// arithmetic fixes (hundreds bind to the preceding group, scale chaining,
+// `noAnd` threading). Measured 39.18.
 const full = await bundleStdin(`export * from './src/index.ts'`)
-check('lingo (full)', full, 38_300)
+check('lingo (full)', full, 39_400)
 
 if (has('src/locales/es.ts')) {
   const enLocale = await bundleStdin(`export * from './src/locales/en.ts'`)
@@ -174,12 +178,17 @@ if (has('src/locales/es.ts')) {
   // 1.3 (was 1.2): D69 — plan 033: CJK number tables for the D68 walker
   // (两/幺/点/半, scales), duration unit aliases (个小时/時間), trailing approx
   // (左右/上下), day offsets (前天/一昨日), period edges, 円/JPY.
+  // 2.0 (was 1.3): D70 — calendar/clock vocab (weekdays, months, 年月日 numeric
+  // suffixes, 点/分/秒 clock, 上午/下午 day periods, 半/一刻 minute words),
+  // postpositional bound phrases, and the CNY default + 元/块 aliases.
   const zhLocale = await bundleStdin(`export * from './src/locales/zh.ts'`)
-  check('./locales/zh (standalone data)', zhLocale, 1300)
+  check('./locales/zh (standalone data)', zhLocale, 2000)
   // 1.4 (was 1.2): D69 — see zh note; ja adds 再来週/先々週 modifiers and
   // 今朝/今晩 day-part phrases.
+  // 2.0 (was 1.4): D70 — see zh note; ja adds 時/分 clock, 午前/午後 periods,
+  // 曜日 weekdays, the の filler, and 未満/以上/超 postpositional bounds.
   const jaLocale = await bundleStdin(`export * from './src/locales/ja.ts'`)
-  check('./locales/ja (standalone data)', jaLocale, 1400)
+  check('./locales/ja (standalone data)', jaLocale, 2000)
   const enGbLocale = await bundleStdin(`export * from './src/locales/en-gb.ts'`)
   check('./locales/en-gb (standalone data)', enGbLocale, 250)
 
@@ -197,13 +206,16 @@ if (has('src/locales/es.ts')) {
   )
   // 2.0 (was 1.6): D69 — plan 033 CJK idiom pack data (see zh/ja standalone
   // notes); low zh/ja gzip dedup because the scripts differ.
-  check('./locales zh+ja (marginal over full)', withCjkLocales - full, 2000)
+  // 3.0 (was 2.0): D70 — calendar/clock/bound vocab in both packs (see zh/ja
+  // standalone notes).
+  check('./locales zh+ja (marginal over full)', withCjkLocales - full, 3000)
   const withAllLocales = await bundleStdin(
     `export * from './src/index.ts'; export { es } from './src/locales/es.ts'; export { fr } from './src/locales/fr.ts'; export { pt } from './src/locales/pt.ts'; export { zh } from './src/locales/zh.ts'; export { ja } from './src/locales/ja.ts'; export { enGb } from './src/locales/en-gb.ts'`,
   )
   // 6.3 (was 5.8): D69 — plan 033 romance idiom packs (see above).
   // (raised again for restored breadth entries — coverage beats pack-byte golf, D14)
-  check('./locales all loaded (marginal over full)', withAllLocales - full, 6300)
+  // 6.9 (was 6.3): D70 — zh/ja calendar/clock/bound vocab (see above).
+  check('./locales all loaded (marginal over full)', withAllLocales - full, 6900)
 }
 
 // 19.9 (was 19.6): D48 — shared parser recognizes GBP pence idioms and
@@ -248,8 +260,11 @@ if (has('src/locales/es.ts')) {
 // 25.6 (was 24.2): D68 — wave-1 idiom engine mechanisms live in the shared
 // number/parse layer (Romance composition fields + CJK number walker), so
 // BYO-registry cores get them too. Measured 25.46 after golfing.
+// 26.8 (was 25.6): D70 — wave-2 mechanisms in the shared layer: profile-driven
+// splitting of glued grammar words (unit aliases stay atomic), postpositional
+// bound phrases, and number-word arithmetic fixes. Measured 26.56.
 const core = await bundleStdin(`export * from './src/core/index.ts'`)
-check('./core (engine, no unit data)', core, 25_600)
+check('./core (engine, no unit data)', core, 26_800)
 
 if (has('src/date/index.ts')) {
   const dateAlone = await bundleStdin(`export * from './src/date/index.ts'`)
@@ -302,7 +317,10 @@ if (has('src/date/index.ts')) {
   // 41.0 (was 39.7): D69 — localized date grammar seams (clock past/to/minute
   // words, period edges, weekday offsets, afterNext/beforeLast, day-part
   // compounds, localized durations). Measured 40.85 after golfing.
-  check('./date (standalone, incl. engine)', dateAlone, 41_000)
+  // 43.3 (was 41.0): D70 — suffix-delimited date/clock grammar (date/suffix.ts,
+  // date/numeral.ts): 年月日 numeric dates, 点/時/分/秒 clocks, day periods,
+  // unspaced date+time splitting, glued affix matching. Measured 43.01.
+  check('./date (standalone, incl. engine)', dateAlone, 43_300)
   const withDate = await bundleStdin(
     `export * from './src/index.ts'; export * from './src/date/index.ts'`,
   )
@@ -324,7 +342,9 @@ if (has('src/date/index.ts')) {
   // 13.1 (was 12.9): D66 — date-only parser readers for locale date vocab.
   // 14.4 (was 13.1): D69 — localized date grammar consumers live entirely in
   // the date module (see standalone note). Measured 14.29 after golfing.
-  check('./date (marginal over full)', withDate - full, 14_400)
+  // 15.7 (was 14.4): D70 — the suffix date/clock grammar lands entirely in the
+  // date module (see standalone note). Measured 15.46.
+  check('./date (marginal over full)', withDate - full, 15_700)
 }
 
 if (has('src/dom/index.ts')) {
@@ -455,7 +475,9 @@ if (has('src/ai/index.ts')) {
   // 16.1 (was 15.7): D66 — /ai date fields bundle the locale-aware date parser.
   // 17.4 (was 16.1): D69 — the localized date grammar cascades through the
   // bundled date module (see ./date notes). Measured 17.27 after golfing.
-  check('./ai (marginal over full)', withAi - full, 17_400) // D30: +notation in shared renderNumber
+  // 18.6 (was 17.4): D70 — the suffix date/clock grammar cascades through the
+  // bundled date module; no /ai code changed. Measured 18.39.
+  check('./ai (marginal over full)', withAi - full, 18_600) // D30: +notation in shared renderNumber
   if (has('src/mcp/index.ts')) {
     const withMcp = await bundleStdin(
       `export * from './src/index.ts'; export * from './src/ai/index.ts'; export * from './src/mcp/index.ts'`,

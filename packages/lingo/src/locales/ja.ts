@@ -5,10 +5,12 @@ export const ja: LocalePack = {
   aliases: ['ja-JP'],
   extends: 'en',
   defaults: {
+    // `¥` is shared with the yuan, so the Japanese reading has to be declared.
+    currency: 'JPY',
     numberFormat: 'auto',
   },
   units: {
-    currency: [['JPY', '円']],
+    currency: [['JPY', '円 えん']],
     length: [
       ['m', 'メートル'],
       ['cm', 'センチ センチメートル'],
@@ -51,11 +53,16 @@ export const ja: LocalePack = {
     approximateWords: ['約', 'およそ', 'だいたい', 'くらい', 'ぐらい', '暑い'],
     boundPhrases: [
       { phrase: '少なくとも', bound: 'min', exclusive: false },
-      { phrase: '以上', bound: 'min', exclusive: false },
-      { phrase: 'より多い', bound: 'min', exclusive: true },
       { phrase: '最大', bound: 'max', exclusive: false },
-      { phrase: '以下', bound: 'max', exclusive: false },
-      { phrase: '未満', bound: 'max', exclusive: true },
+      { phrase: '最低', bound: 'min', exclusive: false },
+      // Japanese bounds are postpositions: they close the quantity.
+      { phrase: '以上', bound: 'min', exclusive: false, suffix: true },
+      { phrase: 'より多い', bound: 'min', exclusive: true, suffix: true },
+      { phrase: '超', bound: 'min', exclusive: true, suffix: true },
+      { phrase: '以下', bound: 'max', exclusive: false, suffix: true },
+      { phrase: '以内', bound: 'max', exclusive: false, suffix: true },
+      { phrase: '未満', bound: 'max', exclusive: true, suffix: true },
+      { phrase: 'より少ない', bound: 'max', exclusive: true, suffix: true },
     ],
     conversionWords: ['へ', 'に', 'として'],
     phraseWords: ['から', 'まで', '約', 'およそ', '以上', '以下'],
@@ -99,6 +106,9 @@ export const ja: LocalePack = {
   },
   date: {
     calendarPeriodPhrases: {
+      今週: { modifier: 'this', period: 'week' },
+      今月: { modifier: 'this', period: 'month' },
+      今年: { modifier: 'this', period: 'year' },
       来週: { modifier: 'next', period: 'week' },
       来月: { modifier: 'next', period: 'month' },
       来年: { modifier: 'next', period: 'year' },
@@ -109,6 +119,16 @@ export const ja: LocalePack = {
       先々週: { modifier: 'beforeLast', period: 'week' },
       先々月: { modifier: 'beforeLast', period: 'month' },
       去年: { modifier: 'last', period: 'year' },
+    },
+    // `半` is the minute half of an hour here (`3時半`), not the fraction it
+    // spells in a quantity.
+    clockMinuteWords: {
+      半: 30,
+    },
+    clockSuffix: {
+      hour: ['時', '时'],
+      minute: ['分'],
+      second: ['秒'],
     },
     compactOffset: {
       futureSuffixes: ['後'],
@@ -136,6 +156,24 @@ export const ja: LocalePack = {
       一昨日: -2,
       おととい: -2,
     },
+    // Bare day parts, used both alone and after a day word (`明日の朝`).
+    dayPartWords: {
+      朝: { hour: 8 },
+      昼: { hour: 12 },
+      夕方: { hour: 18 },
+      晩: { hour: 19 },
+      夜: { hour: 21 },
+    },
+    // Halves of the day that fix a 12-hour reading, the way am/pm does.
+    dayPeriods: {
+      午前: { meridiem: 'am' },
+      朝: { meridiem: 'am' },
+      昼: { meridiem: 'pm' },
+      午後: { meridiem: 'pm' },
+      夕方: { meridiem: 'pm' },
+      晩: { meridiem: 'pm' },
+      夜: { meridiem: 'pm' },
+    },
     dayTimePhrases: {
       今朝: { dayOffset: 0, hour: 8 },
       今晩: { dayOffset: 0, hour: 19 },
@@ -143,13 +181,62 @@ export const ja: LocalePack = {
       正午: { dayOffset: 0, hour: 12 },
       明日の正午: { dayOffset: 1, hour: 12 },
     },
+    // The genitive particle joins a date to what follows (`明日の午後`); it is
+    // droppable the way English "the" is.
+    fillerWords: ['の'],
+    modifiers: {
+      this: ['今週', '今'],
+      next: ['来週', '来', '次の'],
+      last: ['先週', '先', '前の'],
+      afterNext: ['再来週'],
+      beforeLast: ['先々週'],
+    },
+    months: {
+      一月: 0,
+      二月: 1,
+      三月: 2,
+      四月: 3,
+      五月: 4,
+      六月: 5,
+      七月: 6,
+      八月: 7,
+      九月: 8,
+      十月: 9,
+      十一月: 10,
+      十二月: 11,
+    },
+    numericDateSuffixes: {
+      day: ['日'],
+      month: ['月'],
+      year: ['年'],
+    },
     periodEdgePhrases: {
       月末: { edge: 'end', period: 'month' },
+      月初: { edge: 'start', period: 'month' },
+      年末: { edge: 'end', period: 'year' },
+      年始: { edge: 'start', period: 'year' },
       週末: { edge: 'end', period: 'week' },
     },
     timeAliases: {
       正午: { hour: 12 },
       真夜中: { hour: 0 },
+    },
+    weekdayNames: ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'],
+    weekdays: {
+      月曜日: 1,
+      火曜日: 2,
+      水曜日: 3,
+      木曜日: 4,
+      金曜日: 5,
+      土曜日: 6,
+      日曜日: 0,
+      月曜: 1,
+      火曜: 2,
+      水曜: 3,
+      木曜: 4,
+      金曜: 5,
+      土曜: 6,
+      日曜: 0,
     },
   },
   numerals: {

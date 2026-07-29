@@ -240,6 +240,13 @@ export const docsNavGroups: DocsNavGroup[] = [
         'tool',
         'bridge',
       ]),
+      page(
+        'one-schema-grid',
+        'A column is a schema',
+        'Give a table column a field; every cell normalizes.',
+        ['data grid', 'table', 'tanstack', 'react-table', 'spreadsheet', 'cell', 'column', 'bulk'],
+        { depth: 3, markdownSectionId: 'one-schema' },
+      ),
     ],
   },
   {
@@ -256,6 +263,13 @@ export const docsNavGroups: DocsNavGroup[] = [
         'best fit',
         'delta',
       ]),
+      page(
+        'convert-notation',
+        'Typeset the reading',
+        'Render canonical readings as LaTeX notation.',
+        ['latex', 'katex', 'mathjax', 'notation', 'scientific', 'typeset', 'superscript'],
+        { depth: 3, markdownSectionId: 'convert' },
+      ),
       page('currency', 'Currency', 'Parse symbols and codes; convert with your own rates.', [
         'currency',
         'usd',
@@ -288,7 +302,25 @@ export const docsNavGroups: DocsNavGroup[] = [
         'range',
         'parseDateRange',
         'humanizeDateRange',
+        'calendar',
+        'next week',
+        'this weekend',
       ]),
+      page(
+        'dates-calendar',
+        'One field, three widgets',
+        'Date-to-date spans, calendar periods, and slots in one input.',
+        [
+          'calendar',
+          'date range',
+          'date picker',
+          'next week',
+          'this weekend',
+          'next month',
+          'two month',
+        ],
+        { depth: 3, markdownSectionId: 'dates' },
+      ),
       page('locales', 'Locales', 'Load tree-shakeable language packs for parsing.', [
         'locale',
         'locale pack',

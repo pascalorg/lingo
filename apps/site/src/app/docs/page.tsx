@@ -8,14 +8,17 @@ import { IntegrationsTabs } from '@/app/integrations/integrations-tabs'
 import { AiCanonicalizerDemo } from '@/components/site/ai-canonicalizer-demo'
 import { AiEvalReadout } from '@/components/site/ai-eval-readout'
 import { SectionHeading, SubHeading } from '@/components/site/anchor-heading'
+import { CalendarFieldDemo } from '@/components/site/calendar-field-demo'
 import { CodeBlock } from '@/components/site/code-block'
 import { CodeTabs } from '@/components/site/code-tabs'
 import { CommandBlock } from '@/components/site/command-block'
 import { CompletionsDemo } from '@/components/site/completions-demo'
 import { CoverageExplorer } from '@/components/site/coverage-explorer'
+import { DataGridDemo } from '@/components/site/data-grid-demo'
 import { DocsNav } from '@/components/site/docs-nav'
 import { DocsPageActions } from '@/components/site/docs-page-actions'
 import { FormUxGallery } from '@/components/site/form-ux-gallery'
+import { LatexUnitsDemo } from '@/components/site/latex-units-demo'
 import { ParsePlayground } from '@/components/site/parse-playground'
 import { PerformanceSection } from '@/components/site/performance-section'
 import {
@@ -832,6 +835,16 @@ export default async function Home() {
               </code>{' '}
               for fields lingo doesn&apos;t own.)
             </p>
+            <div className="flex min-w-0 flex-col gap-3">
+              <SubHeading id="one-schema-grid">A column is a schema</SubHeading>
+              <p className="text-muted-foreground text-sm">
+                The same idea scales past a single field. Give a table column a{' '}
+                <Code>quantityField</Code> and every cell in it accepts whatever people paste —
+                pounds and ounces, a comma decimal, Fahrenheit — while the column keeps one
+                canonical unit, so the totals row can just add numbers.
+              </p>
+            </div>
+            <DataGridDemo />
           </Section>
 
           <Section
@@ -847,6 +860,17 @@ export default async function Home() {
               rise is a 9 °F rise, not 41. Everything <Code>format()</Code> emits re-parses to the
               same value.
             </p>
+            <div className="flex min-w-0 flex-col gap-3">
+              <SubHeading id="convert-notation">Typeset the reading</SubHeading>
+              <p className="text-muted-foreground text-sm">
+                A canonical reading is structured enough to render as notation, not just text. The
+                unit id and the numeric value are separate fields, so <Code>m/s2</Code> becomes a
+                real fraction with a superscript and <Code>±</Code> tolerance becomes a proper
+                interval. This demo maps results to LaTeX in ~90 lines; lingo itself ships no
+                renderer.
+              </p>
+            </div>
+            <LatexUnitsDemo />
           </Section>
 
           <Section
@@ -888,6 +912,18 @@ export default async function Home() {
               </a>
               .
             </p>
+            <div className="flex min-w-0 flex-col gap-3">
+              <SubHeading id="dates-calendar">One field, three widgets</SubHeading>
+              <p className="text-muted-foreground text-sm">
+                <Code>parseDateRange</Code> also reads date-to-date spans (
+                <Code>Aug 3 - Aug 9</Code>) and whole calendar periods (<Code>next week</Code>,{' '}
+                <Code>this weekend</Code>, <Code>next month</Code>), each expanded to its real first
+                and last day. Because the reading says which shape it found, one input can decide
+                between a day picker, a two-month range picker, and a time slot — no mode toggle for
+                the person typing.
+              </p>
+            </div>
+            <CalendarFieldDemo />
           </Section>
 
           <Section

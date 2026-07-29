@@ -308,7 +308,7 @@ export const docsNavGroups: DocsNavGroup[] = [
       ]),
       page(
         'dates-calendar',
-        'One field, three widgets',
+        'One field, three readings',
         'Date-to-date spans, calendar periods, and slots in one input.',
         [
           'calendar',

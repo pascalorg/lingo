@@ -24,7 +24,10 @@ export function KatexMath({
     () =>
       katex.renderToString(tex, {
         displayMode: display,
-        output: 'html',
+        // `html` alone ships only the visual glyph spans, which a screen reader
+        // reads as scattered characters. This pairs them with MathML and hides
+        // the visual layer from the accessibility tree.
+        output: 'htmlAndMathml',
         throwOnError: false,
       }),
     [tex, display],

@@ -46,7 +46,7 @@ export function LatexUnitsDemo() {
 
   return (
     <DemoFrame
-      caption="Every canonical reading has a typeset form; lingo emits the source."
+      caption="Value and unit id come back as separate fields, so an app-level renderer can emit LaTeX."
       details={<JsonView label="Output" value={JSON.stringify(result, null, 2)} />}
       detailsLabel="Output"
       stageClassName="min-h-[30rem] justify-start"

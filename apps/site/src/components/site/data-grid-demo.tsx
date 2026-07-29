@@ -182,13 +182,13 @@ function LingoCell({
   columnKey,
   columns,
   onChange,
-  rowIndex,
+  rowLabel,
   value,
 }: {
   columnKey: FieldKey
   columns: Record<FieldKey, ColumnSpec>
   onChange: (next: string) => void
-  rowIndex: number
+  rowLabel: string
   value: string
 }) {
   const reading = useMemo(() => read(columnKey, value, columns), [columnKey, value, columns])
@@ -204,7 +204,7 @@ function LingoCell({
       <input
         aria-describedby={noteId}
         aria-invalid={failed}
-        aria-label={`${HEADERS[columnKey]}, row ${rowIndex + 1}`}
+        aria-label={`${HEADERS[columnKey]}, ${rowLabel}`}
         className={cn(
           'h-6 w-full min-w-0 cursor-text rounded-[4px] bg-transparent px-1.5 font-mono text-[12px] outline-none',
           'transition-[background-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]',
@@ -233,9 +233,15 @@ function LingoCell({
             <span className="sr-only">{reading.message}</span>
           </>
         ) : (
-          <span className={cn(assumed && 'underline decoration-dotted underline-offset-2')}>
-            {reading.display}
-          </span>
+          <>
+            <span className={cn(assumed && 'underline decoration-dotted underline-offset-2')}>
+              {reading.display}
+            </span>
+            {/* The dotted underline and the `title` both need a pointer to read.
+                Assumptions are the honest part of the story, so they have to
+                survive without one. */}
+            {assumed ? <span className="sr-only">. {reading.message}</span> : null}
+          </>
         )}
       </span>
     </div>
@@ -274,7 +280,7 @@ export function DataGridDemo() {
               columnKey={key}
               columns={fields}
               onChange={(next) => update(ctx.row.original.id, key, next)}
-              rowIndex={ctx.row.index}
+              rowLabel={ctx.row.original.sku || `row ${ctx.row.index + 1}`}
               value={ctx.getValue()}
             />
           ),
@@ -389,12 +395,19 @@ export function DataGridDemo() {
 
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
           <dl className="numeric-mono flex flex-wrap items-center gap-x-5 gap-y-1 text-[12px]">
+            {/* A refused cell contributes nothing, so calling the remainder a
+                total would be the exact silent-wrong-answer this demo argues
+                against. Name it for what it is instead. */}
             <div className="flex gap-1.5">
-              <dt className="text-muted-foreground">Total mass</dt>
+              <dt className="text-muted-foreground">
+                {totals.refused > 0 ? 'Accepted mass' : 'Total mass'}
+              </dt>
               <dd className="text-foreground">{totals.mass} kg</dd>
             </div>
             <div className="flex gap-1.5">
-              <dt className="text-muted-foreground">Total price</dt>
+              <dt className="text-muted-foreground">
+                {totals.refused > 0 ? 'Accepted price' : 'Total price'}
+              </dt>
               <dd className="text-foreground">{totals.price} USD</dd>
             </div>
             <div className="flex gap-1.5">

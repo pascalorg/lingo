@@ -8,7 +8,14 @@ import {
   parseDateRange,
 } from '@pascal-app/lingo/date'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useCallback, useMemo, useState } from 'react'
+import {
+  type KeyboardEvent as ReactKeyboardEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 
 import { DemoFrame } from '@/components/site/demo-frame'
 import { JsonView } from '@/components/site/json-view'
@@ -89,8 +96,18 @@ function read(text: string, now: Date): Reading {
   if (range.ok) {
     const start = range.start?.date ?? null
     const end = range.end?.date ?? null
-    const clock = !range.dated
-    return { end, mode: clock ? 'slot' : 'range', result: range, start }
+    // `dated` marks the calendar grammar, but an anchored duration ("3 days
+    // starting monday") is a span too, so day-grained endpoints count. Reading
+    // everything undated as a clock slot mislabels it and hides a month.
+    const dated = range.dated === true
+    const spans = dated || range.start?.grain === 'day' || range.end?.grain === 'day'
+    if (!spans) {
+      return { end, mode: 'slot', result: range, start }
+    }
+    // Calendar grammar reports an inclusive last day; an anchored duration
+    // reports an exclusive end. Normalize to the last day actually covered so
+    // the highlight and the day count agree.
+    return { end: end && !dated ? addDays(end, -1) : end, mode: 'range', result: range, start }
   }
   const single = parseDate(text, { now })
   if (single.ok) {
@@ -151,18 +168,79 @@ export function CalendarFieldDemo() {
   const now = useMemo(() => (hydrated ? new Date() : SSR_NOW), [hydrated])
   const [value, setValue] = useState('next week')
   const [cursor, setCursor] = useState<Date | null>(null)
+  const [roving, setRoving] = useState<Date | null>(null)
+  // Bumped only by arrow keys, so focus is never stolen on mount or on typing.
+  const [focusTick, setFocusTick] = useState(0)
+  const gridRef = useRef<HTMLDivElement>(null)
 
   const reading = useMemo(() => read(value, now), [value, now])
   const { mode, start, end } = reading
   const twoUp = mode === 'range'
 
   // The calendar follows the parse unless the reader has paged away from it.
-  const anchor =
-    cursor ??
-    (start
-      ? new Date(start.getFullYear(), start.getMonth(), 1)
-      : new Date(now.getFullYear(), now.getMonth(), 1))
-  const months = twoUp ? [anchor, addMonths(anchor, 1)] : [anchor]
+  const anchor = useMemo(
+    () =>
+      cursor ??
+      (start
+        ? new Date(start.getFullYear(), start.getMonth(), 1)
+        : new Date(now.getFullYear(), now.getMonth(), 1)),
+    [cursor, start, now],
+  )
+  const months = useMemo(() => (twoUp ? [anchor, addMonths(anchor, 1)] : [anchor]), [twoUp, anchor])
+
+  const onScreen = useCallback(
+    (day: Date) =>
+      months.some((m) => day.getFullYear() === m.getFullYear() && day.getMonth() === m.getMonth()),
+    [months],
+  )
+
+  // Exactly one day carries tabIndex 0, so the grid is a single tab stop
+  // instead of 42 (84 in two-month mode) and arrow keys do the rest.
+  const tabDay = useMemo(() => {
+    const candidate = roving ?? start ?? now
+    return onScreen(candidate) ? candidate : anchor
+  }, [roving, start, now, onScreen, anchor])
+
+  useEffect(() => {
+    if (focusTick === 0) {
+      return
+    }
+    gridRef.current?.querySelector<HTMLButtonElement>(`[data-day="${ymd(tabDay)}"]`)?.focus()
+  }, [focusTick, tabDay])
+
+  const STEPS: Record<string, number> = useMemo(
+    () => ({ ArrowDown: 7, ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7 }),
+    [],
+  )
+
+  const moveFocus = useCallback(
+    (event: ReactKeyboardEvent<HTMLButtonElement>, day: Date) => {
+      const weekIndex = (day.getDay() + 6) % 7
+      const step = STEPS[event.key]
+      const next =
+        step === undefined
+          ? event.key === 'Home'
+            ? addDays(day, -weekIndex)
+            : event.key === 'End'
+              ? addDays(day, 6 - weekIndex)
+              : event.key === 'PageUp'
+                ? new Date(day.getFullYear(), day.getMonth() - 1, day.getDate())
+                : event.key === 'PageDown'
+                  ? new Date(day.getFullYear(), day.getMonth() + 1, day.getDate())
+                  : null
+          : addDays(day, step)
+      if (!next) {
+        return
+      }
+      event.preventDefault()
+      if (!onScreen(next)) {
+        setCursor(new Date(next.getFullYear(), next.getMonth(), 1))
+      }
+      setRoving(next)
+      setFocusTick((tick) => tick + 1)
+    },
+    [STEPS, onScreen],
+  )
 
   const select = useCallback(
     (day: Date) => {
@@ -293,7 +371,7 @@ export function CalendarFieldDemo() {
               <ChevronRight aria-hidden />
             </Button>
           </div>
-          <div className="flex justify-center gap-4 sm:gap-8">
+          <div className="flex justify-center gap-4 sm:gap-8" ref={gridRef}>
             {months.map((month, index) => (
               <table
                 className={cn(
@@ -329,7 +407,7 @@ export function CalendarFieldDemo() {
                           return (
                             <td className="p-0" key={day.getTime()}>
                               <button
-                                aria-pressed={Boolean(edge)}
+                                aria-pressed={Boolean(edge) || between}
                                 className={cn(
                                   'relative h-8 w-full rounded-[5px] text-center text-[12px] tabular-nums transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)]',
                                   outside ? 'text-muted-foreground/35' : 'text-foreground',
@@ -340,11 +418,21 @@ export function CalendarFieldDemo() {
                                     !edge &&
                                     'ring-1 ring-foreground/25 ring-inset',
                                 )}
+                                data-day={outside ? undefined : ymd(day)}
                                 onClick={() => select(day)}
+                                onKeyDown={(event) => moveFocus(event, day)}
+                                tabIndex={!outside && sameDay(day, tabDay) ? 0 : -1}
                                 type="button"
                               >
                                 <span className="sr-only">
                                   {day.toLocaleDateString('en-US', { dateStyle: 'full' })}
+                                  {edge === 'start'
+                                    ? ', range start'
+                                    : edge === 'end'
+                                      ? ', range end'
+                                      : between
+                                        ? ', within range'
+                                        : ''}
                                 </span>
                                 <span aria-hidden>{day.getDate()}</span>
                               </button>

@@ -856,9 +856,10 @@ export default async function Home() {
               <SubHeading id="one-schema-grid">A column is a schema</SubHeading>
               <p className="text-muted-foreground text-sm">
                 The same idea scales past a single field. Give a table column a{' '}
-                <Code>quantityField</Code> and every cell in it accepts whatever people paste —
-                pounds and ounces, a comma decimal, Fahrenheit — while the column keeps one
-                canonical unit, so the totals row can just add numbers.
+                <Code>quantityField</Code> and a cell can take any notation that column can resolve
+                — pounds and ounces, a comma decimal, Fahrenheit — normalizing into one canonical
+                unit, so the totals row can just add numbers. What it cannot resolve stays an issue
+                on the cell that caused it.
               </p>
             </div>
             <CodeBlock code={gridColumnSnippet} filename="columns.ts" lang="ts" />
@@ -931,7 +932,7 @@ export default async function Home() {
               .
             </p>
             <div className="flex min-w-0 flex-col gap-3">
-              <SubHeading id="dates-calendar">One field, three widgets</SubHeading>
+              <SubHeading id="dates-calendar">One field, three readings</SubHeading>
               <p className="text-muted-foreground text-sm">
                 <Code>parseDateRange</Code> also reads date-to-date spans (
                 <Code>Aug 3 - Aug 9</Code>) and whole calendar periods (<Code>next week</Code>,{' '}

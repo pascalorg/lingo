@@ -646,3 +646,36 @@ weekends, and the humanize branch. Every existing corpus row is unchanged; the
 18 new rows are additive. Revisit if multi-date lists (`today and tomorrow`)
 land — those need a new result type rather than a third endpoint, and the
 `dated` flag would likely generalize into it.
+
+**D72 · 2026-07-29 · A weekend contains the Sunday it ends on, a coarse endpoint
+widens on the closing side, and a descending dated pair swaps.**
+
+Three semantics D71 left wrong, all found by an adversarial review pass against
+the plan-032 branch and all fixed with tests before shipping.
+
+(1) **`this weekend` on a Sunday meant *next* weekend.** The Saturday was found
+by rounding `now` forward (`forwardDiff(day, 6)`), which on Sunday skips the
+weekend in progress. The reader standing in a weekend could only reach it as
+`last weekend` — the one phrasing nobody would try. Sunday now looks back a day;
+every other weekday still rounds forward. This is why the round-trip matrix now
+runs the full seven references instead of a single Friday.
+
+(2) **A coarse endpoint only meant its first day inside a compound range.**
+D71 widened `August` standing alone but not `July to August`, which ended on
+August 1 — the whole-period promise held for one shape and quietly failed for
+the other. `widenToPeriodEnd` is now shared by the standalone path, the closing
+side of a split range, and the `until X` open form. The opening side is
+deliberately left alone: `from August` starts on the 1st, `until August` ends on
+the 31st, and that asymmetry is the point.
+
+(3) **Descending dated pairs came back descending.** `2026-08-09 to
+2026-08-03` returned `start > end` with no issue, while D71's own prose claimed
+"a pair never reads backwards". Dated pairs now swap and warn with the existing
+`RANGE_REVERSED` code — the same treatment `10-5 kg` already gets, so no new
+vocabulary. The swap is scoped to the dated path on purpose: `9pm to 5am` is a
+legitimate overnight slot, not a typo, and clock ranges keep passing through
+untouched.
+
+Not fixed here, logged in `plans/backlog.md`: `humanizeDateRange` drops seconds
+(pre-existing, verified against the commit before D71), elliptical right sides
+(`Aug 3–9`), and quarters (needs a `fiscalYearStart` option to mean anything).

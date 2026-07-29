@@ -205,6 +205,6 @@ function buildYearless(p: P, month: number, day: number, year: number | undefine
   return date
 }
 
-function formatShortDate(date: Date): string {
+export function formatShortDate(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }

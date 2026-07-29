@@ -458,7 +458,12 @@ function parseCalendarPeriod(p: P, start: number, end: number): CoreDate | null 
   const weekend = /^(?:(this|next|last)\s+)?weekend$/.exec(source)
   if (weekend) {
     const today = startOfDay(p.now)
-    const saturday = addCalendar(today, { days: forwardDiff(today.getDay(), 6) })
+    const weekday = today.getDay()
+    // Sunday still belongs to the weekend that began the day before. Rounding
+    // forward would put "this weekend" a week out and leave the weekend the
+    // reader is standing in reachable only as "last weekend".
+    const toSaturday = weekday === 0 ? -1 : forwardDiff(weekday, 6)
+    const saturday = addCalendar(today, { days: toSaturday })
     const shift = weekend[1] === 'next' ? 7 : weekend[1] === 'last' ? -7 : 0
     return core(addCalendar(saturday, { days: shift }), 'day', knownFor('day'), start, end)
   }

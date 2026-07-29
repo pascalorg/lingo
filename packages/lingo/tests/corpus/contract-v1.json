@@ -8067,6 +8067,381 @@
         "end": 24
       },
       "confidence": 1
+    },
+    "July to August [now:2026,6,3,9,0,0]": {
+      "input": "July to August",
+      "opts": {
+        "now": [
+          2026,
+          6,
+          3,
+          9,
+          0,
+          0
+        ]
+      },
+      "type": "date-range",
+      "kind": "date-range",
+      "base": {
+        "start": {
+          "year": 2027,
+          "month": 7,
+          "day": 1,
+          "hour": 0,
+          "minute": 0,
+          "second": 0
+        },
+        "end": {
+          "year": 2027,
+          "month": 8,
+          "day": 31,
+          "hour": 0,
+          "minute": 0,
+          "second": 0
+        }
+      },
+      "unit": {
+        "start": "month",
+        "end": "day"
+      },
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 14
+      },
+      "confidence": 1
+    },
+    "until August [now:2026,6,3,9,0,0]": {
+      "input": "until August",
+      "opts": {
+        "now": [
+          2026,
+          6,
+          3,
+          9,
+          0,
+          0
+        ]
+      },
+      "type": "date-range",
+      "kind": "date-range",
+      "base": {
+        "start": null,
+        "end": {
+          "year": 2026,
+          "month": 8,
+          "day": 31,
+          "hour": 0,
+          "minute": 0,
+          "second": 0
+        }
+      },
+      "unit": {
+        "start": null,
+        "end": "day"
+      },
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 12
+      },
+      "confidence": 1
+    },
+    "from August [now:2026,6,3,9,0,0]": {
+      "input": "from August",
+      "opts": {
+        "now": [
+          2026,
+          6,
+          3,
+          9,
+          0,
+          0
+        ]
+      },
+      "type": "date-range",
+      "kind": "date-range",
+      "base": {
+        "start": {
+          "year": 2026,
+          "month": 8,
+          "day": 1,
+          "hour": 0,
+          "minute": 0,
+          "second": 0
+        },
+        "end": null
+      },
+      "unit": {
+        "start": "month",
+        "end": null
+      },
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 11
+      },
+      "confidence": 1
+    },
+    "2026 to 2027 [now:2026,6,3,9,0,0]": {
+      "input": "2026 to 2027",
+      "opts": {
+        "now": [
+          2026,
+          6,
+          3,
+          9,
+          0,
+          0
+        ]
+      },
+      "type": "date-range",
+      "kind": "date-range",
+      "base": {
+        "start": {
+          "year": 2026,
+          "month": 1,
+          "day": 1,
+          "hour": 0,
+          "minute": 0,
+          "second": 0
+        },
+        "end": {
+          "year": 2027,
+          "month": 12,
+          "day": 31,
+          "hour": 0,
+          "minute": 0,
+          "second": 0
+        }
+      },
+      "unit": {
+        "start": "year",
+        "end": "day"
+      },
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 12
+      },
+      "confidence": 1
+    },
+    "this weekend to next weekend [now:2026,6,3,9,0,0]": {
+      "input": "this weekend to next weekend",
+      "opts": {
+        "now": [
+          2026,
+          6,
+          3,
+          9,
+          0,
+          0
+        ]
+      },
+      "type": "date-range",
+      "kind": "date-range",
+      "base": {
+        "start": {
+          "year": 2026,
+          "month": 7,
+          "day": 4,
+          "hour": 0,
+          "minute": 0,
+          "second": 0
+        },
+        "end": {
+          "year": 2026,
+          "month": 7,
+          "day": 12,
+          "hour": 0,
+          "minute": 0,
+          "second": 0
+        }
+      },
+      "unit": {
+        "start": "day",
+        "end": "day"
+      },
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 28
+      },
+      "confidence": 1
+    },
+    "2026-08-09 to 2026-08-03 [now:2026,6,3,9,0,0]": {
+      "input": "2026-08-09 to 2026-08-03",
+      "opts": {
+        "now": [
+          2026,
+          6,
+          3,
+          9,
+          0,
+          0
+        ]
+      },
+      "type": "date-range",
+      "kind": "date-range",
+      "base": {
+        "start": {
+          "year": 2026,
+          "month": 8,
+          "day": 3,
+          "hour": 0,
+          "minute": 0,
+          "second": 0
+        },
+        "end": {
+          "year": 2026,
+          "month": 8,
+          "day": 9,
+          "hour": 0,
+          "minute": 0,
+          "second": 0
+        }
+      },
+      "unit": {
+        "start": "day",
+        "end": "day"
+      },
+      "issues": [
+        "RANGE_REVERSED"
+      ],
+      "span": {
+        "start": 0,
+        "end": 24
+      },
+      "confidence": 1
+    },
+    "this weekend [now:2026,5,28,9,0,0]": {
+      "input": "this weekend",
+      "opts": {
+        "now": [
+          2026,
+          5,
+          28,
+          9,
+          0,
+          0
+        ]
+      },
+      "type": "date-range",
+      "kind": "date-range",
+      "base": {
+        "start": {
+          "year": 2026,
+          "month": 6,
+          "day": 27,
+          "hour": 0,
+          "minute": 0,
+          "second": 0
+        },
+        "end": {
+          "year": 2026,
+          "month": 6,
+          "day": 28,
+          "hour": 0,
+          "minute": 0,
+          "second": 0
+        }
+      },
+      "unit": {
+        "start": "day",
+        "end": "day"
+      },
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 12
+      },
+      "confidence": 1
+    },
+    "next weekend [now:2026,5,28,9,0,0]": {
+      "input": "next weekend",
+      "opts": {
+        "now": [
+          2026,
+          5,
+          28,
+          9,
+          0,
+          0
+        ]
+      },
+      "type": "date-range",
+      "kind": "date-range",
+      "base": {
+        "start": {
+          "year": 2026,
+          "month": 7,
+          "day": 4,
+          "hour": 0,
+          "minute": 0,
+          "second": 0
+        },
+        "end": {
+          "year": 2026,
+          "month": 7,
+          "day": 5,
+          "hour": 0,
+          "minute": 0,
+          "second": 0
+        }
+      },
+      "unit": {
+        "start": "day",
+        "end": "day"
+      },
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 12
+      },
+      "confidence": 1
+    },
+    "last weekend [now:2026,5,28,9,0,0]": {
+      "input": "last weekend",
+      "opts": {
+        "now": [
+          2026,
+          5,
+          28,
+          9,
+          0,
+          0
+        ]
+      },
+      "type": "date-range",
+      "kind": "date-range",
+      "base": {
+        "start": {
+          "year": 2026,
+          "month": 6,
+          "day": 20,
+          "hour": 0,
+          "minute": 0,
+          "second": 0
+        },
+        "end": {
+          "year": 2026,
+          "month": 6,
+          "day": 21,
+          "hour": 0,
+          "minute": 0,
+          "second": 0
+        }
+      },
+      "unit": {
+        "start": "day",
+        "end": "day"
+      },
+      "issues": [],
+      "span": {
+        "start": 0,
+        "end": 12
+      },
+      "confidence": 1
     }
   }
 }

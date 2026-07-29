@@ -100,15 +100,24 @@ and calendar ranges per D71:
   `from tomorrow to friday`, `Mon-Fri`, `2026-08-01 to 2026-08-05`, plus open
   ends (`from monday`, `until august 9`). The clock pass runs first, so `2pm to
   4pm` stays a time slot. The end parses against the *start* as its reference,
-  never `now`, so a pair cannot read backwards. A `\d{4}-\d{2}` run in the input
-  disables the lazy dash split and demands a spaced dash — `2026-08-01 -
-  2026-08-05` parses, `2026-08-01-2026-08-05` does not.
+  never `now`, so a relative pair cannot read backwards. Two absolute endpoints
+  can still be given in the wrong order — `2026-08-09 to 2026-08-03` is swapped
+  and reported with `RANGE_REVERSED`, per D72. Only the dated path swaps; `9pm
+  to 5am` is a real overnight slot. A `\d{4}-\d{2}` run in the input disables
+  the lazy dash split and demands a spaced dash — `2026-08-01 - 2026-08-05`
+  parses, `2026-08-01-2026-08-05` does not.
 - **Calendar periods** — any date coarser than a day names a period, and the
   range spans it: `next week` → Mon–Sun, `this month`/`next month` → 1st–last,
   `this year`/`2027` → Jan 1–Dec 31, `August`/`next August` → the whole month.
-  No separate period-range grammar; it widens the single-date result.
+  No separate period-range grammar; it widens the single-date result. The same
+  widening applies to a coarse endpoint that *closes* a span, so `July to
+  August` ends August 31 and `until August` ends August 31, while `from August`
+  opens on the 1st (D72).
 - **Weekends** — `weekend`, `this weekend`, `next weekend`, `last weekend` →
-  Saturday through Sunday. Day-grained, so widened explicitly.
+  Saturday through Sunday. Day-grained, so widened explicitly. On a Saturday or
+  Sunday, `this weekend` is the weekend in progress rather than the next one.
+- **Not covered** — elliptical right sides (`Aug 3–9`) and quarters (`Q3`); see
+  `plans/backlog.md`.
 
 `humanizeDateRange` renders calendar ranges as dates (`2026-07-01 to
 2026-07-05`, `from 2026-07-06`, `until 2026-08-09`) rather than clock phrases,

@@ -16,11 +16,18 @@ change**, even if the API is untouched.
     `2026-08-01 to 2026-08-05`, and open ends (`from monday`, `until august 9`).
     The end resolves against the start, so a pair never reads backwards.
   - Calendar periods — `next week` spans Mon–Sun, `next month` the 1st to the
-    last, `this year` and `2027` the whole year, `August` the whole month.
+    last, `this year` and `2027` the whole year, `August` the whole month. A
+    coarse endpoint widens when it closes a span too, so `July to August` ends
+    on August 31 and `until August` does the same, while `from August` still
+    opens on the 1st.
   - Weekends — `this weekend`, `next weekend`, `last weekend` span Saturday
     through Sunday. `parseDate` gained the `next`/`last` weekend modifiers too.
+    On a Saturday or Sunday, `this weekend` is the weekend in progress.
   - `humanizeDateRange` renders these as dates rather than clock times, so they
     round-trip. Time slots are unchanged.
+  - A descending dated pair such as `2026-08-09 to 2026-08-03` is swapped and
+    reported with the existing `RANGE_REVERSED` warning instead of being handed
+    back backwards. Overnight clock slots (`9pm to 5am`) are untouched.
 - Chinese and Japanese calendar and clock grammar: numeric dates written with
   suffixes (`2026年3月5日`, `3月5日`, and years spelled digit-by-digit as
   `二〇二六年`), weekdays (`星期三`, `周三`, `水曜日`), clocks closed by

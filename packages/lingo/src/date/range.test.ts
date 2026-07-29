@@ -477,31 +477,106 @@ describe('parseDateRange calendar periods', () => {
     expect(span('last weekend')).toEqual(['2026-06-27', '2026-06-28'])
   })
 
-  it('handles a February in a leap year', () => {
-    expect(span('February', new Date(2028, 0, 15))).toEqual(['2028-02-01', '2028-02-29'])
+  // Sunday is the case that breaks a naive "round forward to Saturday": the
+  // weekend in progress is behind you, so "this weekend" has to look back.
+  it.each([
+    ['Sunday', new Date(2026, 5, 28), ['2026-06-27', '2026-06-28']],
+    ['Monday', new Date(2026, 5, 29), ['2026-07-04', '2026-07-05']],
+    ['Tuesday', new Date(2026, 5, 30), ['2026-07-04', '2026-07-05']],
+    ['Wednesday', new Date(2026, 6, 1), ['2026-07-04', '2026-07-05']],
+    ['Thursday', new Date(2026, 6, 2), ['2026-07-04', '2026-07-05']],
+    ['Friday', new Date(2026, 6, 3), ['2026-07-04', '2026-07-05']],
+    ['Saturday', new Date(2026, 6, 4), ['2026-07-04', '2026-07-05']],
+  ])('reads "this weekend" from a %s as the weekend that contains it', (_day, now, expected) => {
+    expect(span('this weekend', now)).toEqual(expected)
+  })
+
+  it('keeps next and last a clean week either side on a weekend day', () => {
+    for (const now of [new Date(2026, 6, 4), new Date(2026, 6, 5)]) {
+      expect(span('this weekend', now)).toEqual(['2026-07-04', '2026-07-05'])
+      expect(span('next weekend', now)).toEqual(['2026-07-11', '2026-07-12'])
+      expect(span('last weekend', now)).toEqual(['2026-06-27', '2026-06-28'])
+    }
+  })
+
+  it('widens a coarse endpoint that closes a span', () => {
+    // The end of "July to August" is the end of August, not its first morning.
+    expect(span('July to August')).toEqual(['2027-07-01', '2027-08-31'])
+    expect(span('2026 to 2027')).toEqual(['2026-01-01', '2027-12-31'])
+    expect(span('this weekend to next weekend')).toEqual(['2026-07-04', '2026-07-12'])
+    expect(span('next week to next month')).toEqual(['2026-07-06', '2026-08-31'])
+  })
+
+  it('widens only the closing side of an open range', () => {
+    const until = parseDateRange('until August', { now: NOW })
+    expect(until.ok && ymd(until.end!.date)).toBe('2026-08-31')
+    const from = parseDateRange('from August', { now: NOW })
+    expect(from.ok && ymd(from.start!.date)).toBe('2026-08-01')
+  })
+
+  it('swaps a descending pair and says so', () => {
+    const r = parseDateRange('2026-08-09 to 2026-08-03', { now: NOW })
+    expect(r.ok && [ymd(r.start!.date), ymd(r.end!.date)]).toEqual(['2026-08-03', '2026-08-09'])
+    expect(r.issues.some((i) => i.code === 'RANGE_REVERSED')).toBe(true)
+  })
+
+  it('leaves an overnight clock slot alone', () => {
+    // 9pm to 5am is a real slot, not a reversal — only dated pairs swap.
+    const r = parseDateRange('9pm to 5am', { now: NOW })
+    expect(r.ok && r.issues.some((i) => i.code === 'RANGE_REVERSED')).toBe(false)
+  })
+
+  it.each([
+    ['leap February', new Date(2028, 0, 15), 'February', ['2028-02-01', '2028-02-29']],
+    ['common February', new Date(2027, 0, 15), 'February', ['2027-02-01', '2027-02-28']],
+    ['30-day April', new Date(2026, 0, 15), 'April', ['2026-04-01', '2026-04-30']],
+    ['December rollover', new Date(2026, 0, 15), 'December', ['2026-12-01', '2026-12-31']],
+    ['week over new year', new Date(2026, 11, 30), 'next week', ['2027-01-04', '2027-01-10']],
+  ])('gets the last day right for %s', (_name, now, text, expected) => {
+    expect(span(text, now)).toEqual(expected)
   })
 })
 
 describe('humanizeDateRange round-trips calendar ranges', () => {
-  const cases = [
-    'July 1 to July 5',
-    'next week',
-    'this weekend',
-    'next month',
-    'August',
-    'from monday',
-    'until august 9',
-    '2026-08-01 to 2026-08-05',
-    'July 1 3pm to July 2 5pm',
+  // Every reference here is deliberate: SUNDAY catches weekend phrasing that
+  // only holds mid-week, and YEAR_END catches periods that cross into January.
+  const SUNDAY = new Date(2026, 5, 28, 9, 0, 0)
+  const YEAR_END = new Date(2026, 11, 30, 9, 0, 0)
+
+  const cases: [string, Date][] = [
+    ['July 1 to July 5', NOW],
+    ['next week', NOW],
+    ['this weekend', NOW],
+    ['next month', NOW],
+    ['August', NOW],
+    ['from monday', NOW],
+    ['until august 9', NOW],
+    ['2026-08-01 to 2026-08-05', NOW],
+    ['July 1 3pm to July 2 5pm', NOW],
+    ['this weekend', SUNDAY],
+    ['next weekend', SUNDAY],
+    ['last weekend', SUNDAY],
+    ['this weekend', new Date(2026, 6, 4, 9, 0, 0)],
+    ['July to August', NOW],
+    ['until August', NOW],
+    ['from August', NOW],
+    ['2026 to 2027', NOW],
+    ['this weekend to next weekend', NOW],
+    ['next week', YEAR_END],
+    ['next month', YEAR_END],
+    ['Dec 28 to Jan 3', NOW],
+    ['2026-08-09 to 2026-08-03', NOW],
+    ['February', new Date(2028, 0, 15, 9, 0, 0)],
+    ['3 days starting monday', NOW],
   ]
 
-  it.each(cases)('%s', (text) => {
-    const first = parseDateRange(text, { now: NOW })
+  it.each(cases)('%s', (text, now) => {
+    const first = parseDateRange(text, { now })
     expect(first.ok).toBe(true)
     if (!first.ok) {
       return
     }
-    const again = parseDateRange(humanizeDateRange(first), { now: NOW })
+    const again = parseDateRange(humanizeDateRange(first), { now })
     expect(again.ok).toBe(true)
     if (!again.ok) {
       return

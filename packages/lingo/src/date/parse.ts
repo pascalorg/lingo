@@ -6,6 +6,7 @@ import type { LocalePack } from '../locale/types'
 import { normalizeInput, toSourceSpan } from '../parse/normalize'
 import type { SerializedResult } from '../parse/serialize'
 import { tokenize } from '../parse/tokenize'
+import { formatShortDate } from './absolute'
 import { addCalendar } from './civil'
 import { parseUnitDuration } from './duration'
 import {
@@ -553,6 +554,19 @@ function parseDateRangeImpl(text: string, opts?: DateOptions): DateRange | DateR
 
 const SPACED_DASH = /^(.+?)\s+[-–—]\s+(.+)$/d
 
+/**
+ * Widen a coarse endpoint to the last day it covers. "August" ends on the 31st
+ * whether it stands alone or closes "July to August", and a weekend is named by
+ * its Saturday but runs one day longer. A day-grained endpoint widens to itself,
+ * which is what makes this safe to run over every closing endpoint.
+ */
+function widenToPeriodEnd(core: CoreDate, text: string): CoreDate {
+  const last = /weekend$/i.test(text)
+    ? addCalendar(core.date, { days: 1 })
+    : periodEnd(core.date, core.grain)
+  return last ? { ...core, date: last, grain: 'day', known: knownFor('day') } : core
+}
+
 /** Last day of the period a coarse-grained date names, or null if it names a single day. */
 function periodEnd(date: Date, grain: DateGrain): Date | null {
   if (grain === 'week') {
@@ -596,17 +610,10 @@ function parseDateToDateRange(
   const whole = parseWithOptionalTime(p, normStart, normStart + source.length)
   // A weekend is named by its Saturday at day grain, so it needs the explicit
   // widening the coarse grains get for free.
-  const wholeEnd =
-    whole &&
-    (/weekend$/i.test(source)
-      ? addCalendar(whole.date, { days: 1 })
-      : periodEnd(whole.date, whole.grain))
-  if (whole && wholeEnd) {
+  const wholeEnd = whole && widenToPeriodEnd(whole, source)
+  if (whole && wholeEnd !== whole) {
     return finishDateRange(p, span, zoneSpan, [...issues, ...whole.issues], whole.ref === true, {
-      end: dateEndpoint(
-        { ...whole, date: wholeEnd, grain: 'day', known: knownFor('day') },
-        rangeZone,
-      ),
+      end: dateEndpoint(wholeEnd as CoreDate, rangeZone),
       start: dateEndpoint(whole, rangeZone),
     })
   }
@@ -624,12 +631,18 @@ function parseDateToDateRange(
       const [s, e] = m.indices![group]!
       return [normStart + s, normStart + e]
     }
+    const text = (group: number): string => {
+      const [s, e] = m.indices![group]!
+      return source.slice(s, e)
+    }
     if (open) {
       const only = parseWithOptionalTime(p, ...at(1))
       if (!only) {
         continue
       }
-      const ep = dateEndpoint(only, rangeZone)
+      // "until August" has to reach the end of August; "from August" opens at
+      // its first day, so only the closing side widens.
+      const ep = dateEndpoint(open === 'end' ? only : widenToPeriodEnd(only, text(1)), rangeZone)
       return finishDateRange(p, span, zoneSpan, [...issues, ...only.issues], only.ref === true, {
         ...(open === 'end' ? { start: ep } : { end: ep }),
       })
@@ -651,7 +664,10 @@ function parseDateToDateRange(
       zoneSpan,
       [...issues, ...startCore.issues, ...endCore.issues],
       startCore.ref === true || endCore.ref === true,
-      { end: dateEndpoint(endCore, rangeZone), start: dateEndpoint(startCore, rangeZone) },
+      {
+        end: dateEndpoint(widenToPeriodEnd(endCore, text(2)), rangeZone),
+        start: dateEndpoint(startCore, rangeZone),
+      },
     )
   }
   return null
@@ -678,7 +694,23 @@ function finishDateRange(
       issues: [...issues, makeIssue('NOW_REQUIRED', {}, span, p.opts.messages)],
     }
   }
-  const range = finishRange(p, span, zoneSpan, issues, ends.start, ends.end, true)
+  let { start, end } = ends
+  const all = [...issues]
+  // A dated pair has no overnight reading the way a clock slot does, so
+  // descending endpoints are a typo. Swap and say so, the way a reversed
+  // quantity range already does, rather than handing back start > end.
+  if (start && end && start.date.getTime() > end.date.getTime()) {
+    ;[start, end] = [end, start]
+    all.push(
+      makeIssue(
+        'RANGE_REVERSED',
+        { fixed: `${formatShortDate(start.date)} to ${formatShortDate(end.date)}` },
+        span,
+        p.opts.messages,
+      ),
+    )
+  }
+  const range = finishRange(p, span, zoneSpan, all, start, end, true)
   if (range.ok) {
     range.dated = true
   }

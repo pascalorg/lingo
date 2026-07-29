@@ -109,6 +109,12 @@ surfaces mid-task, add it here and keep going — don't act on it.
   `UNSUPPORTED_DATE`. Fiscal-year offsets are the reason this isn't free: `Q3`
   means different months to different companies, so it needs a `fiscalYearStart`
   option before it can be more than a calendar-quarter guess.
+- **`UNSUPPORTED_DATE` still suggests only a time slot** — the message hint is
+  `try "2pm to 4pm"`, written before calendar ranges existed. A person typing
+  `Q3` or `Aug 3-9` is asking for a date span, so the suggestion sends them the
+  wrong way. The hint should reflect the shape the input looks like it wanted
+  (a date span → `"Aug 3 - Aug 9"`, a period → `"next week"`). Changing the copy
+  moves corpus rows, so it wants its own change rather than a docs pass.
 
 ## Wire schema & types
 

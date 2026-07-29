@@ -3,7 +3,7 @@ name: lingo
 description: Parse natural-language quantities, units, dates, and ranges ("5'11\"", "1.5 cups", "72 in to cm", "three days ago", "between 5 and 10 kg", "it's hot") into canonical, validated values with issue codes and spans — and humanize them back. Use when a form input, LLM tool schema, MCP handler, or import pipeline takes free-text measurements/units/dates. Covers Standard Schema fields (quantityField/dateField/lingoObject) for the AI SDK and MCP, the headless <lingo-input>, unit conversion, and format/humanize round-trips. Zero-dependency TypeScript, deterministic.
 metadata:
   author: pascalorg
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # lingo — natural-language quantities, units, dates & ranges
@@ -56,7 +56,7 @@ Import only what you need; each subpath is tree-shakeable.
 | Entry | Use for |
 |-------|---------|
 | `@pascal-app/lingo` | core parse/convert: `lingo`, `parseQuantity`, `parseRange`, `convert` |
-| `@pascal-app/lingo/date` | dates & durations: `parseDate`, `parseDuration`, `humanizeDate` |
+| `@pascal-app/lingo/date` | dates, ranges & durations: `parseDate`, `parseDateRange`, `parseDuration`, `humanizeDate` |
 | `@pascal-app/lingo/ai` | Standard Schema fields for LLM tools: `quantityField`, `dateField`, `lingoObject` |
 | `@pascal-app/lingo/mcp` | `lingoTool()` — MCP tool with validation before the handler |
 | `@pascal-app/lingo/dom` | headless `lingoInput()` controller for any `<input>` |
@@ -68,6 +68,7 @@ Import only what you need; each subpath is tree-shakeable.
 | `@pascal-app/lingo/catalog` | query units/kinds/currencies |
 | `@pascal-app/lingo/describe` | rich human/agent-readable views of a value or result |
 | `@pascal-app/lingo/schema` | JSON Schema / OpenAPI generated from the v3 wire types |
+| `@pascal-app/lingo/core` | copy-free core — same parse/convert API with no bundled issue messages |
 
 ## Pattern 1 — parse, validate, convert (core)
 
@@ -142,6 +143,35 @@ MCP: wrap the same fields with `lingoTool({ name, description, input, handler })
 from `@pascal-app/lingo/mcp`; validation runs before `handler`, and failures
 return `{ isError: true }` with `[CODE]`-prefixed text.
 
+## Pattern 4 — one date field, three readings
+
+`parseDateRange` reads a **time slot**, a **dated span**, or a **whole calendar
+period**, so a single input can drive a slot picker, a day picker, or a
+two-month range picker with no mode toggle for the person typing:
+
+```ts
+import { parseDateRange } from "@pascal-app/lingo/date"
+
+parseDateRange("2pm to 4pm", { now })      // slot  → 14:00–16:00, dated: false
+parseDateRange("Aug 3 - Aug 9", { now })   // span  → Aug 3 → Aug 9, dated: true
+parseDateRange("next week", { now })       // period→ Monday through Sunday
+parseDateRange("August", { now })          // period→ Aug 1 → Aug 31, not just the 1st
+parseDateRange("until August", { now })    // open start, ends Aug 31
+```
+
+Read `.dated` to know which grammar matched (runtime-only; never serialized).
+Coarse endpoints widen on the *closing* side, so `July to August` ends Aug 31
+while `from August` opens on the 1st; `this weekend` on a Sat/Sun is the weekend
+in progress. Backwards absolute pairs (`2026-08-09 to 2026-08-03`) are swapped
+with `RANGE_REVERSED` rather than handed back inverted, and overnight slots
+(`9pm to 5am`) are left alone. `humanizeDateRange` round-trips both shapes.
+
+**Not in the grammar**, returning `UNSUPPORTED_DATE` instead of guessing:
+quarters (`Q3`, `next quarter`), elliptical right sides (`Aug 3-9`), and ISO
+dates dash-joined with no spaces (`2026-08-01-2026-08-05` — use a spaced dash
+or `to`). At an LLM boundary use `dateRangeField()`, which accepts all three
+shapes and returns `{ start?, end?: ISO }`.
+
 ## Rules that keep you out of trouble
 
 1. **Keep measurements as strings in tool/form schemas.** Let lingo convert,
@@ -167,8 +197,10 @@ return `{ isError: true }` with `[CODE]`-prefixed text.
 
 Common issue codes to handle: `UNKNOWN_UNIT`, `KIND_MISMATCH`, `UNIT_REQUIRED`,
 `AMBIGUOUS_NUMBER`, `AMBIGUOUS_UNIT`, `TYPO_CORRECTED`, `RANGE_MIN`/`RANGE_MAX`,
-`NOW_REQUIRED`, `TZ_IGNORED`, `RATE_REQUIRED`. Override any message via the
-`messages` option.
+`RANGE_REVERSED`, `NOW_REQUIRED`, `TZ_IGNORED`, `UNSUPPORTED_DATE`,
+`RATE_REQUIRED`, `LOCALE_NOT_LOADED`. That's the handful you'll actually branch
+on; the full set of 33 stable codes is in `llms.txt`. Override any message via
+the `messages` option.
 
 ## Full reference
 

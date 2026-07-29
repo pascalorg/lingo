@@ -364,6 +364,28 @@ parseDateRange('from 3pm', { now })          // open-ended (no end)
 humanizeDateRange(slot)                      // "2:00 PM to 4:00 PM" — re-parseable
 ```
 
+`parseDateRange` reads calendar ranges too, so one field can take a slot, a
+dated span, or a whole period without a mode toggle:
+
+```ts
+parseDateRange('Aug 3 - Aug 9', { now })     // dated span, day grain
+parseDateRange('July 1 to July 5', { now })  // the end resolves against the start
+parseDateRange('next week', { now })         // Monday through Sunday
+parseDateRange('August', { now })            // Aug 1 → Aug 31, the whole month
+parseDateRange('until August', { now })      // open start, ends Aug 31
+parseDateRange('this weekend', { now })      // Sat–Sun; on a Sat/Sun, the one in progress
+parseDateRange('2026-08-09 to 2026-08-03', { now })
+                                             // swapped + RANGE_REVERSED warning
+```
+
+A coarse endpoint widens on the *closing* side, which is why `July to August`
+ends on August 31 while `from August` still opens on the 1st. The result carries
+a `dated` flag saying which grammar matched, and `humanizeDateRange` renders
+dated ranges as dates (`"2026-08-01 to 2026-08-31"`) rather than clock times.
+Quarters (`Q3`), elliptical right sides (`Aug 3-9`), and dash-joined ISO dates
+with no spaces (`2026-08-01-2026-08-05`) are not in the grammar and return
+`UNSUPPORTED_DATE` instead of a guess.
+
 The humanizer's output is guaranteed re-parseable by the parser (round-trip tested):
 `parseDate(humanizeDate(d, { now }), { now })` lands within one display-grain of `d`.
 
@@ -683,9 +705,10 @@ a person can read the hint. A tool argument has no human in the loop, so the
   like `"under 10 kg"` fails with RANGE_OPEN_BOUND_NOT_ALLOWED there; use
   `output: 'range'` when the tool should receive full QuantityRange JSON with
   open bounds, exclusivity, fuzzy/approximate origin, and `baseUnit`.
-- `dateRangeField()` canonicalizes a natural-language time slot (`"2pm to 4pm"`,
-  `"between 9am and 5pm"`, `"9-5"`, `"from 3pm"`) to `{ start?, end?: ISO }` with
-  the same reference-time and timezone guards as `dateField` (`applyZone`
+- `dateRangeField()` canonicalizes any `parseDateRange` shape — a time slot
+  (`"2pm to 4pm"`, `"9-5"`, `"from 3pm"`), a dated span (`"Aug 3 - Aug 9"`), or a
+  whole calendar period (`"next week"`, `"August"`) — to `{ start?, end?: ISO }`
+  with the same reference-time and timezone guards as `dateField` (`applyZone`
   resolves real instants; `TZ_IGNORED` escalates to error).
 - `lingoObject` is **closed**: `additionalProperties: false`, unknown keys
   fail, and the shape matches OpenAI strict structured outputs

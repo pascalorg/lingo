@@ -158,6 +158,10 @@ const slot = parseDateRange("2pm to 4pm", { now }) // { start, end } endpoints
 parseDateRange("9-5", { now })                   // workday shift → 09:00–17:00
 humanizeDateRange(slot)                          // "2:00 PM to 4:00 PM"
 
+// Calendar ranges: dated spans and whole periods, first day to last
+parseDateRange("Aug 3 - Aug 9", { now })         // dated span, grain "day"
+parseDateRange("August", { now })                // Aug 1 → Aug 31, not just the 1st
+
 parseDuration("1h30").duration.base              // 5400 (seconds)
 humanizeDuration(5400, { style: "natural" })     // "an hour and a half"`
 

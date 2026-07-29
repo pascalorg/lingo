@@ -416,14 +416,30 @@ export interface DateRangeFail {
 }
 
 /**
- * Parse a time range / slot: `2pm to 4pm`, `between 9am and 5pm`, `9-5`,
- * `from 3pm`, `until 5`, with am/pm inference across the pair and cross-midnight
- * rollover. Time-of-day today (next day when past, like `parseDate`).
+ * Parse a range in one of three shapes, tried in that order:
+ *
+ * 1. a time slot — `2pm to 4pm`, `between 9am and 5pm`, `9-5`, `from 3pm`,
+ *    `until 5`, with am/pm inference across the pair and cross-midnight
+ *    rollover; time-of-day today (next day when past, like `parseDate`);
+ * 2. a dated span — `July 1 to July 5`, `Aug 3 - Aug 9`, `Mon-Fri`,
+ *    `2026-08-01 to 2026-08-05`, where the end resolves against the start
+ *    rather than `now`, and two absolute dates given backwards are swapped
+ *    with `RANGE_REVERSED`;
+ * 3. a whole calendar period — `next week`, `next month`, `August`, `2027`,
+ *    `this weekend` — widened to its real first and last day. A coarse
+ *    endpoint widens on the closing side too, so `July to August` ends
+ *    August 31 while `from August` opens on the 1st.
+ *
+ * Shapes 2 and 3 set `dated`, which is what `humanizeDateRange()` reads to
+ * render dates instead of clock times.
  * @example
  * ```ts
  * import { parseDateRange } from '@pascal-app/lingo/date'
  * const r = parseDateRange('2pm to 4pm', { now: new Date('2026-07-03T09:00:00') })
  * r.ok && [r.start?.date.getHours(), r.end?.date.getHours()] // [14, 16]
+ *
+ * const august = parseDateRange('August', { now: new Date('2026-07-03T09:00:00') })
+ * august.ok && [august.start?.date.getDate(), august.end?.date.getDate()] // [1, 31]
  * ```
  */
 export function parseDateRange(text: string, opts?: DateOptions): DateRange | DateRangeFail {

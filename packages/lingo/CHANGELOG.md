@@ -48,8 +48,31 @@ change**, even if the API is untouched.
 - Per-locale corpus contracts gained 96 rows and the English contract 5,
   covering the grammar above plus the number-word fixes below.
 
+### Changed
+
+- `dateRangeField()` advertises its real grammar to models. The JSON Schema
+  description promised only time slots, so a model had no reason to emit
+  `"next week"` or `"Aug 3 - Aug 9"` into a field that accepts them.
+
 ### Fixed
 
+- Agent-facing docs now cover calendar ranges. `llms.txt`, the package README,
+  the `skills/lingo` skill, the site's markdown mirror, and the `parseDateRange`
+  / `dateRangeField` TSDoc all described time slots only, so an agent reading
+  any of them would not have found the feature. Each now states the three
+  shapes, the closing-side widening rule, the `RANGE_REVERSED` swap, and what
+  is deliberately absent (quarters, `Aug 3-9`, dash-joined ISO dates).
+- `/docs/dates.md` (and therefore `/llms-full.txt` and `/llms.md`) documented
+  `2026-08-03..2026-08-09` as a supported span. `..` is not a separator in the
+  grammar and that input returns `UNSUPPORTED_DATE`; the example now uses a
+  form that parses.
+- `/llms.txt` never advertised `@pascal-app/lingo/react-native`, and the site's
+  markdown mirror never mentioned `@pascal-app/lingo/complete`, hiding two
+  published entry points from agents that read only those files.
+- The docs gates now catch that class of drift: `check-docs-sync.mjs` asserts
+  both `llms.txt` copies against `package.json` exports and every issue code
+  and verifies the served copy is not stale, and `check-llms-index.mjs` asserts
+  the generated index advertises every published entry point.
 - Number words: hundreds now multiply only the 1..99 group in front of them, so
   French `mille cinq cents` is 1500 (was 100500). A banked smaller scale
   multiplies the next one, so Spanish `mil millones` is 10^9 (was 1,001,000) and

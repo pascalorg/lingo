@@ -402,3 +402,113 @@ describe('anchored duration range trailing zone (F3)', () => {
     expect(r.issues.filter((i) => i.code === 'TZ_IGNORED')).toEqual([])
   })
 })
+
+/** Local calendar day as `YYYY-MM-DD`, so assertions read host-independently. */
+function ymd(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function span(text: string, now: Date = NOW): [string, string] {
+  const r = parseDateRange(text, { now })
+  if (!(r.ok && r.start && r.end)) {
+    throw new Error(`expected a closed range for ${text}`)
+  }
+  return [ymd(r.start.date), ymd(r.end.date)]
+}
+
+describe('parseDateRange date-to-date', () => {
+  it('parses date endpoints across every word separator', () => {
+    expect(span('Aug 3 to Aug 9')).toEqual(['2026-08-03', '2026-08-09'])
+    expect(span('Aug 3 - Aug 9')).toEqual(['2026-08-03', '2026-08-09'])
+    expect(span('between Aug 3 and Aug 9')).toEqual(['2026-08-03', '2026-08-09'])
+    expect(span('from Aug 3 to Aug 9')).toEqual(['2026-08-03', '2026-08-09'])
+    expect(span('Aug 3 through Aug 9')).toEqual(['2026-08-03', '2026-08-09'])
+  })
+
+  it('anchors the end to the start so the pair never reads backwards', () => {
+    // Each endpoint rolling forward off `now` independently would give
+    // 2027-07-01 → 2026-07-05, because July 1 is already past on July 3.
+    expect(span('July 1 to July 5')).toEqual(['2027-07-01', '2027-07-05'])
+  })
+
+  it('splits ISO endpoints on a spaced dash and refuses an unspaced one', () => {
+    expect(span('2026-08-01 to 2026-08-05')).toEqual(['2026-08-01', '2026-08-05'])
+    expect(span('2026-08-01 - 2026-08-05')).toEqual(['2026-08-01', '2026-08-05'])
+    // Genuinely ambiguous — four dashes, no way to know which one splits.
+    expect(parseDateRange('2026-08-01-2026-08-05', { now: NOW }).ok).toBe(false)
+  })
+
+  it('keeps open ends open', () => {
+    const from = parseDateRange('from monday', { now: NOW })
+    expect(from.ok && [ymd(from.start!.date), from.end]).toEqual(['2026-07-06', undefined])
+    const until = parseDateRange('until august 9', { now: NOW })
+    expect(until.ok && [until.start, ymd(until.end!.date)]).toEqual([undefined, '2026-08-09'])
+  })
+
+  it('needs an explicit now only for reference-dependent endpoints', () => {
+    expect(parseDateRange('2026-08-01 to 2026-08-05').ok).toBe(true)
+    const relative = parseDateRange('tomorrow to friday')
+    expect(relative.ok).toBe(false)
+    expect(relative.issues.some((i) => i.code === 'NOW_REQUIRED')).toBe(true)
+  })
+
+  it('leaves clock slots to the clock grammar', () => {
+    const clock = parseDateRange('2pm to 4pm', { now: NOW })
+    expect(clock.ok && clock.dated).toBeUndefined()
+    // A lone date is not a range; only a period is.
+    expect(parseDateRange('tomorrow', { now: NOW }).ok).toBe(false)
+    expect(parseDateRange('2pm', { now: NOW }).ok).toBe(false)
+  })
+})
+
+describe('parseDateRange calendar periods', () => {
+  it('spans the period a coarse-grained date names', () => {
+    expect(span('next week')).toEqual(['2026-07-06', '2026-07-12'])
+    expect(span('this month')).toEqual(['2026-07-01', '2026-07-31'])
+    expect(span('next month')).toEqual(['2026-08-01', '2026-08-31'])
+    expect(span('this year')).toEqual(['2026-01-01', '2026-12-31'])
+    expect(span('August')).toEqual(['2026-08-01', '2026-08-31'])
+    expect(span('2027')).toEqual(['2027-01-01', '2027-12-31'])
+  })
+
+  it('spans a weekend Saturday through Sunday', () => {
+    expect(span('this weekend')).toEqual(['2026-07-04', '2026-07-05'])
+    expect(span('next weekend')).toEqual(['2026-07-11', '2026-07-12'])
+    expect(span('last weekend')).toEqual(['2026-06-27', '2026-06-28'])
+  })
+
+  it('handles a February in a leap year', () => {
+    expect(span('February', new Date(2028, 0, 15))).toEqual(['2028-02-01', '2028-02-29'])
+  })
+})
+
+describe('humanizeDateRange round-trips calendar ranges', () => {
+  const cases = [
+    'July 1 to July 5',
+    'next week',
+    'this weekend',
+    'next month',
+    'August',
+    'from monday',
+    'until august 9',
+    '2026-08-01 to 2026-08-05',
+    'July 1 3pm to July 2 5pm',
+  ]
+
+  it.each(cases)('%s', (text) => {
+    const first = parseDateRange(text, { now: NOW })
+    expect(first.ok).toBe(true)
+    if (!first.ok) {
+      return
+    }
+    const again = parseDateRange(humanizeDateRange(first), { now: NOW })
+    expect(again.ok).toBe(true)
+    if (!again.ok) {
+      return
+    }
+    expect([again.start?.date.getTime(), again.end?.date.getTime()]).toEqual([
+      first.start?.date.getTime(),
+      first.end?.date.getTime(),
+    ])
+  })
+})

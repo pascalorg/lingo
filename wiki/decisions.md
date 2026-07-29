@@ -595,3 +595,54 @@ locative fillers (`na proxima segunda-feira`), and a per-locale benchmark suite
 so multi-language throughput is tracked rather than assumed. Revisit if a pack
 wants glued splitting for a *Latin* script — the current filter is deliberately
 `!/[a-z]/i`, on the theory that spaced scripts already tokenize correctly.
+
+**D71 · 2026-07-29 · Calendar ranges reuse the single-date parser instead of
+growing a date-range grammar.** `parseDateRange` covered clock slots and
+anchored durations; every calendar phrasing failed `UNSUPPORTED_DATE` —
+`July 1 to July 5`, `next week`, `this weekend`. The implementation is a second
+pass, not a second grammar: the clock pass runs unchanged, and only when it
+declines do the same `RANGE_SPLITS` separators get retried with
+`parseWithOptionalTime` on each side. Ordering is load-bearing — `2pm` parses as
+a date too (time-only), so a date-first pass would silently reclassify every
+existing slot.
+
+Three trade-offs worth recording:
+
+(1) **The end anchors to the start, not to `now`.** Endpoints resolved
+independently read `July 1 to July 5` on a July-3 reference as 2027-07-01 →
+2026-07-05: descending, because `forwardDates` rolls the start into next year
+and leaves the end in this one. Parsing the end against the start as its
+reference makes the pair always read left to right. Rejected: emitting a
+reversed-range issue, which describes a defect the parser caused itself.
+
+(2) **A period is a coarse-grained date, so it needs no period grammar.**
+`next week` already resolves to its Monday at `week` grain and `August` to the
+1st at `month` grain. Spanning them is a widening of a date the parser already
+produces, which is why the whole calendar-period feature is one `periodEnd`
+switch rather than a parallel set of range phrases — and why `2027` and
+`next August` work without being enumerated anywhere. Weekends are the
+exception: they resolve at `day` grain, so they widen explicitly. `weekend` also
+gained `next`/`last` modifiers, which it had never had.
+
+(3) **The lazy dash rule is disabled by ISO dates, not repaired.**
+`(.+?)\s*[-–—]\s*(.+)` splits `2026-08-01 - 2026-08-05` at the first ISO dash.
+When the input contains a `\d{4}-\d{2}` run the pass demands a *spaced* dash
+instead, which no ISO date contains. `2026-08-01-2026-08-05` stays unparseable —
+four dashes with no way to know which one splits, and guessing is exactly the
+silent wrong answer this library exists to avoid. `Mon-Fri` and `9-5` keep the
+lazy rule.
+
+`humanizeDateRange` gained a `dated` provenance flag alongside the existing
+`anchored` one, for the same reason it exists: without it a calendar range
+renders `"12:00 AM to 12:00 AM"` and re-parses to today, breaking the two-way
+guarantee. Runtime-only, never serialized.
+
+Budgets recalibrate for the capability (D19 escalation honored): `./date`
+standalone 43.3 → 43.8, `./date` marginal 15.7 → 16.2, `./ai` marginal
+18.6 → 19.1 (cascade only, no `/ai` code changed — `dateRangeField` gains the
+capability for free). The main entry is untouched at 39.18: the date module is
+not in it. Total cost 450 B gzip for date-to-date ranges, period spans,
+weekends, and the humanize branch. Every existing corpus row is unchanged; the
+18 new rows are additive. Revisit if multi-date lists (`today and tomorrow`)
+land — those need a new result type rather than a third endpoint, and the
+`dated` flag would likely generalize into it.

@@ -385,6 +385,8 @@ export const dateRows = [
   ['next year'],
   ['last year'],
   ['this weekend'],
+  ['next weekend'],
+  ['last weekend'],
   ['beginning of the week'],
   ['start of next month'],
   ['end of week'],
@@ -460,6 +462,25 @@ export const dateRangeRows = [
   // A trailing zone applies to the whole slot; civil endpoints are kept (no
   // applyZone) so the row is host-independent, and both TZ issues ride along.
   ['9am to 5pm EST', { now: MORNING }],
+  // Calendar ranges. Date endpoints reuse the same separators as clock slots;
+  // the end anchors to the start, so "July 1 to July 5" cannot read backwards.
+  ['July 1 to July 5', { now: MORNING }],
+  ['Aug 3 - Aug 9', { now: MORNING }],
+  ['from tomorrow to friday', { now: MORNING }],
+  ['2026-08-01 to 2026-08-05', { now: MORNING }],
+  ['2026-08-01 - 2026-08-05', { now: MORNING }],
+  ['Mon-Fri', { now: MORNING }],
+  ['from monday', { now: MORNING }],
+  ['until august 9', { now: MORNING }],
+  // A date coarser than a day names a period, so the range spans it.
+  ['next week', { now: MORNING }],
+  ['this month', { now: MORNING }],
+  ['next month', { now: MORNING }],
+  ['this year', { now: MORNING }],
+  ['August', { now: MORNING }],
+  ['this weekend', { now: MORNING }],
+  ['next weekend', { now: MORNING }],
+  ['July 1 3pm to July 2 5pm', { now: MORNING }],
 ]
 
 export function buildContract({ lingo, parseDate, parseDateRange }) {

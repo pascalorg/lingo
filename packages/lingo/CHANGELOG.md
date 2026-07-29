@@ -9,6 +9,18 @@ change**, even if the API is untouched.
 
 ### Added
 
+- Calendar ranges in `parseDateRange` (`@pascal-app/lingo/date`), which
+  previously covered only clock slots and anchored durations:
+  - Date to date — `July 1 to July 5`, `Aug 3 - Aug 9`,
+    `between Aug 3 and Aug 9`, `from tomorrow to friday`, `Mon-Fri`,
+    `2026-08-01 to 2026-08-05`, and open ends (`from monday`, `until august 9`).
+    The end resolves against the start, so a pair never reads backwards.
+  - Calendar periods — `next week` spans Mon–Sun, `next month` the 1st to the
+    last, `this year` and `2027` the whole year, `August` the whole month.
+  - Weekends — `this weekend`, `next weekend`, `last weekend` span Saturday
+    through Sunday. `parseDate` gained the `next`/`last` weekend modifiers too.
+  - `humanizeDateRange` renders these as dates rather than clock times, so they
+    round-trip. Time slots are unchanged.
 - Chinese and Japanese calendar and clock grammar: numeric dates written with
   suffixes (`2026年3月5日`, `3月5日`, and years spelled digit-by-digit as
   `二〇二六年`), weekdays (`星期三`, `周三`, `水曜日`), clocks closed by

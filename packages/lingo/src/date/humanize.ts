@@ -309,7 +309,8 @@ export interface HumanizeDateRangeOptions {
 
 /**
  * Render a time slot (from `parseDateRange()`) as a clock-time phrase —
- * "2:00 PM to 4:00 PM", "from 9:00 AM", "until 5:00 PM". The inverse of
+ * "2:00 PM to 4:00 PM", "from 9:00 AM", "until 5:00 PM". Calendar ranges render
+ * as dates instead — "2026-07-01 to 2026-07-05". The inverse of
  * `parseDateRange()`: the emitted string re-parses to the same civil times.
  * @example
  * ```ts
@@ -319,7 +320,12 @@ export interface HumanizeDateRangeOptions {
  * ```
  */
 export function humanizeDateRange(
-  range: { anchored?: boolean; start?: { date: Date }; end?: { date: Date } },
+  range: {
+    anchored?: boolean
+    dated?: boolean
+    end?: { date: Date; grain?: DateGrain }
+    start?: { date: Date; grain?: DateGrain }
+  },
   opts?: HumanizeDateRangeOptions,
 ): string {
   if (range.anchored && range.start && range.end) {
@@ -329,8 +335,19 @@ export function humanizeDateRange(
     }
   }
   const hour12 = opts?.hour12 ?? true
-  const start = range.start ? formatClock(range.start.date, hour12) : undefined
-  const end = range.end ? formatClock(range.end.date, hour12) : undefined
+  // A calendar range must carry its dates, or "July 1 to July 5" renders as
+  // "12:00 AM to 12:00 AM" and re-parses to today. Clock slots stay bare.
+  const render = (ep: { date: Date; grain?: DateGrain }): string => {
+    if (!range.dated) {
+      return formatClock(ep.date, hour12)
+    }
+    const day = formatMonthDayYear(ep.date)
+    return ep.grain === 'hour' || ep.grain === 'minute' || ep.grain === 'second'
+      ? `${day} ${formatClock(ep.date, hour12)}`
+      : day
+  }
+  const start = range.start ? render(range.start) : undefined
+  const end = range.end ? render(range.end) : undefined
   if (start && end) {
     return `${start} to ${end}`
   }

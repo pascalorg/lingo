@@ -60,8 +60,9 @@ wall-clock time).
   interpretation (soonest occurrence) attached with its date; `last <weekday>` mirror.
 - `next week/month/year` → grain-sized result (Monday of next week etc.);
   `next <monthname>` / `last <monthname>` → the named month strictly after/before
-  the current month period; `this weekend` → next Saturday (grain day), `end of
-  (the) month/week/year`, `beginning/start of …`, `mid-<month>` → 15th.
+  the current month period; `weekend` / `this|next|last weekend` → that week's
+  Saturday (grain day), `end of (the) month/week/year`, `beginning/start of …`,
+  `mid-<month>` → 15th.
 
 **Absolute**: ISO `2026-07-03`, `2026-07-03T14:30(:ss)`, compact `20260703` NOT
 supported (ambiguity with big ints). `7/3/2026`, `7/3` — slash/dot/dash numeric
@@ -89,9 +90,30 @@ French `midi demain`, `le mois prochain`, `dans 3 jours`; Spanish `mañana`
 Spanish ambiguity policy: bare `mañana` is tomorrow, while morning requires a
 prepositional frame, so `mañana por la mañana` is tomorrow morning.
 
-**Date ranges**: `parseDateRange` covers time slots per plan 030 plus duration
-ranges anchored by a date/time: `N <duration> starting <anchor>` (including glued
-duration units like `3days starting tomorrow`) → `[anchor, anchor + duration)`.
+**Date ranges**: `parseDateRange` covers time slots per plan 030, duration
+ranges anchored by a date/time (`N <duration> starting <anchor>`, including glued
+duration units like `3days starting tomorrow`) → `[anchor, anchor + duration)`,
+and calendar ranges per D71:
+
+- **Date to date** — the same separators as time slots, with date endpoints:
+  `July 1 to July 5`, `Aug 3 - Aug 9`, `between Aug 3 and Aug 9`,
+  `from tomorrow to friday`, `Mon-Fri`, `2026-08-01 to 2026-08-05`, plus open
+  ends (`from monday`, `until august 9`). The clock pass runs first, so `2pm to
+  4pm` stays a time slot. The end parses against the *start* as its reference,
+  never `now`, so a pair cannot read backwards. A `\d{4}-\d{2}` run in the input
+  disables the lazy dash split and demands a spaced dash — `2026-08-01 -
+  2026-08-05` parses, `2026-08-01-2026-08-05` does not.
+- **Calendar periods** — any date coarser than a day names a period, and the
+  range spans it: `next week` → Mon–Sun, `this month`/`next month` → 1st–last,
+  `this year`/`2027` → Jan 1–Dec 31, `August`/`next August` → the whole month.
+  No separate period-range grammar; it widens the single-date result.
+- **Weekends** — `weekend`, `this weekend`, `next weekend`, `last weekend` →
+  Saturday through Sunday. Day-grained, so widened explicitly.
+
+`humanizeDateRange` renders calendar ranges as dates (`2026-07-01 to
+2026-07-05`, `from 2026-07-06`, `until 2026-08-09`) rather than clock phrases,
+carrying the time only when an endpoint is hour-grained or finer. Provenance
+rides on a runtime-only `dated` flag, like `anchored`.
 
 **Durations**: `90 min`, `1h30`, `1:30` (with kind duration: h:mm; warns of mm:ss
 alternative), `1 h 30 min`, `an hour and a half`, `2 hours 15 minutes`, `three quarters

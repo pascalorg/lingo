@@ -21,11 +21,14 @@ import { cn } from '@/lib/utils'
 /** SSR reference time. After hydration the field switches to the real clock. */
 const SSR_NOW = new Date(2026, 6, 3, 9, 0, 0)
 
+/** `tomorrow` and `tomorrow at 3pm` sit next to each other on purpose: the pair
+ *  is the shortest way to show that a clock time survives the reading. */
 const EXAMPLES = [
   'next week',
   'this weekend',
   'Aug 3 - Aug 9',
   'tomorrow',
+  'tomorrow at 3pm',
   '3 days starting monday',
   '2pm to 4pm',
 ] as const
@@ -100,13 +103,25 @@ function monthLabel(d: Date): string {
   return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 }
 
+/** True once the reading pinned a time of day, not just a calendar day. */
+function isTimed(result: DateRange | DateResult | null): boolean {
+  if (!(result && 'grain' in result)) {
+    return false
+  }
+  return result.grain === 'hour' || result.grain === 'minute' || result.grain === 'second'
+}
+
 function summary(reading: Reading): string {
   const { start, end, mode } = reading
   if (mode === 'none' || !(start || end)) {
     return 'No reading'
   }
   if (mode === 'single' && start) {
-    return start.toLocaleDateString('en-US', { dateStyle: 'full' })
+    // "tomorrow at 3pm" resolves to an instant, so dropping the clock here
+    // would show the field as less precise than the reading actually is.
+    return isTimed(reading.result)
+      ? start.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })
+      : start.toLocaleDateString('en-US', { dateStyle: 'full' })
   }
   if (mode === 'slot' && reading.result && 'type' in reading.result) {
     return humanizeDateRange(reading.result as DateRange)

@@ -206,7 +206,7 @@ function LingoCell({
         aria-invalid={failed}
         aria-label={`${HEADERS[columnKey]}, row ${rowIndex + 1}`}
         className={cn(
-          'h-6 w-full min-w-0 rounded-[4px] bg-transparent px-1.5 font-mono text-[12px] outline-none',
+          'h-6 w-full min-w-0 cursor-text rounded-[4px] bg-transparent px-1.5 font-mono text-[12px] outline-none',
           'transition-[background-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)]',
           'hover:bg-foreground/[0.045] focus-visible:bg-background focus-visible:shadow-[var(--surface-ring)]',
           failed && 'text-destructive',
@@ -259,7 +259,7 @@ export function DataGridDemo() {
         cell: (ctx) => (
           <input
             aria-label={`Item, row ${ctx.row.index + 1}`}
-            className="h-6 w-full min-w-0 rounded-[4px] bg-transparent px-1.5 text-[12px] outline-none transition-[background-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-foreground/[0.045] focus-visible:bg-background focus-visible:shadow-[var(--surface-ring)]"
+            className="h-6 w-full min-w-0 cursor-text rounded-[4px] bg-transparent px-1.5 text-[12px] outline-none transition-[background-color,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-foreground/[0.045] focus-visible:bg-background focus-visible:shadow-[var(--surface-ring)]"
             onChange={(event) => update(ctx.row.original.id, 'sku', event.target.value)}
             spellCheck={false}
             value={ctx.getValue()}
@@ -339,24 +339,26 @@ export function DataGridDemo() {
     >
       <div className="flex w-full min-w-0 flex-col gap-3">
         <div className="minimal-scrollbar min-w-0 overflow-x-auto">
-          <table className="w-full min-w-[40rem] table-fixed border-separate border-spacing-0 text-sm">
+          <table className="w-full min-w-[44rem] table-fixed border-separate border-spacing-0 text-sm">
             <caption className="sr-only">
               Editable shipment rows. Each column parses free text into one canonical unit.
             </caption>
+            {/* Price carries the widest cell note (RATE_REQUIRED), so it gets
+                room the other numeric columns don't need. */}
             <colgroup>
-              <col className="w-[19%]" />
-              <col className="w-[16%]" />
-              <col className="w-[16%]" />
-              <col className="w-[14%]" />
+              <col className="w-[18%]" />
               <col className="w-[15%]" />
-              <col className="w-[20%]" />
+              <col className="w-[14%]" />
+              <col className="w-[14%]" />
+              <col className="w-[18%]" />
+              <col className="w-[21%]" />
             </colgroup>
             <thead>
               {table.getHeaderGroups().map((group) => (
                 <tr key={group.id}>
                   {group.headers.map((header) => (
                     <th
-                      className="border-border/60 border-b px-1 pb-1.5 text-left font-medium font-mono text-[10px] text-muted-foreground uppercase tracking-wide"
+                      className="border-border/60 border-b px-1 pb-1.5 text-left font-medium font-mono text-[10px] text-muted-foreground uppercase tracking-wide [&:not(:last-child)]:border-r"
                       key={header.id}
                       scope="col"
                     >
@@ -369,8 +371,13 @@ export function DataGridDemo() {
             <tbody>
               {table.getRowModel().rows.map((row) => (
                 <tr key={row.id}>
+                  {/* Ruled on both axes: a spreadsheet grid is what tells the
+                      reader these cells take typing, without 30 input boxes. */}
                   {row.getVisibleCells().map((cell) => (
-                    <td className="border-border/40 border-b px-1 py-1 align-top" key={cell.id}>
+                    <td
+                      className="border-border/40 border-b px-1 py-1 align-top [&:not(:last-child)]:border-r"
+                      key={cell.id}
+                    >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}

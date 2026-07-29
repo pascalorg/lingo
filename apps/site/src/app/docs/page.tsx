@@ -192,6 +192,23 @@ const formSchemaSnippet = `import { standardSchemaResolver } from '@hookform/res
 // user types "5 kg" / picks a date; canonical on submit
 useForm({ resolver: standardSchemaResolver(shipment) })`
 
+const gridColumnSnippet = `// The column owns the unit; the cell owns nothing but text.
+const columns = {
+  mass: quantityField({ kind: 'mass', unit: 'kg' }),
+  temp: quantityField({ kind: 'temperature', unit: 'C' }),
+  price: quantityField({ kind: 'currency', unit: 'USD' }),
+  shipBy: dateField({ now }),
+}
+
+function cell(column: keyof typeof columns, text: string) {
+  const { value, warnings, issues } = columns[column].safeParse(text)
+  if (issues) {
+    return { state: 'refused', note: issues[0].message }
+  }
+  // "$12.50" resolved to USD, "half a ton" to a short ton — say so.
+  return { state: warnings ? 'assumed' : 'ok', value, warnings }
+}`
+
 // Sourced from the package so the badge wall can't drift from IssueCode.
 const issueCodes = Object.keys(ISSUE_CODES)
 
@@ -844,6 +861,7 @@ export default async function Home() {
                 canonical unit, so the totals row can just add numbers.
               </p>
             </div>
+            <CodeBlock code={gridColumnSnippet} filename="columns.ts" lang="ts" />
             <DataGridDemo />
           </Section>
 

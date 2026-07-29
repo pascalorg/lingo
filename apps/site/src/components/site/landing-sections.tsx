@@ -1,4 +1,5 @@
 import { lingo } from '@pascal-app/lingo'
+import { ChevronDownIcon } from 'lucide-react'
 import Link from 'next/link'
 
 import { CodeBlock } from '@/components/site/code-block'
@@ -109,8 +110,8 @@ const field = useLingoInput({ kind: 'mass', unit: 'kg', name: 'weight_kg' })
 
 export const landingFaq = [
   {
-    question: `How do I parse "5'11\\"" into meters in JavaScript?`,
-    answer: `parseQuantity("5'11\\"", { kind: "length" }).quantity.to("m").value returns 1.8034. lingo reads compounds (5'11", 2 lb 3 oz, 1h30), unicode (½, μm, ′ ″), number words, and typos with did-you-mean — zero dependencies.`,
+    question: `How do I parse 5'11" into meters in JavaScript?`,
+    answer: `parseQuantity with kind: 'length' reads it as one compound value, and .to('m').value returns 1.8034. The same call handles 2 lb 3 oz, 1h30, unicode (½, μm, ′ ″), number words, and typos with did-you-mean — zero dependencies.`,
     href: '/docs/parse',
   },
   {
@@ -359,15 +360,19 @@ export function LandingSections() {
           <div className="flex flex-col gap-2">
             {landingFaq.map((item) => (
               <details
-                className="group corner-smooth rounded-xl bg-muted/20 p-4 shadow-raise-sm"
+                className="group corner-smooth rounded-xl bg-muted/20 p-4 shadow-raise-sm transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-muted/40"
                 key={item.question}
               >
-                <summary className="cursor-pointer list-none font-medium text-foreground text-sm marker:hidden [&::-webkit-details-marker]:hidden">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-md font-medium text-foreground text-sm outline-none marker:hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-background [&::-webkit-details-marker]:hidden">
                   {item.question}
+                  <ChevronDownIcon
+                    aria-hidden
+                    className="size-4 shrink-0 text-muted-foreground transition-transform duration-[var(--motion-fast)] ease-[var(--ease-out)] group-open:rotate-180 motion-reduce:transition-none"
+                  />
                 </summary>
-                <p className="mt-2 max-w-[70ch] text-muted-foreground text-sm">{item.answer}</p>
+                <p className="mt-3 max-w-[70ch] text-muted-foreground text-sm">{item.answer}</p>
                 <Link
-                  className="mt-2 inline-block text-muted-foreground text-sm underline underline-offset-2 hover:text-foreground"
+                  className="mt-3 inline-block text-muted-foreground text-sm underline underline-offset-2 transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:text-foreground"
                   href={item.href}
                 >
                   Read more →

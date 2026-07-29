@@ -1069,7 +1069,7 @@ export default async function Home() {
           </Section>
 
           <nav aria-label="Section pages" className="mt-20 border-border border-t pt-8 text-sm">
-            <p className="font-semibold text-[14px] tracking-tight">Section pages</p>
+            <p className="font-semibold text-base tracking-tight">Section pages</p>
             <p className="mt-2 max-w-[65ch] text-muted-foreground">
               Every section is also a standalone page (append <Code>.md</Code> to any of them for
               the markdown version an agent can fetch).

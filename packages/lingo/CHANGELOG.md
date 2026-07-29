@@ -73,6 +73,20 @@ change**, even if the API is untouched.
   both `llms.txt` copies against `package.json` exports and every issue code
   and verifies the served copy is not stale, and `check-llms-index.mjs` asserts
   the generated index advertises every published entry point.
+- The `/docs` sidebar no longer contradicts the page it scrolls: it listed
+  `Find values in text` before `Autocomplete anything`, and `Two-way slider`
+  after the two framework entries, in both cases the reverse of the document
+  order the same nav highlights while scrolling.
+- `/docs` heading levels are visually distinct again. `SectionHeading` (h2) and
+  `SubHeading` (h3) both rendered at 14px, so the outline read flat and
+  disagreed with the 16px/15px scale the standalone `/docs/<section>` pages use
+  for the same content. `Autocomplete anything` also appeared twice in a row
+  (section heading, then demo panel title), and `Kinds` hand-rolled its own h3,
+  leaving `#coverage-kinds` as the only depth-3 anchor with no anchor link.
+- Docs sidebar group labels and their subtitles met WCAG AA: at
+  `text-muted-foreground/75` and `/55` on 11px text they measured 2.9:1 and
+  2.1:1 in light mode (3.0:1 dark). Both now use the unmodified
+  `--muted-foreground` token — 4.5:1 light, 7.1:1 dark.
 - Number words: hundreds now multiply only the 1..99 group in front of them, so
   French `mille cinq cents` is 1500 (was 100500). A banked smaller scale
   multiplies the next one, so Spanish `mil millones` is 10^9 (was 1,001,000) and

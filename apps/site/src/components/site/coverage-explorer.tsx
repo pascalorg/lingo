@@ -3,7 +3,7 @@
 import { allKinds, lingo, temperatureVocabs } from '@pascal-app/lingo'
 import { parseDate, parseDateRange } from '@pascal-app/lingo/date'
 import { useMemo, useState } from 'react'
-
+import { SubHeading } from '@/components/site/anchor-heading'
 import { DemoFrame } from '@/components/site/demo-frame'
 import { DocsPane, DocsSplitPane } from '@/components/site/docs-split-pane'
 import { JsonView } from '@/components/site/json-view'
@@ -130,9 +130,7 @@ export function CoverageExplorer() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3">
-        <h3 className="scroll-mt-20 font-semibold text-[14px] tracking-tight" id="coverage-kinds">
-          Kinds
-        </h3>
+        <SubHeading id="coverage-kinds">Kinds</SubHeading>
         <Table className="min-w-[42rem] table-fixed">
           <TableCaption className="sr-only">Built-in lingo unit kinds</TableCaption>
           <TableHeader>

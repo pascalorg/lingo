@@ -71,13 +71,6 @@ export const docsNavGroups: DocsNavGroup[] = [
         'alternatives',
       ]),
       page(
-        'parse-find',
-        'Find values in text',
-        'Scan free text for quantities with spans.',
-        ['findQuantities', 'scan', 'extract', 'span'],
-        { depth: 3, markdownSectionId: 'parse' },
-      ),
-      page(
         'parse-completions',
         'Autocomplete anything',
         'Ranked completions for every plausible canonical reading.',
@@ -94,6 +87,13 @@ export const docsNavGroups: DocsNavGroup[] = [
           'date',
           'noon tomorrow',
         ],
+        { depth: 3, markdownSectionId: 'parse' },
+      ),
+      page(
+        'parse-find',
+        'Find values in text',
+        'Scan free text for quantities with spans.',
+        ['findQuantities', 'scan', 'extract', 'span'],
         { depth: 3, markdownSectionId: 'parse' },
       ),
       page(
@@ -123,6 +123,13 @@ export const docsNavGroups: DocsNavGroup[] = [
         'element',
       ]),
       page(
+        'forms-range-slider',
+        'Two-way slider',
+        'Text parses to thumbs; thumbs humanize back to text.',
+        ['slider', 'range', 'keyboard', 'mass', 'two-way'],
+        { depth: 3, markdownSectionId: 'forms' },
+      ),
+      page(
         'forms-element',
         'Web component',
         'The framework-free <lingo-input> custom element.',
@@ -134,13 +141,6 @@ export const docsNavGroups: DocsNavGroup[] = [
         'React Native',
         'DOM-free parsing and canonicalization for TextInput.',
         ['react native', 'textinput', 'mobile', 'useLingoTextInput'],
-        { depth: 3, markdownSectionId: 'forms' },
-      ),
-      page(
-        'forms-range-slider',
-        'Two-way slider',
-        'Text parses to thumbs; thumbs humanize back to text.',
-        ['slider', 'range', 'keyboard', 'mass', 'two-way'],
         { depth: 3, markdownSectionId: 'forms' },
       ),
       page(

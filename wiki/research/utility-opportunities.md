@@ -47,6 +47,34 @@ cost and bundle risk run from 1 (small) to 5 (large).
 No new backlog entries result from this pass: every deferred opportunity above
 already appears in a numbered plan or `plans/backlog.md`.
 
+### Addendum 2026-07-29 — input calculations re-scored
+
+A prior-art pass over mathjs plus a probe of live parser behavior changed three
+of the inputs behind the `./calc` row, and plan 032 was rewritten accordingly.
+
+- **Audience is wrong, not just incomplete.** Scored as "Forms"; the stronger
+  case is the LLM tool boundary. A model asked for `weight_kg: number` must do
+  the arithmetic in its head and nothing downstream can audit it, whereas a
+  field accepting `"12 * 0.75 kg"` moves the computation into deterministic
+  library code. That is a `value_error` mitigation, which raises
+  differentiation from 3 — no other Standard Schema library offers it.
+- **Cost and bundle risk drop with the `=` escape hatch.** Borrowing the
+  Excel/Sheets mode switch makes the feature purely additive instead of a
+  reinterpretation of existing readings, and the injected-evaluator pattern
+  (already used for `./complete` → `./date`) keeps both the main entry and
+  `./ai` budgets flat. Phase 1 (percent-of only) is a much smaller first slice
+  than the full expression grammar that was costed here.
+- **"Resolve plan 032 first" now has a prerequisite of its own.** The probe
+  found that `2+3 kg` already returns a range at `confidence: 1` with zero
+  issues — a D4 violation shipping today, independent of any calc decision.
+  That fix and the `AFFINE_DELTA_ASSUMED` warning land regardless of the
+  go/no-go.
+
+Two adjacent opportunities surfaced by the same pass went to `plans/backlog.md`
+rather than this matrix: rates with non-unit denominators (`£45 per night`),
+which ranks above input calculations on form value, and multiplier/count words
+(`twice 3 kg`, `a dozen eggs`).
+
 ## Shipped first slice: React completions
 
 `@pascal-app/lingo/complete` already returns ranked, fully parsed completions,

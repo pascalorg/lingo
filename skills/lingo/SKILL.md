@@ -152,14 +152,15 @@ two-month range picker with no mode toggle for the person typing:
 ```ts
 import { parseDateRange } from "@pascal-app/lingo/date"
 
-parseDateRange("2pm to 4pm", { now })      // slot  → 14:00–16:00, dated: false
+parseDateRange("2pm to 4pm", { now })      // slot  → 14:00–16:00, no dated flag
 parseDateRange("Aug 3 - Aug 9", { now })   // span  → Aug 3 → Aug 9, dated: true
 parseDateRange("next week", { now })       // period→ Monday through Sunday
 parseDateRange("August", { now })          // period→ Aug 1 → Aug 31, not just the 1st
 parseDateRange("until August", { now })    // open start, ends Aug 31
 ```
 
-Read `.dated` to know which grammar matched (runtime-only; never serialized).
+Read `.dated` to know which grammar matched: `true` on date grammar, absent on
+clock grammar (runtime-only; never serialized — test it truthy, not `=== false`).
 Coarse endpoints widen on the *closing* side, so `July to August` ends Aug 31
 while `from August` opens on the 1st; `this weekend` on a Sat/Sun is the weekend
 in progress. Backwards absolute pairs (`2026-08-09 to 2026-08-03`) are swapped

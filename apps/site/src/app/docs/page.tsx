@@ -953,9 +953,9 @@ export default async function Home() {
           >
             <CodeBlock code={localeSnippet} filename="locales.ts" lang="ts" />
             <p className="text-muted-foreground text-sm">
-              Locale packs are data-only subpath entries: <Code>@pascal-app/lingo/locales/es</Code>,{' '}
-              <Code>fr</Code>, <Code>pt</Code>, <Code>zh</Code>, <Code>ja</Code>, and{' '}
-              <Code>en-gb</Code>. Successful parses expose <Code>result.locale</Code>, which the
+              Locale packs are data-only subpath entries: <Code>@pascal-app/lingo/locales/en</Code>,{' '}
+              <Code>en-gb</Code>, <Code>es</Code>, <Code>fr</Code>, <Code>pt</Code>, <Code>zh</Code>
+              , and <Code>ja</Code>. Successful parses expose <Code>result.locale</Code>, which the
               playground above shows beside the parse state.
             </p>
           </Section>

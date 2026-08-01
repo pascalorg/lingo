@@ -243,8 +243,8 @@ export function LandingSections() {
             </TableBody>
           </Table>
           <p className="text-muted-foreground text-sm">
-            Ranges, conversions, tolerances, fuzzy words, typos, and nine languages of number words
-            — see everything the parser reads in{' '}
+            Ranges, conversions, tolerances, fuzzy words, typos, and six languages of number words —
+            see everything the parser reads in{' '}
             <Link className="underline underline-offset-2 hover:text-foreground" href="/docs/parse">
               Parse
             </Link>{' '}

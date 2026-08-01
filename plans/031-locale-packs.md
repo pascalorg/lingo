@@ -3,7 +3,7 @@ id: 031
 title: Locale packs
 status: in-progress
 created: 2026-07-08
-updated: 2026-07-08
+updated: 2026-07-27
 goal: "Ship Phase 0 multi-language infrastructure: loaded locale packs, resolved language profiles, and parser plumbing with zero English corpus drift."
 success_criteria:
   - "English parsing is unchanged -> packages/lingo/src/parse/corpus.test.ts and corpus-diff gate"

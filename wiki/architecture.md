@@ -107,7 +107,10 @@ resolver + detector; the packs themselves live in `src/locales/`).
 ## Verification
 
 `bun run check` is the gate: tsc strict + `noUncheckedIndexedAccess`, the full
-vitest suite (600+ tests), build, size budgets (`scripts/size.mjs` — the only
-place budget numbers live), corpus compatibility (`scripts/corpus-diff.mjs`),
-llms.txt docs sync, zero-dependency check, and schema artifact sync. CI runs
-the same gates plus a built-dist smoke test on every supported Node version.
+vitest suite (1,000+ tests), build, size budgets (`scripts/size.mjs` — the only
+place budget numbers live), corpus compatibility across the English and
+per-locale contracts (`scripts/corpus-diff.mjs`), llms.txt docs sync
+(`check-docs-sync.mjs`, both copies), entry-point coverage in the generated
+agent index (`check-llms-index.mjs`), zero-dependency check, and schema
+artifact sync. CI runs the same gates plus a built-dist smoke test on every
+supported Node version.

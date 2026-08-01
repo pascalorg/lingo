@@ -32,6 +32,15 @@ kilograms, kelvin, seconds…). *Avoid: amount, measurement, normalized value.*
 **Range:** a `QuantityRange` — min/max quantities, `plusMinus`, open bounds,
 approximate/fuzzy flags. Never use "range" for text offsets — that's a **span**.
 
+**Date range:** a `DateRange` from `parseDateRange()` — start/end endpoints,
+either end optionally open. Unqualified "range" means the quantity kind; say
+"date range" when you mean this one. It comes in three shapes, and these are
+the names to use: a **time slot** from clock grammar (`2pm to 4pm`, `9-5`), a
+**dated span** between two dates (`Aug 3 - Aug 9`; "date-to-date span" is the
+long form), and a **calendar period** widened to its real first and last day
+(`next week`, `August`, `2027`). The runtime-only `dated` flag is `true` on the
+latter two and absent on a slot — test it truthy, never `=== false`.
+
 **Span:** `{ start, end }` character offsets into the ORIGINAL input string
 (the normalizer keeps an offset map, hard rule 3). *Avoid: range, position,
 location.*
@@ -129,8 +138,9 @@ docs generate Zod/Valibot/TypeBox/ArkType/Effect adapters + a dictionary from it
 `createLingo()` returns an isolated **instance** with its own registry,
 messages, and fuzzy vocab.
 
-**Corpus:** `packages/lingo/tests/corpus/contract-v1.json` — the behavior
-contract. Drift is classified **ADDITIVE** (new inputs now parse) or
+**Corpus:** the behavior contracts under `packages/lingo/tests/corpus/` —
+`contract-v1.json` for English plus one `locale-<id>-contract-v1.json` per
+locale pack. Drift is classified **ADDITIVE** (new inputs now parse) or
 **BREAKING** (existing interpretations changed) by `scripts/corpus-diff.mjs`;
 BREAKING requires a decision entry and a major version.
 

@@ -3,7 +3,7 @@ id: 005
 title: Dates & durations
 status: approved
 created: 2026-07-03
-updated: 2026-07-08
+updated: 2026-07-29
 ---
 
 # Dates & durations (`@pascal-app/lingo/date`)

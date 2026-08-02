@@ -70,14 +70,22 @@ function isNamedTime(p: P, text: string): boolean {
   return aliases[text.toLowerCase()] !== undefined
 }
 
-export const RANGE_SPLITS: { re: RegExp; open?: 'start' | 'end' }[] = [
-  { re: /^between\s+(.+?)\s+and\s+(.+)$/i },
-  { re: /^from\s+(.+?)\s+(?:to|till|til|until|through|thru|[-–—])\s+(.+)$/i },
-  { re: /^(.+?)\s+(?:to|till|til|until|through|thru)\s+(.+)$/i },
-  { re: /^(.+?)\s*[-–—]\s*(.+)$/i },
-  { re: /^from\s+(.+?)(?:\s+onwards?)?$/i, open: 'end' },
-  { re: /^(.+?)\s+onwards?$/i, open: 'end' },
-  { re: /^(?:until|till|til|before|by)\s+(.+)$/i, open: 'start' },
+/**
+ * Whole-string splitters, tried in order. The `d` flag is load-bearing: the
+ * date-endpoint pass needs exact group offsets to slice `p.text`, because a
+ * leading frame word ("between ", "from ") means the left group does not start
+ * at offset 0.
+ */
+export const RANGE_SPLITS: { dash?: true; open?: 'start' | 'end'; re: RegExp }[] = [
+  { re: /^between\s+(.+?)\s+and\s+(.+)$/di },
+  { re: /^from\s+(.+?)\s+(?:to|till|til|until|through|thru|[-–—])\s+(.+)$/di },
+  { re: /^(.+?)\s+(?:to|till|til|until|through|thru)\s+(.+)$/di },
+  // Lazy, so it splits at the FIRST dash. Harmless for clocks ("9-5"), but an
+  // ISO date is full of dashes — the date pass skips this via `dash`.
+  { re: /^(.+?)\s*[-–—]\s*(.+)$/di, dash: true },
+  { re: /^from\s+(.+?)(?:\s+onwards?)?$/di, open: 'end' },
+  { re: /^(.+?)\s+onwards?$/di, open: 'end' },
+  { re: /^(?:until|till|til|before|by)\s+(.+)$/di, open: 'start' },
 ]
 
 export function endpointDate(p: P, ep: Endpoint, baseDay: Date): DateRangeEndpoint {

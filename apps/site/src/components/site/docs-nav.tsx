@@ -127,14 +127,14 @@ export function DocsNav({
               >
                 <span
                   className={cn(
-                    'block truncate font-semibold text-[11px] text-muted-foreground/75 uppercase',
+                    'block truncate font-semibold text-[11px] text-muted-foreground uppercase',
                     groupHasActive && 'text-foreground',
                   )}
                 >
                   {group.label}
                 </span>
                 {subtitle ? (
-                  <span className="mt-0.5 block truncate font-normal text-[11px] text-muted-foreground/55 normal-case tracking-normal">
+                  <span className="mt-0.5 block truncate font-normal text-[11px] text-muted-foreground normal-case tracking-normal">
                     {subtitle}
                   </span>
                 ) : null}

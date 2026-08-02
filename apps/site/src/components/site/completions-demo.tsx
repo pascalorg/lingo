@@ -162,7 +162,7 @@ function RankedAutocompleteDemo() {
       <DocsPane>
         <DemoHeading
           caption="One field in, a short list of complete, canonical readings out."
-          title="Autocomplete anything"
+          title="Partial input"
         />
         <div className="flex flex-col gap-2">
           <Label htmlFor={`${listId}-input`}>Type a partial value</Label>

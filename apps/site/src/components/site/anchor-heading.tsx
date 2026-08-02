@@ -23,7 +23,7 @@ export function SectionHeading({
           {kicker}
         </span>
       ) : null}
-      <h2 className="scroll-mt-20 font-semibold text-[14px] tracking-tight" id={id}>
+      <h2 className="scroll-mt-20 font-semibold text-base tracking-tight" id={id}>
         <Link
           className="inline-flex items-center rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           href={`#${id}`}
@@ -52,7 +52,7 @@ export function SubHeading({
 }) {
   return (
     <div className={cn('group flex items-center gap-2', className)}>
-      <h3 className="scroll-mt-20 font-semibold text-[14px] tracking-tight" id={id}>
+      <h3 className="scroll-mt-20 font-semibold text-[15px] tracking-tight" id={id}>
         <Link
           className="inline-flex items-center rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           href={`#${id}`}

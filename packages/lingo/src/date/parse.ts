@@ -6,6 +6,7 @@ import type { LocalePack } from '../locale/types'
 import { normalizeInput, toSourceSpan } from '../parse/normalize'
 import type { SerializedResult } from '../parse/serialize'
 import { tokenize } from '../parse/tokenize'
+import { formatShortDate } from './absolute'
 import { addCalendar } from './civil'
 import { parseUnitDuration } from './duration'
 import {
@@ -387,6 +388,12 @@ export interface DateRange {
    */
   anchored?: boolean
   confidence: number
+  /**
+   * True when the endpoints came from the calendar grammar rather than the
+   * clock, so `humanizeDateRange()` renders dates instead of bare times.
+   * Runtime-only provenance; never serialized.
+   */
+  dated?: boolean
   end?: DateRangeEndpoint
   issues: LingoIssue[]
   ok: true
@@ -409,14 +416,30 @@ export interface DateRangeFail {
 }
 
 /**
- * Parse a time range / slot: `2pm to 4pm`, `between 9am and 5pm`, `9-5`,
- * `from 3pm`, `until 5`, with am/pm inference across the pair and cross-midnight
- * rollover. Time-of-day today (next day when past, like `parseDate`).
+ * Parse a range in one of three shapes, tried in that order:
+ *
+ * 1. a time slot — `2pm to 4pm`, `between 9am and 5pm`, `9-5`, `from 3pm`,
+ *    `until 5`, with am/pm inference across the pair and cross-midnight
+ *    rollover; time-of-day today (next day when past, like `parseDate`);
+ * 2. a dated span — `July 1 to July 5`, `Aug 3 - Aug 9`, `Mon-Fri`,
+ *    `2026-08-01 to 2026-08-05`, where the end resolves against the start
+ *    rather than `now`, and two absolute dates given backwards are swapped
+ *    with `RANGE_REVERSED`;
+ * 3. a whole calendar period — `next week`, `next month`, `August`, `2027`,
+ *    `this weekend` — widened to its real first and last day. A coarse
+ *    endpoint widens on the closing side too, so `July to August` ends
+ *    August 31 while `from August` opens on the 1st.
+ *
+ * Shapes 2 and 3 set `dated`, which is what `humanizeDateRange()` reads to
+ * render dates instead of clock times.
  * @example
  * ```ts
  * import { parseDateRange } from '@pascal-app/lingo/date'
  * const r = parseDateRange('2pm to 4pm', { now: new Date('2026-07-03T09:00:00') })
  * r.ok && [r.start?.date.getHours(), r.end?.date.getHours()] // [14, 16]
+ *
+ * const august = parseDateRange('August', { now: new Date('2026-07-03T09:00:00') })
+ * august.ok && [august.start?.date.getDate(), august.end?.date.getDate()] // [1, 31]
  * ```
  */
 export function parseDateRange(text: string, opts?: DateOptions): DateRange | DateRangeFail {
@@ -534,7 +557,180 @@ function parseDateRangeImpl(text: string, opts?: DateOptions): DateRange | DateR
     }
     return finishRange(p, span, zoneSpan, issues, startEp, endEp)
   }
+
+  // Clock endpoints did not take. Retry the same splits against the full date
+  // grammar — "July 1 to July 5", "from tomorrow to friday". Order matters:
+  // "2pm" parses as a date too (time-only), so the clock pass must win first.
+  const dated = parseDateToDateRange(p, source, spanStart, span, zoneSpan, issues, rangeZone)
+  if (dated) {
+    return dated
+  }
   return fail()
+}
+
+const SPACED_DASH = /^(.+?)\s+[-–—]\s+(.+)$/d
+
+/**
+ * Widen a coarse endpoint to the last day it covers. "August" ends on the 31st
+ * whether it stands alone or closes "July to August", and a weekend is named by
+ * its Saturday but runs one day longer. A day-grained endpoint widens to itself,
+ * which is what makes this safe to run over every closing endpoint.
+ */
+function widenToPeriodEnd(core: CoreDate, text: string): CoreDate {
+  const last = /weekend$/i.test(text)
+    ? addCalendar(core.date, { days: 1 })
+    : periodEnd(core.date, core.grain)
+  return last ? { ...core, date: last, grain: 'day', known: knownFor('day') } : core
+}
+
+/** Last day of the period a coarse-grained date names, or null if it names a single day. */
+function periodEnd(date: Date, grain: DateGrain): Date | null {
+  if (grain === 'week') {
+    return addCalendar(date, { days: 6 })
+  }
+  if (grain === 'month') {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0)
+  }
+  if (grain === 'year') {
+    return new Date(date.getFullYear(), 11, 31)
+  }
+  return null
+}
+
+/** Build a range endpoint from a parsed date, resolving the zone like the anchored path. */
+function dateEndpoint(core: CoreDate, rangeZone: DateZone | undefined): DateRangeEndpoint {
+  const zone = core.zone ?? rangeZone
+  const out: DateRangeEndpoint = {
+    date: zone?.applied ? applyZoneToCivil(core.date, zone) : core.date,
+    grain: core.grain,
+    known: [...new Set(core.known)],
+  }
+  if (zone) {
+    out.zone = zone
+  }
+  return out
+}
+
+function parseDateToDateRange(
+  p: P,
+  source: string,
+  normStart: number,
+  span: Span,
+  zoneSpan: Span,
+  issues: LingoIssue[],
+  rangeZone?: DateZone,
+): DateRange | DateRangeFail | null {
+  // A date coarser than a day already IS a period — "next week" resolves to its
+  // Monday, "August" to the 1st. Spanning it needs no separate grammar: parse
+  // the whole slot as one date and widen it to the period it names.
+  const whole = parseWithOptionalTime(p, normStart, normStart + source.length)
+  // A weekend is named by its Saturday at day grain, so it needs the explicit
+  // widening the coarse grains get for free.
+  const wholeEnd = whole && widenToPeriodEnd(whole, source)
+  if (whole && wholeEnd !== whole) {
+    return finishDateRange(p, span, zoneSpan, [...issues, ...whole.issues], whole.ref === true, {
+      end: dateEndpoint(wholeEnd as CoreDate, rangeZone),
+      start: dateEndpoint(whole, rangeZone),
+    })
+  }
+
+  // The lazy dash rule splits "2026-07-01 - 2026-07-05" at the ISO date's own
+  // dash. When the input carries one, demand a SPACED dash instead, which no
+  // ISO date contains. "2026-07-01-2026-07-05" stays unparseable, as it should.
+  const hasIsoDash = /\d{4}-\d{2}/.test(source)
+  for (const { re, open, dash } of RANGE_SPLITS) {
+    const m = (dash && hasIsoDash ? SPACED_DASH : re).exec(source)
+    if (!m?.indices) {
+      continue
+    }
+    const at = (group: number): [number, number] => {
+      const [s, e] = m.indices![group]!
+      return [normStart + s, normStart + e]
+    }
+    const text = (group: number): string => {
+      const [s, e] = m.indices![group]!
+      return source.slice(s, e)
+    }
+    if (open) {
+      const only = parseWithOptionalTime(p, ...at(1))
+      if (!only) {
+        continue
+      }
+      // "until August" has to reach the end of August; "from August" opens at
+      // its first day, so only the closing side widens.
+      const ep = dateEndpoint(open === 'end' ? only : widenToPeriodEnd(only, text(1)), rangeZone)
+      return finishDateRange(p, span, zoneSpan, [...issues, ...only.issues], only.ref === true, {
+        ...(open === 'end' ? { start: ep } : { end: ep }),
+      })
+    }
+    const startCore = parseWithOptionalTime(p, ...at(1))
+    if (!startCore) {
+      continue
+    }
+    // Each endpoint rolls forward off `now` independently, so a July-3 reference
+    // reads "July 1 to July 5" as 2027-07-01 → 2026-07-05 — descending. Anchor
+    // the end to the start instead, so the pair always reads left to right.
+    const endCore = parseWithOptionalTime({ ...p, now: startCore.date }, ...at(2))
+    if (!endCore) {
+      continue
+    }
+    return finishDateRange(
+      p,
+      span,
+      zoneSpan,
+      [...issues, ...startCore.issues, ...endCore.issues],
+      startCore.ref === true || endCore.ref === true,
+      {
+        end: dateEndpoint(widenToPeriodEnd(endCore, text(2)), rangeZone),
+        start: dateEndpoint(startCore, rangeZone),
+      },
+    )
+  }
+  return null
+}
+
+/**
+ * Absolute date endpoints need no reference time, so they bypass `finishRange`'s
+ * blanket NOW_REQUIRED (which exists for clock endpoints). Reference-dependent
+ * ones — "tomorrow", "next friday" — still demand an explicit `now`.
+ */
+function finishDateRange(
+  p: P,
+  span: Span,
+  zoneSpan: Span,
+  issues: LingoIssue[],
+  needsNow: boolean,
+  ends: { end?: DateRangeEndpoint; start?: DateRangeEndpoint },
+): DateRange | DateRangeFail {
+  if (p.opts.now === undefined && needsNow) {
+    return {
+      ok: false,
+      type: 'date-range-failure',
+      text: p.src,
+      issues: [...issues, makeIssue('NOW_REQUIRED', {}, span, p.opts.messages)],
+    }
+  }
+  let { start, end } = ends
+  const all = [...issues]
+  // A dated pair has no overnight reading the way a clock slot does, so
+  // descending endpoints are a typo. Swap and say so, the way a reversed
+  // quantity range already does, rather than handing back start > end.
+  if (start && end && start.date.getTime() > end.date.getTime()) {
+    ;[start, end] = [end, start]
+    all.push(
+      makeIssue(
+        'RANGE_REVERSED',
+        { fixed: `${formatShortDate(start.date)} to ${formatShortDate(end.date)}` },
+        span,
+        p.opts.messages,
+      ),
+    )
+  }
+  const range = finishRange(p, span, zoneSpan, all, start, end, true)
+  if (range.ok) {
+    range.dated = true
+  }
+  return range
 }
 
 type CalendarDelta = Parameters<typeof addCalendar>[1]

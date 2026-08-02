@@ -385,6 +385,8 @@ export const dateRows = [
   ['next year'],
   ['last year'],
   ['this weekend'],
+  ['next weekend'],
+  ['last weekend'],
   ['beginning of the week'],
   ['start of next month'],
   ['end of week'],
@@ -445,6 +447,8 @@ export const dateRows = [
 // Time slots (plan 030). A morning `now` keeps afternoon slots on the same
 // civil day; civil endpoints read back host-independently (local wall-clock).
 const MORNING = [2026, 6, 3, 9, 0, 0]
+/** A Sunday, so weekend phrasing is pinned on the day that used to read wrong. */
+const SUNDAY = [2026, 5, 28, 9, 0, 0]
 
 export const dateRangeRows = [
   ['9-5', { now: MORNING }],
@@ -460,6 +464,39 @@ export const dateRangeRows = [
   // A trailing zone applies to the whole slot; civil endpoints are kept (no
   // applyZone) so the row is host-independent, and both TZ issues ride along.
   ['9am to 5pm EST', { now: MORNING }],
+  // Calendar ranges. Date endpoints reuse the same separators as clock slots;
+  // the end anchors to the start, so "July 1 to July 5" cannot read backwards.
+  ['July 1 to July 5', { now: MORNING }],
+  ['Aug 3 - Aug 9', { now: MORNING }],
+  ['from tomorrow to friday', { now: MORNING }],
+  ['2026-08-01 to 2026-08-05', { now: MORNING }],
+  ['2026-08-01 - 2026-08-05', { now: MORNING }],
+  ['Mon-Fri', { now: MORNING }],
+  ['from monday', { now: MORNING }],
+  ['until august 9', { now: MORNING }],
+  // A date coarser than a day names a period, so the range spans it.
+  ['next week', { now: MORNING }],
+  ['this month', { now: MORNING }],
+  ['next month', { now: MORNING }],
+  ['this year', { now: MORNING }],
+  ['August', { now: MORNING }],
+  ['this weekend', { now: MORNING }],
+  ['next weekend', { now: MORNING }],
+  ['July 1 3pm to July 2 5pm', { now: MORNING }],
+  // A coarse endpoint widens on the closing side too, so these end on the last
+  // day of the period rather than its first (D72).
+  ['July to August', { now: MORNING }],
+  ['until August', { now: MORNING }],
+  ['from August', { now: MORNING }],
+  ['2026 to 2027', { now: MORNING }],
+  ['this weekend to next weekend', { now: MORNING }],
+  // Absolute endpoints given backwards swap and warn; an overnight clock slot
+  // is left alone, which is why 10pm-to-2am sits above without an issue.
+  ['2026-08-09 to 2026-08-03', { now: MORNING }],
+  // Sunday is the reference that breaks a naive round-forward-to-Saturday.
+  ['this weekend', { now: SUNDAY }],
+  ['next weekend', { now: SUNDAY }],
+  ['last weekend', { now: SUNDAY }],
 ]
 
 export function buildContract({ lingo, parseDate, parseDateRange }) {

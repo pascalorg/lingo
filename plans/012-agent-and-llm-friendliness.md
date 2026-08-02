@@ -3,7 +3,7 @@ id: 012
 title: Agent & LLM friendliness
 status: done
 created: 2026-07-03
-updated: 2026-07-21
+updated: 2026-07-23
 ---
 
 # Agent & LLM friendliness

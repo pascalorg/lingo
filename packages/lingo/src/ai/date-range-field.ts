@@ -26,11 +26,13 @@ export type DateRangeFieldOptions = DateOptions & {
 }
 
 /**
- * A Standard Schema + JSON Schema field that canonicalizes a natural-language
- * time slot ("2pm to 4pm", "between 9am and 5pm", "9-5", "from 3pm") into
- * `{ start?, end?: ISO 8601 }`. Same tool-boundary defaults as `dateField`
- * (plan 020): the slot is reference-dependent, so it fails with NOW_REQUIRED
- * unless `now` is passed, and an unapplied TZ_IGNORED escalates to error —
+ * A Standard Schema + JSON Schema field that canonicalizes any
+ * `parseDateRange()` shape — a time slot ("2pm to 4pm", "between 9am and 5pm",
+ * "9-5", "from 3pm"), a dated span ("Aug 3 - Aug 9"), or a whole calendar
+ * period ("next week", "August") — into `{ start?, end?: ISO 8601 }`, with
+ * periods widened to their real first and last day. Same tool-boundary defaults
+ * as `dateField` (plan 020): the range is reference-dependent, so it fails with
+ * NOW_REQUIRED unless `now` is passed, and an unapplied TZ_IGNORED escalates —
  * downgrade via `escalate: { TZ_IGNORED: 'warning' }`, or resolve real instants
  * with `applyZone: true`.
  * @example
@@ -90,5 +92,5 @@ function rangeInputDescription(opts: DateRangeFieldOptions): string {
   if (opts.description) {
     return opts.description
   }
-  return 'A natural-language time slot like "2pm to 4pm", "between 9am and 5pm", or "9-5".'
+  return 'A natural-language time slot like "2pm to 4pm" or "9-5", a date span like "Aug 3 - Aug 9", or a whole period like "next week" or "August".'
 }

@@ -40,7 +40,7 @@ on `type` over `quantity | range | conversion | failure`, plus reusable
 definitions: `Span` (`{start,end,text}`), `Issue` (`{code,severity,message,span,
 suggestions?,data?}`), `QuantityValue`, `RangeValue`, and enums `Kind`,
 `UnitSystem` (`metric|us|imperial|shared`), `Severity` (`error|warning|info`),
-`IssueCode` (31 codes). Exported as a plain object `lingoJsonSchema` and a
+`IssueCode` (33 codes). Exported as a plain object `lingoJsonSchema` and a
 `resultJsonSchema()`/`valueJsonSchema()` accessor. Each property carries a
 `description` and, where bounded, an `enum`.
 

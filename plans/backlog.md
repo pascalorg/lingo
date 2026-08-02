@@ -27,6 +27,20 @@ surfaces mid-task, add it here and keep going — don't act on it.
 - **Dimensional expressions** — arbitrary unit algebra (beyond the declared
   flow_rate/concentration/torque/… kinds) needs a separate kind/model decision
   rather than ad hoc aliases (algebra deferred per D2).
+- **Rates with non-unit denominators** — `£45 per night`, `50 kg per person`,
+  `$12/hour`, `3 per box` all fail with `TRAILING_INPUT` today. This is *not*
+  dimensional algebra (D2 stands): the denominator is a countable domain noun,
+  not a unit, so no unit algebra is involved — it wants a `per` slot on the
+  quantity. Covers pricing, dosing, capacity, and rate fields, and gives LLM
+  tools a clean shape to emit (`{amount: 45, currency: 'EUR', per: 'night'}`).
+  Ranked above the general expression grammar on form value, but it changes the
+  v3 wire shape, so it needs its own plan rather than folding into 032.
+  (Surfaced by the mathjs/plan-032 prior-art pass 2026-07-29.)
+- **Multiplier and count words** — `twice 3 kg`, `double 3 kg`, `3 boxes of
+  2 kg`, `3 @ 2.5 kg`, `5 kg each`, `a dozen eggs` all fail today. Reuses the
+  existing number-word lexicon; overlaps plan 032 phase 3, but the unit-less
+  count forms (`a dozen eggs`) are a quantity-grammar question, not arithmetic.
+  (Same pass.)
 - **Range span excludes the frame word** — `from 5 to 10 kg` and
   `between 5 and 10 kg` spans start at the first value, not at `from`/`between`.
   `buildRange` (`range.ts`) could extend the span to cover the leading frame.
@@ -76,6 +90,31 @@ surfaces mid-task, add it here and keep going — don't act on it.
   drift in the autocomplete display string, not in `format`/`humanize`). Slicing
   to 13 (`…T15`) fixes it only if the date parser accepts a bare `THH` — verify
   that round-trips before changing. Surfaced by the 0.2.0 completions review.
+- **`humanizeDateRange` drops seconds** — `formatClock` (`date/humanize.ts`)
+  never emits a seconds field, so `9:00:30am to 5:00:45pm` humanizes to
+  `9:00 AM to 5:00 PM` and re-parses a minute off. This predates the D71
+  calendar-range work (verified against the commit before it) and breaks the
+  two-way guarantee for second-grain endpoints. Render seconds whenever an
+  endpoint carries `second` grain; check the anchored-duration phrase at the
+  same time, since it shares the clock formatter. Surfaced by the plan-032
+  adversarial review pass.
+- **Elliptical range right sides** — `Aug 3–9`, `July 1-5`, `July 1 through 5`
+  all fail: `parseDateToDateRange` parses each endpoint independently, so a bare
+  day number on the right has no month to attach to. The right side should
+  inherit month and year from the left when it reads as a valid day. This is the
+  Latin-script twin of the CJK `3月5日~10日` entry above — do both with one
+  elliptical-endpoint rule rather than two special cases.
+- **Quarters (`Q3`, `next quarter`, `Q3 2026`)** — not a `DateGrain`, so
+  `periodEnd` has nothing to widen and the whole family reads as
+  `UNSUPPORTED_DATE`. Fiscal-year offsets are the reason this isn't free: `Q3`
+  means different months to different companies, so it needs a `fiscalYearStart`
+  option before it can be more than a calendar-quarter guess.
+- **`UNSUPPORTED_DATE` still suggests only a time slot** — the message hint is
+  `try "2pm to 4pm"`, written before calendar ranges existed. A person typing
+  `Q3` or `Aug 3-9` is asking for a date span, so the suggestion sends them the
+  wrong way. The hint should reflect the shape the input looks like it wanted
+  (a date span → `"Aug 3 - Aug 9"`, a period → `"next week"`). Changing the copy
+  moves corpus rows, so it wants its own change rather than a docs pass.
 
 ## Wire schema & types
 
@@ -324,3 +363,13 @@ suffix clock grammar. Still open:
   `百`/`千` positional composition (`三百五十日` as a day-of-month is nonsense,
   yet `二千二十六年` is a legal year spelling). Unify with the CJK number
   walker in `number/` instead of growing a second reader.
+
+## Test-suite maintenance
+
+- **`suggest.test.ts` alias-probe timeout** — "matches an unpruned reference
+  across generated alias probes" builds a full registry and walks every alias in
+  `allKinds`, taking ~7 s against vitest's 5 s default. It fails in isolation on
+  a mid-range laptop and intermittently under a loaded pool, so `bun run check`
+  is flaky through no fault of the change under test. Either sample the alias
+  space, hoist the registry out of the timed body, or give the case its own
+  timeout — pick one deliberately rather than raising the global default.

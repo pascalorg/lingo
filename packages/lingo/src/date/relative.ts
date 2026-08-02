@@ -453,15 +453,19 @@ function parseCalendarPeriod(p: P, start: number, end: number): CoreDate | null 
       return monthPeriodCore(p, mod, month, start, end)
     }
   }
-  if (source === 'this weekend') {
+  // The weekend is named by its Saturday, at day grain — `parseDateRange` widens
+  // it through Sunday. Bare "weekend" reads as "this weekend".
+  const weekend = /^(?:(this|next|last)\s+)?weekend$/.exec(source)
+  if (weekend) {
     const today = startOfDay(p.now)
-    return core(
-      addCalendar(today, { days: forwardDiff(today.getDay(), 6) }),
-      'day',
-      knownFor('day'),
-      start,
-      end,
-    )
+    const weekday = today.getDay()
+    // Sunday still belongs to the weekend that began the day before. Rounding
+    // forward would put "this weekend" a week out and leave the weekend the
+    // reader is standing in reachable only as "last weekend".
+    const toSaturday = weekday === 0 ? -1 : forwardDiff(weekday, 6)
+    const saturday = addCalendar(today, { days: toSaturday })
+    const shift = weekend[1] === 'next' ? 7 : weekend[1] === 'last' ? -7 : 0
+    return core(addCalendar(saturday, { days: shift }), 'day', knownFor('day'), start, end)
   }
   const edge =
     /^(?:the\s+)?(beginning|start|end|middle|mid)(?:\s+of)?(?:\s+the)?(?:\s+(this|next|last))?\s+(.+)$/.exec(

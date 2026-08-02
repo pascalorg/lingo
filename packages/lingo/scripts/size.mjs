@@ -320,7 +320,10 @@ if (has('src/date/index.ts')) {
   // 43.3 (was 41.0): D70 — suffix-delimited date/clock grammar (date/suffix.ts,
   // date/numeral.ts): 年月日 numeric dates, 点/時/分/秒 clocks, day periods,
   // unspaced date+time splitting, glued affix matching. Measured 43.01.
-  check('./date (standalone, incl. engine)', dateAlone, 43_300)
+  // 43.8 (was 43.3): D71 — calendar ranges. Date endpoints reuse the existing
+  // splitter and single-date parser, so the whole capability (date-to-date,
+  // period spans, weekends, the humanize date branch) is 450 B. Measured 43.46.
+  check('./date (standalone, incl. engine)', dateAlone, 43_800)
   const withDate = await bundleStdin(
     `export * from './src/index.ts'; export * from './src/date/index.ts'`,
   )
@@ -344,7 +347,9 @@ if (has('src/date/index.ts')) {
   // the date module (see standalone note). Measured 14.29 after golfing.
   // 15.7 (was 14.4): D70 — the suffix date/clock grammar lands entirely in the
   // date module (see standalone note). Measured 15.46.
-  check('./date (marginal over full)', withDate - full, 15_700)
+  // 16.2 (was 15.7): D71 — calendar ranges land entirely in the date module
+  // (see standalone note). Measured 15.90.
+  check('./date (marginal over full)', withDate - full, 16_200)
 }
 
 if (has('src/dom/index.ts')) {
@@ -477,7 +482,10 @@ if (has('src/ai/index.ts')) {
   // bundled date module (see ./date notes). Measured 17.27 after golfing.
   // 18.6 (was 17.4): D70 — the suffix date/clock grammar cascades through the
   // bundled date module; no /ai code changed. Measured 18.39.
-  check('./ai (marginal over full)', withAi - full, 18_600) // D30: +notation in shared renderNumber
+  // 19.1 (was 18.6): D71 — calendar ranges cascade through the bundled date
+  // module; no /ai code changed. dateRangeField gains the capability for free.
+  // Measured 18.84.
+  check('./ai (marginal over full)', withAi - full, 19_100) // D30: +notation in shared renderNumber
   if (has('src/mcp/index.ts')) {
     const withMcp = await bundleStdin(
       `export * from './src/index.ts'; export * from './src/ai/index.ts'; export * from './src/mcp/index.ts'`,

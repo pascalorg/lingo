@@ -77,6 +77,7 @@ with the package: [`packages/lingo`](packages/lingo/README.md).**
 |------|------------|
 | [`packages/lingo`](packages/lingo) | `@pascal-app/lingo`, the published library (src, tests, bench, size/corpus/zero-deps gates) |
 | [`apps/site`](apps/site) | Docs site with live parser demos (Next.js, port 3000 or next free) |
+| [`skills/`](skills/README.md) | Agent skills shipped for coding agents (`skills/lingo` — the on-ramp to using the library) |
 | [`plans/`](plans/README.md) | Forward-looking specs, one numbered living markdown file per topic |
 | [`wiki/`](wiki/README.md) | As-built docs: architecture, decisions, conventions, credits, research |
 | [`AGENTS.md`](AGENTS.md) | Canonical agent guide (hard rules, workflow, module map) |

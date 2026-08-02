@@ -11,7 +11,7 @@ export function buildLlmsIndex() {
   const lines = [
     '# lingo',
     '',
-    '> Make forms easier, LLM tools safer. Zero-dependency TypeScript library that parses natural-language quantities, units, dates, and ranges into canonical SI-anchored values; converts, validates, formats, and humanizes. Entries: `@pascal-app/lingo`, `@pascal-app/lingo/date`, `@pascal-app/lingo/dom`, `@pascal-app/lingo/element`, `@pascal-app/lingo/react`, `@pascal-app/lingo/ai`, `@pascal-app/lingo/mcp`, `@pascal-app/lingo/describe`, `@pascal-app/lingo/catalog`, `@pascal-app/lingo/complete`, `@pascal-app/lingo/schema`, `@pascal-app/lingo/locales/{en,en-gb,es,fr,pt,zh,ja}`, `@pascal-app/lingo/core`.',
+    '> Make forms easier, LLM tools safer. Zero-dependency TypeScript library that parses natural-language quantities, units, dates, and ranges into canonical SI-anchored values; converts, validates, formats, and humanizes. Entries: `@pascal-app/lingo`, `@pascal-app/lingo/date`, `@pascal-app/lingo/dom`, `@pascal-app/lingo/element`, `@pascal-app/lingo/react`, `@pascal-app/lingo/react-native`, `@pascal-app/lingo/ai`, `@pascal-app/lingo/mcp`, `@pascal-app/lingo/describe`, `@pascal-app/lingo/catalog`, `@pascal-app/lingo/complete`, `@pascal-app/lingo/schema`, `@pascal-app/lingo/locales/{en,en-gb,es,fr,pt,zh,ja}`, `@pascal-app/lingo/core`.',
     '',
     'Agent fetch order: read this index first, then fetch section markdown at `/docs/<section>.md` for the topic you need, or `/llms-full.txt` for the complete narrative. For offline or compressed reference, fetch `/llms-small.txt` (npm-shipped package reference). Keep user measurements as strings in tool schemas; call lingo to convert, validate, surface spans, and handle ambiguity.',
     '',

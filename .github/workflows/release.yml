@@ -70,9 +70,23 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add packages/lingo/package.json packages/lingo/CHANGELOG.md
-          git commit -m "chore(release): v${{ steps.bump.outputs.version }}"
-          git tag "v${{ steps.bump.outputs.version }}"
+          git commit -m "chore(release): v$VERSION"
+          git tag "v$VERSION"
           git push origin HEAD --tags
-          gh release create "v${{ steps.bump.outputs.version }}" --generate-notes
+          # Release body = the curated changelog section, never an auto commit
+          # list. The notes file lives in RUNNER_TEMP so it can't be committed,
+          # and reaches gh via --notes-file: the changelog is full of backticks
+          # and quotes that would execute or break quoting if interpolated.
+          # npm has already published by this point, so a missing or empty
+          # section falls back to --generate-notes rather than failing the run.
+          NOTES="$RUNNER_TEMP/release-notes.md"
+          if node packages/lingo/scripts/changelog-section.mjs "$VERSION" \
+               --changelog packages/lingo/CHANGELOG.md --out "$NOTES"; then
+            gh release create "v$VERSION" --title "v$VERSION" --notes-file "$NOTES"
+          else
+            echo "::warning::no changelog section for $VERSION; using generated notes"
+            gh release create "v$VERSION" --title "v$VERSION" --generate-notes
+          fi
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.bump.outputs.version }}

@@ -9,6 +9,25 @@ change**, even if the API is untouched.
 
 ### Added
 
+- Calendar ranges in `parseDateRange` (`@pascal-app/lingo/date`), which
+  previously covered only clock slots and anchored durations:
+  - Date to date — `July 1 to July 5`, `Aug 3 - Aug 9`,
+    `between Aug 3 and Aug 9`, `from tomorrow to friday`, `Mon-Fri`,
+    `2026-08-01 to 2026-08-05`, and open ends (`from monday`, `until august 9`).
+    The end resolves against the start, so a pair never reads backwards.
+  - Calendar periods — `next week` spans Mon–Sun, `next month` the 1st to the
+    last, `this year` and `2027` the whole year, `August` the whole month. A
+    coarse endpoint widens when it closes a span too, so `July to August` ends
+    on August 31 and `until August` does the same, while `from August` still
+    opens on the 1st.
+  - Weekends — `this weekend`, `next weekend`, `last weekend` span Saturday
+    through Sunday. `parseDate` gained the `next`/`last` weekend modifiers too.
+    On a Saturday or Sunday, `this weekend` is the weekend in progress.
+  - `humanizeDateRange` renders these as dates rather than clock times, so they
+    round-trip. Time slots are unchanged.
+  - A descending dated pair such as `2026-08-09 to 2026-08-03` is swapped and
+    reported with the existing `RANGE_REVERSED` warning instead of being handed
+    back backwards. Overnight clock slots (`9pm to 5am`) are untouched.
 - Chinese and Japanese calendar and clock grammar: numeric dates written with
   suffixes (`2026年3月5日`, `3月5日`, and years spelled digit-by-digit as
   `二〇二六年`), weekdays (`星期三`, `周三`, `水曜日`), clocks closed by
@@ -17,46 +36,41 @@ change**, even if the API is untouched.
   `明日午後3時`).
 - Postpositional bound phrases for scripts that put the comparator after the
   quantity: `5キロ未満`, `5キロ以上`, `5公斤以下`, `5公斤以内`, `5キロ超`.
-  Previously `5キロ未満` parsed as a bare `5 kg`, dropping the bound.
+  These previously parsed as a bare `5 kg`, silently dropping the bound, so
+  they now return a `range` where they used to return a `quantity` — check any
+  code that reads `.quantity` off a zh/ja parse of one of these forms.
 - Chinese and Japanese default currencies, so the shared `¥`/`￥` symbol
   resolves per locale (`￥100` is CNY under `zh`, JPY under `ja`), plus the
   `元`/`圆`/`块`/`人民币` and `円`/`えん` aliases.
-- French long-scale number words (`milliard` = 10^9, `billion` = 10^12),
-  Spanish `mil millones`/`billón`, Portuguese `cento`, and Romance ordinal
+- Spanish `billón` (10^12), Portuguese `cento`, and Romance ordinal
   day-of-month forms (`le 1er mars`, `el 1º de marzo`).
 - A per-locale benchmark suite (`bun run bench`) so multi-language throughput is
   measured rather than assumed.
 - Per-locale corpus contracts gained 96 rows and the English contract 5,
   covering the grammar above plus the number-word fixes below.
 
-### Fixed
-
-- Number words: hundreds now multiply only the 1..99 group in front of them, so
-  French `mille cinq cents` is 1500 (was 100500). A banked smaller scale
-  multiplies the next one, so Spanish `mil millones` is 10^9 (was 1,001,000) and
-  `dos mil millones` is 2×10^9. Both were silent wrong answers.
-- `between A and B` now keeps the and-word for the range when both sides are
-  spelled scale words: `between one thousand and two thousand meters`,
-  `entre mille et deux mille`, `entre mil y dos mil` (all previously failed to
-  parse). `between five and a half and ten kg` still reads 5.5..10 — the
-  fraction tail binds tighter than the range separator.
-- Portuguese `cento e vinte` (120) and `mil e quinhentos` (1500) parse; the
-  and-word after a bare scale word links it to its remainder.
-- Portuguese locative contractions are date fillers, so
-  `na proxima segunda-feira` resolves.
-- Scripts written without word spaces no longer swallow grammar words glued to a
-  quantity (`三至五天`, `5公斤左右`). Unit aliases stay atomic through the split,
-  so `一時間半` remains 1.5 hours rather than splitting at the range word `間`.
-
 ### Changed
 
+- Loading a locale pack now resolves its currency symbol instead of warning
+  about it: under `zh` or `ja`, `￥100` returns CNY or JPY with no
+  `AMBIGUOUS_UNIT` warning, where it previously returned JPY plus the warning
+  in both. Selecting a locale is the disambiguation. Parsing without a pack
+  loaded is unchanged — bare `¥`, `$`, and `cents` still warn.
+- `dateRangeField()` advertises its real grammar to models. The JSON Schema
+  description promised only time slots, so a model had no reason to emit
+  `"next week"` or `"Aug 3 - Aug 9"` into a field that accepts them.
 - Resolved language profiles and locale-detection scans are memoized per pack
   set, so repeated parses with `locale`/auto-detection no longer re-merge packs
   or re-tokenize for detection on every call.
-- Size budgets recalibrated once for this wave (see D70 in `wiki/decisions.md`
-  for the measured numbers and rationale); `scripts/size.mjs` remains the source
-  of truth. No previously-pinned corpus interpretation changed — the wave is
-  additive.
+- Size budgets recalibrated twice for this wave — once for the locale idiom
+  engine and once for calendar ranges (D70 and D71 in `wiki/decisions.md` carry
+  the measured numbers and rationale); `scripts/size.mjs` remains the source of
+  truth. Every corpus row pinned at 0.3.0 is byte-for-byte unchanged — this
+  release only adds rows. Five readings outside the pinned set do change, all
+  of them silent wrong answers being corrected, and each is called out in its
+  own entry: postpositional bounds, `￥` under a loaded pack, French
+  `mille cinq cents`, French `billion`, and Spanish `dos mil millones`. If you
+  depend on any of those, read them before upgrading.
 - README (npm): repo-relative links (`docs/recipes.md`, `plans/`, `wiki/`) now
   point at absolute GitHub URLs so they resolve on npmjs.com, and the docs
   site plus the agent `llms.txt` index are linked from the top.
@@ -69,6 +83,68 @@ change**, even if the API is untouched.
   gained server-rendered parse-example, forms-vs-LLM, tool-boundary, and FAQ
   content (FAQPage/TechArticle/BreadcrumbList structured data included); docs
   section headings no longer leak kicker text into the extracted HTML outline.
+- Docs site: three demos show what a canonical reading is worth downstream —
+  one date field that picks its own picker (day, two-month range, or time slot)
+  from the shape `parseDateRange` returns, a LaTeX view that typesets a reading
+  as real notation because the unit id and the value are separate fields, and a
+  data grid whose columns are `quantityField`s, so mixed cell notation
+  normalizes into one unit and the totals row can just add numbers. All three
+  are keyboard-operable and the LaTeX view renders MathML for screen readers.
+
+### Fixed
+
+- Agent-facing docs now cover calendar ranges. `llms.txt`, the package README,
+  the `skills/lingo` skill, the site's markdown mirror, and the `parseDateRange`
+  / `dateRangeField` TSDoc all described time slots only, so an agent reading
+  any of them would not have found the feature. Each now states the three
+  shapes, the closing-side widening rule, the `RANGE_REVERSED` swap, and what
+  is deliberately absent (quarters, `Aug 3-9`, dash-joined ISO dates).
+- `/docs/dates.md` (and therefore `/llms-full.txt` and `/llms.md`) documented
+  `2026-08-03..2026-08-09` as a supported span. `..` is not a separator in the
+  grammar and that input returns `UNSUPPORTED_DATE`; the example now uses a
+  form that parses.
+- `/llms.txt` never advertised `@pascal-app/lingo/react-native`, and the site's
+  markdown mirror never mentioned `@pascal-app/lingo/complete`, hiding two
+  published entry points from agents that read only those files.
+- The docs gates now catch that class of drift: `check-docs-sync.mjs` asserts
+  both `llms.txt` copies against `package.json` exports and every issue code
+  and verifies the served copy is not stale, and `check-llms-index.mjs` asserts
+  the generated index advertises every published entry point.
+- The `/docs` sidebar no longer contradicts the page it scrolls: it listed
+  `Find values in text` before `Autocomplete anything`, and `Two-way slider`
+  after the two framework entries, in both cases the reverse of the document
+  order the same nav highlights while scrolling.
+- `/docs` heading levels are visually distinct again. `SectionHeading` (h2) and
+  `SubHeading` (h3) both rendered at 14px, so the outline read flat and
+  disagreed with the 16px/15px scale the standalone `/docs/<section>` pages use
+  for the same content. `Autocomplete anything` also appeared twice in a row
+  (section heading, then demo panel title), and `Kinds` hand-rolled its own h3,
+  leaving `#coverage-kinds` as the only depth-3 anchor with no anchor link.
+- Docs sidebar group labels and their subtitles met WCAG AA: at
+  `text-muted-foreground/75` and `/55` on 11px text they measured 2.9:1 and
+  2.1:1 in light mode (3.0:1 dark). Both now use the unmodified
+  `--muted-foreground` token — 4.5:1 light, 7.1:1 dark.
+- Number words: hundreds now multiply only the 1..99 group in front of them, so
+  French `mille cinq cents` is 1500 (was 100500). A banked smaller scale
+  multiplies the next one, so Spanish `dos mil millones` is 2×10^9 (was
+  1,002,000). Both were silent wrong answers.
+- French `billion` is 10^12, the long scale French actually uses; it read as
+  10^9 before, a silent factor-of-1000 error. `milliard` was already correct.
+- Scale words joined by `de`/`e` parse instead of failing on the connector:
+  Spanish `mil millones de metros`, French `un milliard de mètres`, Portuguese
+  `mil e quinhentos`.
+- `between A and B` now keeps the and-word for the range when both sides are
+  spelled scale words: `between one thousand and two thousand meters`,
+  `entre mille et deux mille`, `entre mil y dos mil` (all previously failed to
+  parse). `between five and a half and ten kg` still reads 5.5..10 — the
+  fraction tail binds tighter than the range separator.
+- Portuguese `cento e vinte` (120) and `mil e quinhentos` (1500) parse; the
+  and-word after a bare scale word links it to its remainder.
+- Portuguese locative contractions are date fillers, so
+  `na proxima segunda-feira` resolves.
+- Scripts written without word spaces no longer swallow grammar words glued to a
+  quantity (`三至五天`, `5公斤左右`). Unit aliases stay atomic through the split,
+  so `一時間半` remains 1.5 hours rather than splitting at the range word `間`.
 
 ## [0.3.0] - 2026-07-21
 

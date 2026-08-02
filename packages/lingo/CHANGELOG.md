@@ -7,6 +7,8 @@ change**, even if the API is untouched.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-02
+
 ### Added
 
 - Calendar ranges in `parseDateRange` (`@pascal-app/lingo/date`), which

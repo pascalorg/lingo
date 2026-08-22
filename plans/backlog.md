@@ -36,6 +36,11 @@ surfaces mid-task, add it here and keep going — don't act on it.
   Ranked above the general expression grammar on form value, but it changes the
   v3 wire shape, so it needs its own plan rather than folding into 032.
   (Surfaced by the mathjs/plan-032 prior-art pass 2026-07-29.)
+- **Canceled `q / q` re-unit via implied options** — `calc('10 L / 2 L', {
+  kind: 'mass', unit: 'kg' })` still returns `5 kg` + `UNIT_ASSUMED`. The
+  result is a dimensionless ratio; `finishQuantity` re-attaches the field
+  unit. A `ratio` flag to skip that (~20 B gzip) busts the 4.1 kB `./calc`
+  marginal budget. Cross-currency `RATE_REQUIRED` already lands.
 - **Multiplier and count words** — `twice 3 kg`, `double 3 kg`, `3 boxes of
   2 kg`, `3 @ 2.5 kg`, `5 kg each`, `a dozen eggs` all fail today. Reuses the
   existing number-word lexicon; overlaps plan 032 phase 3, but the unit-less

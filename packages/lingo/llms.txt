@@ -131,7 +131,7 @@ calc("12 * 0.75 kg")               // 9 kg
 calc("10% off 50 kg")              // 45 kg
 ```
 
-Closed calculator: no variables, functions, or dimensional algebra. `lingo()` never evaluates expressions — `2+3 kg` is `TRAILING_INPUT`, `5-10 kg` stays a range. `calc()` default `trigger` is `"always"`. Completions require a leading `=`; `quantityField({ calc })` evaluates `+`/`*`/`/`/`% of` without a prefix (never `-`; glued `5/10 kg` stays a fraction). Glued `m` at an operator boundary is million unless `kind` is `length` or `duration` (`SCALE_ASSUMED`); spaced `7 m` is meters; `1m80` stays 1.80 m. Compact `"14m"` round-trips through `calc()`, not `lingo()`. Same-kind `q / q` is a dimensionless ratio (not re-unitized by implied `kind`/`unit`); cross-currency `+`/`-`/`/` is `RATE_REQUIRED`; `q * q` is `SCALAR_EXPECTED`. `formatExpression` is two-way; `formatLatex` is display-only.
+Closed calculator: no variables, functions, or dimensional algebra. `lingo()` never evaluates expressions — `2+3 kg` is `TRAILING_INPUT`, `5-10 kg` stays a range. `calc()` default `trigger` is `"always"`. Completions require a leading `=`; `quantityField({ calc })` evaluates `+`/`*`/`/`/`% of` without a prefix (never `-`; glued `5/10 kg` stays a fraction). Glued `m` at an operator boundary is million unless `kind` is `length` or `duration` (`SCALE_ASSUMED`); spaced `7 m` is meters; `1m80` stays 1.80 m. Compact `"14m"` round-trips through `calc()`, not `lingo()`. Same-kind `q / q` is a dimensionless ratio; cross-currency arithmetic is `RATE_REQUIRED`; `q * q` is `SCALAR_EXPECTED`. `formatExpression` is two-way; `formatLatex` is display-only.
 
 ## DOM (`@pascal-app/lingo/dom`)
 

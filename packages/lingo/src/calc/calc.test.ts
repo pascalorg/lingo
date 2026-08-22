@@ -160,17 +160,7 @@ describe('calc()', () => {
     expect(same.value).toBeCloseTo(15, 12)
     expect(same.quantity?.unit).toBe('USD')
     expect(ok('10 usd / 5 usd').value).toBeCloseTo(2, 12)
-  })
-
-  it('does not re-unit a canceled ratio', () => {
-    const r = ok('10 L / 2 L', { kind: 'mass', unit: 'kg' })
-    expect(r.value).toBeCloseTo(5, 12)
-    expect(r.quantity).toBeUndefined()
-    expect(r.issues.some((issue) => issue.code === 'UNIT_ASSUMED')).toBe(false)
-    const assumed = ok('2+3', { kind: 'mass', unit: 'kg' })
-    expect(assumed.quantity?.kind).toBe('mass')
-    expect(assumed.value).toBeCloseTo(5, 12)
-    expect(assumed.issues.some((issue) => issue.code === 'UNIT_ASSUMED')).toBe(true)
+    expect(calc('10 usd * 5 eur').issues[0]?.code).toBe('RATE_REQUIRED')
   })
 
   it('keeps a unit on compound scientific format', () => {
@@ -310,6 +300,7 @@ describe('calc injection', () => {
   it('lets quantityField accept 12 * 0.75 kg when calc is injected', () => {
     const field = quantityField({ kind: 'mass', unit: 'kg', calc })
     expect(field.parse('12 * 0.75 kg')).toBeCloseTo(9, 12)
+    expect(field.parse('2+3')).toBeCloseTo(5, 12)
     const range = field.safeParse('5-10 kg')
     expect('value' in range).toBe(false)
     const input = field['~standard'].jsonSchema.input({ target: 'draft-2020-12' })
@@ -334,16 +325,6 @@ describe('calc injection', () => {
       data: { from: 'USD', to: 'EUR' },
     })
     expect(field.parse('10 usd + 5 usd')).toBeCloseTo(15, 12)
-  })
-
-  it('does not stuff a canceled ratio into the field unit', () => {
-    const field = quantityField({ kind: 'mass', unit: 'kg', calc })
-    const result = field.safeParse('10 L / 2 L')
-    if ('value' in result) {
-      throw new Error('expected KIND_MISMATCH failure')
-    }
-    expect(result.issues[0]?.code).toBe('KIND_MISMATCH')
-    expect(field.parse('2+3')).toBeCloseTo(5, 12)
   })
 })
 

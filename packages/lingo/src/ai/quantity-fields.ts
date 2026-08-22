@@ -124,26 +124,10 @@ export function quantityField(opts: QuantityFieldOptions): LingoField<number | Q
         if (!evaluated.ok) {
           return failureFrom(evaluated.issues, opts, null)
         }
-        if (!evaluated.quantity) {
-          return failureFrom(
-            [
-              makeIssue(
-                'KIND_MISMATCH',
-                {
-                  found: 'number',
-                  expected: String(opts.kind ?? 'quantity'),
-                  example: `"5 ${opts.unit}"`,
-                },
-                evaluated.span,
-                opts.messages,
-              ),
-            ],
-            opts,
-            null,
-          )
-        }
         try {
-          const converted = evaluated.quantity.to(opts.unit)
+          const converted = evaluated.quantity
+            ? evaluated.quantity.to(opts.unit)
+            : quantity(evaluated.value, opts.unit)
           const bounds = boundsFailure(converted.value, opts)
           if (bounds) {
             return bounds

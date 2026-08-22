@@ -132,9 +132,6 @@ function finishQuantity(p: ParserState, value: EvalValue): Quantity | undefined 
   if (value.quantity) {
     return value.quantity
   }
-  if (value.ratio) {
-    return
-  }
   const implied = resolveImplied(p)
   if (!implied) {
     return

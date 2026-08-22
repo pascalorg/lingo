@@ -39,12 +39,9 @@ change**, even if the API is untouched.
   `10%`, `$5`) instead of dropping them.
 - `calc('1e999')` reports `NONFINITE` instead of masking it as `NO_VALUE`.
 - `SCALAR_EXPECTED` copy no longer claims `10 / 2 kg` is two quantities.
-- Cross-currency `+`/`-`/`/` in `calc()` reports `RATE_REQUIRED` instead of
+- Cross-currency arithmetic in `calc()` reports `RATE_REQUIRED` instead of
   treating every currency factor as 1, or masking the conversion throw as
   `NONFINITE`.
-- Same-kind `q / q` stays a dimensionless ratio when `kind`/`unit` are
-  implied (`10 L / 2 L` is 5, not 5 kg). `quantityField({ calc })` refuses
-  to stuff that ratio into the field unit.
 
 ## [0.4.0] - 2026-08-02
 

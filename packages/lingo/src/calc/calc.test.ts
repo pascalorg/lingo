@@ -139,6 +139,46 @@ describe('calc()', () => {
     expect(zero.issues[0]?.code).toBe('DIVISION_BY_ZERO')
   })
 
+  it('refuses cross-currency arithmetic without rates', () => {
+    const add = calc('10 usd + 5 eur')
+    expect(add.ok).toBe(false)
+    expect(add.issues[0]).toMatchObject({
+      code: 'RATE_REQUIRED',
+      data: { from: 'USD', to: 'EUR' },
+    })
+    const sub = calc('10 gbp - 5 usd')
+    expect(sub.ok).toBe(false)
+    expect(sub.issues[0]?.code).toBe('RATE_REQUIRED')
+    const div = calc('10 usd / 5 eur')
+    expect(div.ok).toBe(false)
+    expect(div.issues[0]?.code).toBe('RATE_REQUIRED')
+    const glued = calc('$10 / €5')
+    expect(glued.ok).toBe(false)
+    expect(glued.issues.some((issue) => issue.code === 'RATE_REQUIRED')).toBe(true)
+    expect(glued.issues.some((issue) => issue.code === 'NONFINITE')).toBe(false)
+    const same = ok('10 usd + 5 usd')
+    expect(same.value).toBeCloseTo(15, 12)
+    expect(same.quantity?.unit).toBe('USD')
+    expect(ok('10 usd / 5 usd').value).toBeCloseTo(2, 12)
+  })
+
+  it('does not re-unit a canceled ratio', () => {
+    const r = ok('10 L / 2 L', { kind: 'mass', unit: 'kg' })
+    expect(r.value).toBeCloseTo(5, 12)
+    expect(r.quantity).toBeUndefined()
+    expect(r.issues.some((issue) => issue.code === 'UNIT_ASSUMED')).toBe(false)
+    const assumed = ok('2+3', { kind: 'mass', unit: 'kg' })
+    expect(assumed.quantity?.kind).toBe('mass')
+    expect(assumed.value).toBeCloseTo(5, 12)
+    expect(assumed.issues.some((issue) => issue.code === 'UNIT_ASSUMED')).toBe(true)
+  })
+
+  it('keeps a unit on compound scientific format', () => {
+    const r = ok('5ft 11in')
+    expect(r.format({ style: 'scientific' })).toMatch(/ft/)
+    expect(ok(r.format({ style: 'scientific' })).quantity?.kind).toBe('length')
+  })
+
   it('only evaluates when prefixed if trigger is =', () => {
     expect(calc('2+3 kg', { trigger: '=' }).ok).toBe(false)
     const r = ok('=2+3 kg', { trigger: '=' })
@@ -185,7 +225,18 @@ describe('calc()', () => {
   })
 
   it('does not throw or yield NaN on hostile input', () => {
-    const nasty = ['', '   ', '/', '((((', '5 / 0', '5 kg * 2 m', 'NaN * 2', '1e999 * 1e999']
+    const nasty = [
+      '',
+      '   ',
+      '/',
+      '((((',
+      '5 / 0',
+      '5 kg * 2 m',
+      'NaN * 2',
+      '1e999 * 1e999',
+      '$10 / €5',
+      '10 usd + 5 eur',
+    ]
     for (const input of nasty) {
       const r = calc(input)
       expect(r.ok || r.issues.length > 0, input).toBe(true)
@@ -270,6 +321,29 @@ describe('calc injection', () => {
     expect(field.parse('10 kg / 2')).toBeCloseTo(5, 12)
     expect(field.parse('10kg/2')).toBeCloseTo(5, 12)
     expect(field.parse('5/10 kg')).toBeCloseTo(0.5, 12)
+  })
+
+  it('surfaces RATE_REQUIRED from quantityField on cross-currency calc', () => {
+    const field = quantityField({ kind: 'currency', unit: 'USD', calc })
+    const result = field.safeParse('10 usd + 5 eur')
+    if ('value' in result) {
+      throw new Error('expected RATE_REQUIRED failure')
+    }
+    expect(result.issues[0]).toMatchObject({
+      code: 'RATE_REQUIRED',
+      data: { from: 'USD', to: 'EUR' },
+    })
+    expect(field.parse('10 usd + 5 usd')).toBeCloseTo(15, 12)
+  })
+
+  it('does not stuff a canceled ratio into the field unit', () => {
+    const field = quantityField({ kind: 'mass', unit: 'kg', calc })
+    const result = field.safeParse('10 L / 2 L')
+    if ('value' in result) {
+      throw new Error('expected KIND_MISMATCH failure')
+    }
+    expect(result.issues[0]?.code).toBe('KIND_MISMATCH')
+    expect(field.parse('2+3')).toBeCloseTo(5, 12)
   })
 })
 

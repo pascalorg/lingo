@@ -165,16 +165,22 @@ Operand rules, and the issue code when they're violated:
 
 | Form | Result | Rule |
 |---|---|---|
-| `q + q`, `q - q` | quantity | Same kind only, else `EXPRESSION_KIND_MISMATCH` |
+| `q + q`, `q - q` | quantity | Same kind only, else `EXPRESSION_KIND_MISMATCH`. Rate-based kinds with different units → `RATE_REQUIRED` |
 | `n + q`, `q + n` | quantity | Bare operand inherits the other side's unit |
 | `q * n`, `n * q` | quantity | Exactly one operand may be a quantity, else `SCALAR_EXPECTED` |
 | `q / n` | quantity | Divisor must be scalar |
-| `q / q` | number | Same-kind division cancels to a dimensionless ratio (phase 3) |
+| `q / q` | number | Same-kind division cancels to a dimensionless ratio (phase 3). Rate-based different units → `RATE_REQUIRED`. Implied `kind`/`unit` is not re-attached |
 | `q * q` | rejected | `SCALAR_EXPECTED` — this is dimensional algebra (D2) |
 | `x / 0` | rejected | `DIVISION_BY_ZERO` |
 
 `q * q` being refused is load-bearing: it's the line that keeps this a
-calculator instead of the start of a unit algebra.
+calculator instead of the start of a unit algebra. Rate-based kinds
+(currency) cannot `+`/`-`/`/` across units: same `RATE_REQUIRED` guard as
+ranges. Same-currency `10 usd + 5 usd` still adds. A canceled `q / q` stays
+a number even when `kind`/`unit` are implied — `calc('10 L / 2 L', { kind:
+'mass', unit: 'kg' })` is 5, not 5 kg. Bare `2+3` with those options still
+assumes kg. `quantityField({ calc })` fails `KIND_MISMATCH` rather than
+stuffing that ratio into the field unit.
 
 `and` is `+` in calc (`half of 56kg and 1700g`). Spaced `-` is subtraction,
 not a range. Word operators: `plus` / `minus` / `times` / `x` / `over` /

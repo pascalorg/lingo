@@ -87,7 +87,9 @@ resolver + detector; the packs themselves live in `src/locales/`).
   `5-10 kg` stays a range; glued `5/10 kg` stays a fraction) and then evaluates
   with `trigger: 'always'`. Glued `m`/`M` at an operator boundary is million
   unless kind is `length` or `duration` (`SCALE_ASSUMED`); spaced `7 m` is
-  meters; `1m80` stays 1.80 m because the next token is digits.
+  meters; `1m80` stays 1.80 m because the next token is digits. Cross-currency
+  operands (`10 usd + 5 eur`) are `RATE_REQUIRED`, same as ranges. Canceled
+  `q / q` stays a number even when `kind`/`unit` are implied.
 - **5K guard**: the k/bn suffix multiplier is disabled under kind 'temperature'
   (5K is kelvin, 70k is 70 000).
 - **Registry refs are liberal**: `.to('L')`, `convert(1,'gal','L')` resolve

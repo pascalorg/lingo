@@ -9,7 +9,7 @@ import { toBase } from '../core/convert'
 import { hasError, makeIssue, setDefaultMessages } from '../core/errors'
 import { Quantity } from '../core/quantity'
 import { createRegistry } from '../core/registry'
-import type { Kind, LingoIssue, Span } from '../core/types'
+import type { LingoIssue, Span } from '../core/types'
 import { registerTemperatureVocabs } from '../fuzzy/temperature'
 import { en } from '../messages/en'
 import {
@@ -23,8 +23,7 @@ import {
 } from '../parse/config'
 import { resolveImplied } from '../parse/quantity'
 import { allKinds, byteishFallbacks } from '../units/index'
-import type { EvalValue } from './eval'
-import { evaluate } from './eval'
+import { type EvalValue, evaluate } from './eval'
 import { formatCalc, formatExpression, formatLatex } from './format'
 import { parseCalc } from './parse'
 import type {
@@ -90,13 +89,7 @@ export function calc(input: string, opts?: CalcOptions): CalcOutcome {
   if (!node) {
     return attachJson(fail(p))
   }
-  let value: EvalValue | null
-  try {
-    value = evaluate(p, node)
-  } catch {
-    p.issues.push(makeIssue('NONFINITE', {}, node.span, p.opts.messages))
-    return attachJson(fail(p))
-  }
+  const value = evaluate(p, node)
   if (!value) {
     return attachJson(fail(p))
   }
@@ -135,12 +128,12 @@ export function calc(input: string, opts?: CalcOptions): CalcOutcome {
   return attachJson(result)
 }
 
-function finishQuantity(
-  p: ParserState,
-  value: { kind: Kind | null; quantity: Quantity | null; value: number },
-): Quantity | undefined {
+function finishQuantity(p: ParserState, value: EvalValue): Quantity | undefined {
   if (value.quantity) {
     return value.quantity
+  }
+  if (value.ratio) {
+    return
   }
   const implied = resolveImplied(p)
   if (!implied) {

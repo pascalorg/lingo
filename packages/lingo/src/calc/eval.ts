@@ -8,6 +8,8 @@ import type { CalcNode } from './types'
 export interface EvalValue {
   kind: Kind | null
   quantity: Quantity | null
+  /** True when same-kind `q / q` canceled to a dimensionless ratio. */
+  ratio?: boolean
   span: Span
   unit: string | null
   value: number
@@ -74,6 +76,9 @@ function evalAdd(
   const sign = op === '+' ? 1 : -1
   if (left.kind && right.kind && left.kind !== right.kind) {
     report(p, 'EXPRESSION_KIND_MISMATCH', { left: left.kind, right: right.kind }, span)
+    return null
+  }
+  if (rateMismatch(p, left, right, span)) {
     return null
   }
   if (!(left.kind || right.kind)) {
@@ -145,13 +150,20 @@ function evalDiv(p: ParserState, left: EvalValue, right: EvalValue, span: Span):
       )
       return null
     }
+    if (rateMismatch(p, left, right, span)) {
+      return null
+    }
     const common = left.quantity.valueIn(left.unit!)
     const other = right.quantity.valueIn(left.unit!)
     if (other === 0) {
       report(p, 'DIVISION_BY_ZERO', {}, span)
       return null
     }
-    return finite(p, { kind: null, unit: null, value: common / other, quantity: null, span }, span)
+    return finite(
+      p,
+      { kind: null, unit: null, value: common / other, quantity: null, span, ratio: true },
+      span,
+    )
   }
   if (right.quantity && !left.quantity) {
     report(p, 'SCALAR_EXPECTED', { op: 'divide' }, span)
@@ -198,6 +210,17 @@ function rightAffine(p: ParserState, right: EvalValue, kind: Kind): boolean {
     return false
   }
   return Boolean(p.reg.unit(kind, right.unit)?.offset)
+}
+
+function rateMismatch(p: ParserState, left: EvalValue, right: EvalValue, span: Span): boolean {
+  if (!(left.unit && right.unit && left.unit !== right.unit)) {
+    return false
+  }
+  if (!p.reg.kind(left.kind ?? right.kind)?.rateBased) {
+    return false
+  }
+  report(p, 'RATE_REQUIRED', { from: left.unit, to: right.unit }, span)
+  return true
 }
 
 function finite(p: ParserState, value: EvalValue, span: Span): EvalValue | null {

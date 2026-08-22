@@ -216,7 +216,6 @@ export function parseCalc(p: ParserState): CalcNode | null {
     pos = withHalf.nextToken
     const span = toSourceSpan(p.n, withHalf.normStart, withHalf.normEnd)
     if (!Number.isFinite(withHalf.base)) {
-      issue(p, 'NONFINITE', {}, withHalf.normStart, withHalf.normEnd)
       return null
     }
     if (withHalf.kind && withHalf.headUnit) {

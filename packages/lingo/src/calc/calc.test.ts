@@ -160,7 +160,7 @@ describe('calc()', () => {
   })
 
   it('keeps NONFINITE instead of masking it as NO_VALUE', () => {
-    expect(calc('1e999').issues[0]?.code).toBe('NONFINITE')
+    expect(calc('1e999').issues.map((issue) => issue.code)).toEqual(['NONFINITE'])
     expect(calc('1e999 * 2').issues[0]?.code).toBe('NONFINITE')
     expect(calc('(1e999)').issues[0]?.code).toBe('NONFINITE')
   })

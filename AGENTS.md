@@ -123,6 +123,7 @@ Inside `packages/lingo/` the same scripts run directly (`bun run test`, etc.).
 - `fuzzy/` — fuzzy vocab ("hot", "a few") → ranges
 - `messages/` — default human-readable issue copy (`./core` ships copy-free)
 - `date/` — natural-language date/duration parsing + humanizing (entry `./date`)
+- `calc/` — closed quantity arithmetic (entry `./calc`)
 - `describe/` — opt-in rich/resource value + result views (entry `./describe`)
 - `catalog/` — read-only query API over unit/kind/currency data (entry `./catalog`)
 - `dom/` — headless input controller (entry `./dom`)

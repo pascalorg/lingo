@@ -244,6 +244,11 @@ export type IssueCode =
   | 'SLANG_UNIT'
   | 'TZ_IGNORED'
   | 'AMBIGUOUS_TIMEZONE'
+  | 'AFFINE_DELTA_ASSUMED'
+  | 'EXPRESSION_KIND_MISMATCH'
+  | 'SCALAR_EXPECTED'
+  | 'DIVISION_BY_ZERO'
+  | 'SCALE_ASSUMED'
 
 /**
  * Per-code structured payload, keyed by `IssueCode` — what `issue.data`
@@ -260,6 +265,7 @@ export type IssueCode =
  * ```
  */
 export interface IssueDataMap {
+  AFFINE_DELTA_ASSUMED: { unit: string; asDelta: string }
   AMBIGUOUS_DATE: { text: string; a: string; b: string }
   AMBIGUOUS_NUMBER: { text: string; a: string; b: string }
   AMBIGUOUS_TIMEZONE: { tz: string }
@@ -269,7 +275,9 @@ export interface IssueDataMap {
   COMPOUND_OVERFLOW: { value: number; unit: string }
   CONVERSION_KIND_MISMATCH: { found: string; target: string }
   CONVERSION_NOT_ALLOWED: Record<string, never>
+  DIVISION_BY_ZERO: Record<string, never>
   EMPTY: Record<string, never>
+  EXPRESSION_KIND_MISMATCH: { left: string; right: string }
   KIND_MISMATCH: { found: string; expected: string; example: string }
   LOCALE_NOT_LOADED: { locale: string }
   NO_VALUE: { example: string }
@@ -283,6 +291,8 @@ export interface IssueDataMap {
   RANGE_REVERSED: { fixed: string }
   RATE_REQUIRED: { from: string; to: string }
   REQUIRED: Record<string, never>
+  SCALAR_EXPECTED: { op: string }
+  SCALE_ASSUMED: { symbol: string; scale: string }
   SINGLE_VALUE_EXPECTED: Record<string, never>
   SLANG_UNIT: { alias: string; unit: string }
   TRAILING_INPUT: { text: string }

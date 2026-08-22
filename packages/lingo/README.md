@@ -389,6 +389,48 @@ with no spaces (`2026-08-01-2026-08-05`) are not in the grammar and return
 The humanizer's output is guaranteed re-parseable by the parser (round-trip tested):
 `parseDate(humanizeDate(d, { now }), { now })` lands within one display-grain of `d`.
 
+### Calculations: `@pascal-app/lingo/calc`
+
+A closed calculator over quantities and numbers. `lingo()` never does this —
+`5-10 kg` stays a range, `2 ft + 3 in` stays a compound, and `2+3 kg` is
+trailing input rather than a silent 2–3 kg range.
+
+```ts
+import { calc } from '@pascal-app/lingo/calc'
+
+const million = calc('7m*2')
+million.ok && million.value                         // 14000000
+million.ok && million.format({ style: 'words' })    // "14 million"
+million.ok && million.format({ style: 'grouped' })  // "14,000,000"
+million.ok && million.format({ style: 'scientific' }) // "14e6"
+million.ok && million.format({ style: 'compact' })  // "14m"
+million.ok && million.expression                    // "7e6 × 2"
+million.ok && million.latex                         // "7 \\times 10^{6} \\times 2"
+
+const duration = calc('9min x 4')
+duration.ok && duration.format()                    // "36 min"
+duration.ok && duration.format({ unit: 'h' })       // "0.6 h"
+
+calc('half of 56kg+1700g')                          // 28.85 kg
+```
+
+Glued `m` at an operator boundary is million unless `kind` is `length` or
+`duration`; spaced `7 m` is meters; `1m80` stays 1.80 m. Compact `"14m"`
+round-trips through `calc()`, not `lingo()`. Same-kind `q / q` cancels to a
+ratio; `q * q` is `SCALAR_EXPECTED`. Inject into mixed fields so only a
+leading `=` opts into arithmetic:
+
+```ts
+import { calc } from '@pascal-app/lingo/calc'
+import { quantityField } from '@pascal-app/lingo/ai'
+import { completions } from '@pascal-app/lingo/complete'
+
+quantityField({ kind: 'mass', unit: 'kg', calc }).parse('12 * 0.75 kg') // 9
+completions('=2+3 kg', { calc: (text) => calc(text, { trigger: '=' }) })
+```
+
+The grammar cannot express a call, a scope, or a side effect.
+
 ### Forms: `@pascal-app/lingo/dom`
 
 Turn any `<input>` into a natural-language field. Headless: no styles shipped,
@@ -893,7 +935,8 @@ NONFINITE · LOCALE_NOT_LOADED · RANGE_MIN · RANGE_MAX · REQUIRED · UNSUPPOR
 RANGE_OPEN_BOUND_NOT_ALLOWED · TYPO_CORRECTED · AMBIGUOUS_NUMBER ·
 AMBIGUOUS_UNIT · AMBIGUOUS_DATE · RANGE_REVERSED · COMPOUND_OVERFLOW ·
 CIVIL_AVERAGE · UNIT_ASSUMED · WEEKDAY_ASSUMED_NEXT · SLANG_UNIT · TZ_IGNORED ·
-AMBIGUOUS_TIMEZONE`
+AMBIGUOUS_TIMEZONE · AFFINE_DELTA_ASSUMED · EXPRESSION_KIND_MISMATCH ·
+SCALAR_EXPECTED · DIVISION_BY_ZERO · SCALE_ASSUMED`
 
 Every issue carries a typed `data` payload (`LingoIssue<'UNKNOWN_UNIT'>` knows
 `data.unit` and `data.suggestions`). `NOW_REQUIRED` fires when a date input

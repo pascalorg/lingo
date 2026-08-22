@@ -76,6 +76,16 @@
         "default": "./dist/date/index.cjs"
       }
     },
+    "./calc": {
+      "import": {
+        "types": "./dist/calc/index.d.ts",
+        "default": "./dist/calc/index.js"
+      },
+      "require": {
+        "types": "./dist/calc/index.d.cts",
+        "default": "./dist/calc/index.cjs"
+      }
+    },
     "./dom": {
       "import": {
         "types": "./dist/dom/index.d.ts",

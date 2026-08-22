@@ -1,3 +1,4 @@
+import type { CalcOptions, CalcOutcome } from '../calc/types'
 import { RATE_BASED_CONVERSION_ERROR } from '../core/convert'
 import { makeIssue } from '../core/errors'
 import type { QuantityJSON, QuantityRangeJSON } from '../core/quantity'
@@ -26,6 +27,12 @@ export type QuantityFieldOptions = LingoOptions & {
   max?: number
   output?: 'number' | 'quantity'
   description?: string
+  /**
+   * Inject `calc` from `@pascal-app/lingo/calc` so the field accepts
+   * expressions (`12 * 0.75 kg`, `10% of 60 kg`, `=2+3 kg`). `-` is not a
+   * calc trigger — `5-10 kg` stays a range.
+   */
+  calc?: (input: string, opts?: CalcOptions) => CalcOutcome
 }
 
 export type RangeFieldOptions = LingoOptions & {
@@ -72,6 +79,7 @@ export function quantityField(
     max?: number
     output: 'quantity'
     description?: string
+    calc?: QuantityFieldOptions['calc']
   },
 ): LingoField<QuantityJSON>
 /**
@@ -98,6 +106,7 @@ export function quantityField(
     max?: number
     output?: 'number'
     description?: string
+    calc?: QuantityFieldOptions['calc']
   },
 ): LingoField<number>
 export function quantityField(opts: QuantityFieldOptions): LingoField<number | QuantityJSON> {
@@ -107,6 +116,42 @@ export function quantityField(opts: QuantityFieldOptions): LingoField<number | Q
       const input = quantityInput(value)
       if (typeof input !== 'string') {
         return input
+      }
+
+      if (opts.calc && looksLikeCalc(input)) {
+        const evaluated = opts.calc(input, { ...effective, trigger: 'always' })
+        if (!evaluated.ok) {
+          return failureFrom(evaluated.issues, opts, null)
+        }
+        try {
+          const converted = evaluated.quantity
+            ? evaluated.quantity.to(opts.unit)
+            : quantity(evaluated.value, opts.unit)
+          const bounds = boundsFailure(converted.value, opts)
+          if (bounds) {
+            return bounds
+          }
+          return withWarnings(
+            {
+              value:
+                opts.output === 'quantity'
+                  ? cleanQuantityJson(converted.toJSON())
+                  : cleanNumber(converted.value),
+            },
+            evaluated.issues,
+            opts,
+          )
+        } catch (error) {
+          return (
+            rateRequiredFailure(
+              error,
+              evaluated.quantity?.unit ?? null,
+              opts.unit,
+              evaluated.span,
+              opts,
+            ) ?? messageFailure(errorMessage(error))
+          )
+        }
       }
 
       const result = parseQuantity(input, effective)
@@ -236,6 +281,27 @@ export function rangeField(
       output: () => (opts.output === 'range' ? quantityRangeJsonSchema() : rangeJsonSchema(opts)),
     },
   )
+}
+
+function looksLikeCalc(input: string): boolean {
+  const text = input.trim()
+  if (text.startsWith('=')) {
+    return true
+  }
+  const lower = text.toLowerCase()
+  if (/\b(times|plus|minus|divided|half of|twice|double|triple|thrice)\b/.test(lower)) {
+    return true
+  }
+  if (/%\s*(of|off|on)\b/.test(lower)) {
+    return true
+  }
+  if (/[×·÷*]/.test(text)) {
+    return true
+  }
+  if (/\sx\s/i.test(text)) {
+    return true
+  }
+  return text.includes('+')
 }
 
 function quantityInput(value: unknown): string | StandardSchemaV1Failure {
@@ -377,11 +443,18 @@ function errorMessage(error: unknown): string {
 function quantityInputDescription(opts: QuantityFieldOptions): string {
   // Bounds are safety-critical steering — they append even to custom copy.
   if (opts.description) {
-    return `${opts.description}${boundsHint(opts)}`
+    return `${opts.description}${calcHint(opts)}${boundsHint(opts)}`
   }
   const kind = opts.kind ? String(opts.kind) : 'quantity'
   const examples = examplesForKind(kind, opts.unit)
-  return `A ${kind} as natural-language text like ${examples}; canonicalized to ${opts.unit}.${boundsHint(opts)}`
+  return `A ${kind} as natural-language text like ${examples}; canonicalized to ${opts.unit}.${calcHint(opts)}${boundsHint(opts)}`
+}
+
+function calcHint(opts: Pick<QuantityFieldOptions, 'calc'>): string {
+  if (!opts.calc) {
+    return ''
+  }
+  return ' Arithmetic expressions are allowed (for example "12 * 0.75 kg", "10% of 60 kg", "half of 56kg+1700g", or "=2+3 kg").'
 }
 
 function rangeInputDescription(opts: RangeFieldOptions): string {

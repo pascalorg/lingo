@@ -18,6 +18,7 @@ export default defineConfig((options) => [
       index: 'src/index.ts',
       'core/index': 'src/core/index.ts',
       'date/index': 'src/date/index.ts',
+      'calc/index': 'src/calc/index.ts',
       'dom/index': 'src/dom/index.ts',
       'element/index': 'src/element/index.ts',
       'describe/index': 'src/describe/index.ts',

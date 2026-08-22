@@ -101,7 +101,7 @@ Driver: <the user need, review finding, or decision that motivates this — link
 | 030 | [Time-of-day, timezones & slots](030-time-of-day-timezone-and-slots.md) | done |
 | 031 | [Ranked completions (autocomplete anything)](031-completions.md) | approved |
 | 031 | [Locale packs](031-locale-packs.md) | in-progress |
-| 032 | [Input calculations (quantity arithmetic)](032-input-calculations.md) | draft |
+| 032 | [Input calculations (quantity arithmetic)](032-input-calculations.md) | done — shipped 2026-08-22 (D73) |
 | 033 | [Locale idiom coverage](033-locale-idiom-coverage.md) | in-progress — waves 1–2 shipped (D68/D69/D70) |
 | 034 | [React Native text input](034-react-native-input.md) | done |
 

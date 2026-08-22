@@ -120,7 +120,7 @@ export function prepareCjkValueTokens(tokens: Token[], i: number, tables: Number
   if (t.type === 'word') {
     const parsed = parseCjkNumberText(t.text, tables)
     if (parsed && parsed.end > 0) {
-      splitPrefix(tokens, i, t.start + parsed.end, String(parsed.value), tables)
+      splitPrefix(tokens, i, t.start + parsed.end, String(parsed.value), tables, parsed)
     }
     return
   }
@@ -134,7 +134,7 @@ export function prepareCjkValueTokens(tokens: Token[], i: number, tables: Number
   }
   const parsed = parseCjkNumberText(contiguousText(tokens, i), tables)
   if (parsed?.sawScale && parsed.end > t.text.length) {
-    splitPrefix(tokens, i, t.start + parsed.end, String(parsed.value), tables)
+    splitPrefix(tokens, i, t.start + parsed.end, String(parsed.value), tables, parsed)
   }
 }
 
@@ -182,6 +182,7 @@ function splitPrefix(
   end: number,
   value: string,
   tables: NumberWordTables,
+  parsed: CjkNumberResult,
 ): void {
   const first = tokens[i]
   if (!first || end <= first.start) {
@@ -192,7 +193,14 @@ function splitPrefix(
     cursor++
   }
   const pieces: Token[] = [
-    { type: 'digits', text: value, start: first.start, end, spaceBefore: first.spaceBefore },
+    {
+      type: 'digits',
+      text: value,
+      start: first.start,
+      end,
+      spaceBefore: first.spaceBefore,
+      ...(parsed.adjacentRange ? { adjacentRange: true } : {}),
+    },
   ]
   const last = tokens[cursor - 1]
   if (last && end < last.end) {

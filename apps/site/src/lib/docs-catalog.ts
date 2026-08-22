@@ -321,6 +321,22 @@ export const docsNavGroups: DocsNavGroup[] = [
         ],
         { depth: 3, markdownSectionId: 'dates' },
       ),
+      page(
+        'calculations',
+        'Calculations',
+        'Evaluate mixed unit math without turning lingo into a CAS.',
+        [
+          'calc',
+          'expression',
+          'arithmetic',
+          '7m*2',
+          'latex',
+          '14 million',
+          'percent off',
+          'half of',
+          'SCALE_ASSUMED',
+        ],
+      ),
       page('locales', 'Locales', 'Load tree-shakeable language packs for parsing.', [
         'locale',
         'locale pack',

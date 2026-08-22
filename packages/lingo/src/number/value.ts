@@ -30,6 +30,8 @@ export interface ValueCtx {
 }
 
 export interface ValueNode {
+  /** CJK adjacent-range lead ("七八") so `2+3` is not a range. */
+  adjacentRange?: boolean
   /** Alternative reading for ambiguous separators (already a full value). */
   altValue?: number
   approximate?: boolean
@@ -49,6 +51,13 @@ const isSep = (t: Token | undefined, ch: string): boolean =>
   !!t && t.type === 'sym' && t.text === ch && !t.spaceBefore
 
 const attached = (t: Token | undefined): boolean => !!t && !t.spaceBefore
+
+function markAdjacent(node: ValueNode, token: Token): ValueNode {
+  if (token.adjacentRange) {
+    node.adjacentRange = true
+  }
+  return node
+}
 
 export function parseValue(ctx: ValueCtx, i: number, atStart = false): ValueNode | null {
   const { tokens } = ctx
@@ -214,12 +223,18 @@ function assembleNumeric(ctx: ValueCtx, i: number): ValueNode | null {
         value = Number.POSITIVE_INFINITY
       }
       const last = tokens[spacePos - 1]!
-      return guardFinite(ctx, { value, next: spacePos, start: first.start, end: last.end, issues })
+      return guardFinite(
+        ctx,
+        markAdjacent({ value, next: spacePos, start: first.start, end: last.end, issues }, first),
+      )
     }
   }
 
   const last = tokens[pos - 1]!
-  const span: ValueNode = { value: 0, next: pos, start: first.start, end: last.end, issues }
+  const span: ValueNode = markAdjacent(
+    { value: 0, next: pos, start: first.start, end: last.end, issues },
+    first,
+  )
   const text = (): string => renderChain(groups, seps)
 
   if (seps.length === 0) {

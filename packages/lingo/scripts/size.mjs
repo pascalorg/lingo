@@ -143,12 +143,17 @@ function check(label, size, budget) {
 // approximatePhrases) + CJK number engine (sub-token segmentation, 万/亿
 // grouping, elliptical/mixed forms, wave-dash + adjacent ranges, post-unit 半).
 // Measured 38.19 after golfing; capability is product (D14 pattern).
+// 39.9 (was 39.4): D73 — input calculations. Shared parser always ships the
+// CJK adjacent-range gate (`2+3 kg` is trailing input, not a silent range),
+// AFFINE_DELTA_ASSUMED on additive affine compounds, and calc-scale matching
+// inside parseQty so glued `7m*2` can mean 14 million before `m` binds as
+// meters. Measured 39.84.
 // 39.4 (was 38.3): D70 — wave-2 idiom engine: profile-driven splitting of glued
 // CJK grammar words, postpositional bounds (5キロ未満), and number-word
 // arithmetic fixes (hundreds bind to the preceding group, scale chaining,
 // `noAnd` threading). Measured 39.18.
 const full = await bundleStdin(`export * from './src/index.ts'`)
-check('lingo (full)', full, 39_400)
+check('lingo (full)', full, 39_900)
 
 if (has('src/locales/es.ts')) {
   const enLocale = await bundleStdin(`export * from './src/locales/en.ts'`)
@@ -260,11 +265,13 @@ if (has('src/locales/es.ts')) {
 // 25.6 (was 24.2): D68 — wave-1 idiom engine mechanisms live in the shared
 // number/parse layer (Romance composition fields + CJK number walker), so
 // BYO-registry cores get them too. Measured 25.46 after golfing.
+// 27.1 (was 26.8): D73 — see full; calc-scale, affine warning, and the five
+// new issue codes live in the shared engine. Measured 27.06.
 // 26.8 (was 25.6): D70 — wave-2 mechanisms in the shared layer: profile-driven
 // splitting of glued grammar words (unit aliases stay atomic), postpositional
 // bound phrases, and number-word arithmetic fixes. Measured 26.56.
 const core = await bundleStdin(`export * from './src/core/index.ts'`)
-check('./core (engine, no unit data)', core, 26_800)
+check('./core (engine, no unit data)', core, 27_100)
 
 if (has('src/date/index.ts')) {
   const dateAlone = await bundleStdin(`export * from './src/date/index.ts'`)
@@ -320,10 +327,12 @@ if (has('src/date/index.ts')) {
   // 43.3 (was 41.0): D70 — suffix-delimited date/clock grammar (date/suffix.ts,
   // date/numeral.ts): 年月日 numeric dates, 点/時/分/秒 clocks, day periods,
   // unspaced date+time splitting, glued affix matching. Measured 43.01.
+  // 44.4 (was 43.8): D73 — standalone date inherits the shared parser growth
+  // (CJK gate, affine warning, calc-scale). Measured 44.31.
   // 43.8 (was 43.3): D71 — calendar ranges. Date endpoints reuse the existing
   // splitter and single-date parser, so the whole capability (date-to-date,
   // period spans, weekends, the humanize date branch) is 450 B. Measured 43.46.
-  check('./date (standalone, incl. engine)', dateAlone, 43_800)
+  check('./date (standalone, incl. engine)', dateAlone, 44_400)
   const withDate = await bundleStdin(
     `export * from './src/index.ts'; export * from './src/date/index.ts'`,
   )
@@ -352,6 +361,19 @@ if (has('src/date/index.ts')) {
   check('./date (marginal over full)', withDate - full, 16_200)
 }
 
+if (has('src/calc/index.ts')) {
+  const calcAlone = await bundleStdin(`export * from './src/calc/index.ts'`)
+  // 35.2: D73 — ./calc is its own entry (parser + default unit data +
+  // expression grammar). Measured 34.99. Compact/latex formatters live here.
+  check('./calc (standalone, incl. engine)', calcAlone, 35_200)
+  const withCalc = await bundleStdin(
+    `export * from './src/index.ts'; export * from './src/calc/index.ts'`,
+  )
+  // 4.1: D73 — expression grammar + eval + format, marginal over full.
+  // Measured 3.95.
+  check('./calc (marginal over full)', withCalc - full, 4100)
+}
+
 if (has('src/dom/index.ts')) {
   const withDom = await bundleStdin(
     `export * from './src/index.ts'; export * from './src/dom/index.ts'`,
@@ -374,7 +396,8 @@ if (has('src/dom/index.ts')) {
       `export * from './src/index.ts'; export * from './src/dom/index.ts'; export * from './src/react/index.ts'`,
       ['react'],
     )
-    check('./react (marginal over dom)', withReact - withDom, 1500)
+    // 1.6 (was 1.5): D73 — gzip interaction after the shared parser growth.
+    check('./react (marginal over dom)', withReact - withDom, 1600)
   }
 }
 
@@ -442,7 +465,9 @@ if (has('src/schema/index.ts')) {
   // D57 — ./schema: JSON Schema (Draft 2020-12) of the v3 wire types + enum
   // reference + toOpenApi(). Pure data; framework adapters are generated in the
   // docs, not shipped. Marginal is the schema object + enums + OpenAPI helper.
-  check('./schema (marginal over full)', withSchema - full, 3200)
+  // 3.3 (was 3.2): D73 — five new issue codes in the enum dictionary.
+  // Measured 3.23.
+  check('./schema (marginal over full)', withSchema - full, 3300)
 }
 
 // 8.9 (D20, was 8.0 under D18): the full ./ai marginal includes the date
@@ -482,10 +507,12 @@ if (has('src/ai/index.ts')) {
   // bundled date module (see ./date notes). Measured 17.27 after golfing.
   // 18.6 (was 17.4): D70 — the suffix date/clock grammar cascades through the
   // bundled date module; no /ai code changed. Measured 18.39.
+  // 19.4 (was 19.1): D73 — quantityField calc injection + looksLikeCalc.
+  // Measured 19.34. The calc engine stays injected, not bundled.
   // 19.1 (was 18.6): D71 — calendar ranges cascade through the bundled date
   // module; no /ai code changed. dateRangeField gains the capability for free.
   // Measured 18.84.
-  check('./ai (marginal over full)', withAi - full, 19_100) // D30: +notation in shared renderNumber
+  check('./ai (marginal over full)', withAi - full, 19_400) // D30: +notation in shared renderNumber
   if (has('src/mcp/index.ts')) {
     const withMcp = await bundleStdin(
       `export * from './src/index.ts'; export * from './src/ai/index.ts'; export * from './src/mcp/index.ts'`,
@@ -507,7 +534,9 @@ if (has('src/ai/index.ts')) {
   // failure path for currency fields.
   // 1.75 (was 1.7): D49 — quantityField-only carries specific examples for
   // advanced scientific field descriptions.
-  check('./ai quantityField only (shakeable)', withAiQty - full, 1900)
+  // 2.2 (was 1.9): D73 — looksLikeCalc + schema description (engine stays
+  // injected). Measured 2.14.
+  check('./ai quantityField only (shakeable)', withAiQty - full, 2200)
 }
 
 console.table(rows)

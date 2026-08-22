@@ -7,6 +7,30 @@ change**, even if the API is untouched.
 
 ## [Unreleased]
 
+### Added
+
+- Quantity arithmetic at `@pascal-app/lingo/calc`. Closed calculator over
+  already-parsed values — no variables, functions, or dimensional algebra.
+  `calc('7m*2')` is 14 million (glued `m` at an operator boundary, with
+  `SCALE_ASSUMED`); `calc('9min x 4')` is 36 min or 0.6 h;
+  `calc('half of 56kg+1700g')` is 28.85 kg. Results format as words
+  (`"14 million"`), grouped (`"14,000,000"`), scientific (`"14e6"`), or
+  compact (`"14m"`). `expression` is two-way infix (`7e6 × 2`); `latex` is
+  display-only. Inject `calc` into `completions()` and `quantityField()` so
+  mixed fields keep range-first dashes (`5-10 kg` stays a range; `=2+3 kg`
+  evaluates).
+- Issue codes `AFFINE_DELTA_ASSUMED`, `EXPRESSION_KIND_MISMATCH`,
+  `SCALAR_EXPECTED`, `DIVISION_BY_ZERO`, `SCALE_ASSUMED`.
+
+### Changed
+
+- `2+3 kg` is no longer a silent 2–3 kg range (CJK adjacent-range false
+  positive). It fails with `TRAILING_INPUT`; use `calc('2+3 kg')` for 5 kg.
+  Genuine CJK juxtaposition (`七八天`) is unchanged. Not an English corpus
+  row; recorded as an interpretation change in D73.
+- Additive affine compounds (`20°C + 5°C`) still delta-convert, and now warn
+  `AFFINE_DELTA_ASSUMED`.
+
 ## [0.4.0] - 2026-08-02
 
 ### Added

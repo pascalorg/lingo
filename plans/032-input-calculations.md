@@ -1,15 +1,15 @@
 ---
 id: 032
 title: Input calculations (quantity arithmetic)
-status: draft
+status: done — shipped 2026-08-22 (D73)
 created: 2026-07-08
-updated: 2026-07-29
+updated: 2026-08-22
 goal: "Decide whether (and how) lingo evaluates arithmetic typed into fields — '=2+3 kg', '10% off $50', '12 * 0.75 kg' — without becoming a CAS or busting budgets, and close the operator/range collision that already ships."
 success_criteria:
-  - "Go/no-go decision recorded as a D-entry -> wiki/decisions.md"
-  - "Bare-mode `2+3 kg` no longer silently returns a range -> packages/lingo/tests/corpus + parse tests"
-  - "If go: node union and operator table locked here, corpus rows added -> this plan + tests/corpus"
-  - "If go: `./calc` marginal budget assigned and green -> packages/lingo/scripts/size.mjs"
+  - "Go/no-go decision recorded as a D-entry -> wiki/decisions.md [MET: D73]"
+  - "Bare-mode `2+3 kg` no longer silently returns a range -> packages/lingo/src/parse/grammar.test.ts + calc.test.ts [MET]"
+  - "If go: node union and operator table locked here -> this plan + packages/lingo/src/calc [MET: locked-in 2026-08-22]"
+  - "If go: `./calc` marginal budget assigned and green -> packages/lingo/scripts/size.mjs [MET: D73]"
 ---
 
 # Input calculations (quantity arithmetic)
@@ -117,14 +117,12 @@ warning users off the operation. We already have the `convert`/`convertDelta`
 split (from js-quantities, per `wiki/inspiration.md`); the compound path just
 never said which one it was using.
 
-## Design (proposed — not locked; gated on the go/no-go)
+## Design (locked-in 2026-08-22)
 
 ### The compound/arithmetic discriminator
 
-The rule that keeps this additive:
-
-- **Both operands carry units** → compound accumulation. Existing behavior,
-  unchanged: `2 ft + 3 in`, `2 kg + 500 g`, `2 m minus 10 cm`.
+- **Both operands carry units** → compound accumulation. Existing `lingo()`
+  behavior, unchanged: `2 ft + 3 in`, `2 kg + 500 g`, `2 m minus 10 cm`.
 - **A bare operand, or any non-additive operator** → arithmetic, which lives in
   `./calc` and never in `lingo()`.
 
@@ -133,14 +131,14 @@ meaning based on which entries a consumer imported.
 
 ### `=` is a field-level mode switch, not grammar
 
-`calc()` accepts an expression with or without the prefix. The prefix matters
-only where one text box feeds both parsers — `completions()` and the DOM
-controller — so that bare input keeps today's range-first semantics with zero
-corpus churn:
+`calc()` evaluates with or without the prefix (`trigger` defaults to
+`'always'`). The prefix matters only where one text box feeds both parsers —
+`completions()` and `quantityField` inject `calc` with `{ trigger: '=' }` so
+bare input keeps today's range-first semantics with zero corpus churn:
 
 ```ts
 interface CalcOptions extends LingoOptions {
-  /** '=' (default): only treat input as an expression when prefixed. */
+  /** `'always'` (default for `calc()`). `'='`: only when the input starts with `=`. */
   trigger?: '=' | 'always'
 }
 
@@ -178,6 +176,41 @@ Operand rules, and the issue code when they're violated:
 `q * q` being refused is load-bearing: it's the line that keeps this a
 calculator instead of the start of a unit algebra.
 
+`and` is `+` in calc (`half of 56kg and 1700g`). Spaced `-` is subtraction,
+not a range. Word operators: `plus` / `minus` / `times` / `x` / `over` /
+`divided by` / `multiplied by`. Prefixes: `half of` / `half` / `twice` /
+`double` / `triple` / `thrice`. Percent: `10% of`, `10% off`, `10% on`,
+`50 kg + 10%`, `50 kg - 10%`.
+
+### Glued `m` is million (calc only)
+
+`parseQty({ calcScales: true, noAdditiveJoin: true })` is the operand parser.
+
+- Glued `m`/`M` at an operator / EOF / `(`/`)` boundary is million unless
+  `kind` is `length` or `duration`. Warning: `SCALE_ASSUMED`.
+- Spaced `7 m` is meters. `1m80` next-token digits → 1.80 m.
+- `calc('7m*2')` → 14e6; `calc('7m*2', { kind: 'length' })` → 14 m.
+- Word scales (`million`) always apply. Compact `"14m"` round-trips through
+  `calc()`, not `lingo()`. Compact trillion emits `1e12`, not `t` (tonne).
+
+`"half of"` wraps `parseAdd`, so `half of 56kg+1700g` is `0.5 × (56 kg + 1700 g)`.
+Lone `half` is skipped when the next word is `an`/`a` (`half an hour` stays a
+duration quantity).
+
+### Format
+
+```ts
+type CalcFormatStyle = 'standard' | 'grouped' | 'words' | 'scientific' | 'compact'
+
+function formatCalc(result: CalcResult, opts?: { style?: CalcFormatStyle; unit?: string; best?: boolean }): string
+function formatExpression(node: CalcNode): string // two-way infix, re-parses through calc()
+function formatLatex(node: CalcNode): string      // display only
+```
+
+`7m*2` → words `"14 million"`, grouped `"14,000,000"`, scientific `"14e6"`,
+compact `"14m"`. `9min x 4` → `"36 min"` or `{ unit: 'h' }` → `"0.6 h"`.
+Quantity compact uses scientific (`6e6 kg`), never a glued `m` suffix.
+
 ### Affine arithmetic — resolved, not open
 
 The plan previously listed "refuse or delta-convert" as an open question. The
@@ -192,12 +225,10 @@ naming convention), carrying the operand span and the delta reading in `data`.
 This applies to the **existing compound path too**, so it lands even if the
 go/no-go comes back no.
 
-### Phasing
+### Phasing (all shipped D73)
 
-1. **Percent-of family.** `10% off $50`, `$60 + 20% tip`, `15% of 60 kg`,
-   `$100 + 8.875% tax`. No collision with ranges at all — `%` plus `of`/`off`/
-   `on` are unambiguous markers — and it's the arithmetic people actually type
-   into money forms. Shippable without the general expression grammar.
+1. **Percent-of family.** `10% off $50`, `$60 + 20%`, `15% of 60 kg`,
+   `10% on 50 kg`.
 2. **Operators + grouping.** `+ - * /`, parentheses, precedence.
 3. **Ratios and word multipliers.** `q / q` → number; `half of 10 L`, `twice
    3 kg`, `double`, reusing the existing number-word lexicon.
@@ -212,8 +243,8 @@ go/no-go comes back no.
   `./calc` at runtime. Evaluated results surface as a ranked completion
   (`= 45 USD`) with the tree attached for the UI to explain, rather than
   silently committing into the field.
-- `./ai`: `quantityField` and `rangeField` accept an injected `calc` evaluator
-  under the same rule, so `./ai`'s budget doesn't move either:
+- `./ai`: `quantityField` accepts an injected `calc` evaluator under the same
+  rule (`rangeField` stays range-first — dashes mean ranges):
 
 ```ts
 import { calc } from '@pascal-app/lingo/calc'
@@ -221,12 +252,11 @@ import { calc } from '@pascal-app/lingo/calc'
 quantityField({ unit: 'kg', calc })   // accepts "12 * 0.75 kg" -> 9
 ```
 
-  When `calc` is injected, the emitted JSON Schema `description` must tell the
-  model it may submit an expression — a capability the model can't use if it
-  doesn't know it has it. `CalcResult` carries the evaluated tree so a tool can
-  log or display the work; the field itself still returns a plain number
-  (or `QuantityJSON` under `output: 'quantity'`), so the wire shape at the tool
-  boundary is unchanged.
+  When `calc` is injected, the emitted JSON Schema `description` tells the
+  model it may submit an expression. `looksLikeCalc` does not treat `-` as
+  arithmetic, so `5-10 kg` stays a range. `CalcResult` carries the evaluated
+  tree so a tool can log the work; the field itself still returns a plain
+  number (or `QuantityJSON` under `output: 'quantity'`).
 
 ### Vocabulary
 
@@ -252,9 +282,10 @@ gains entries for them in the same change, with the *Avoid* list naming
 6. `packages/lingo/src/complete/` — `'calc'` completion source, injected.
 7. `packages/lingo/src/ai/` — injected `calc` option + schema description.
 8. `packages/lingo/scripts/size.mjs` — `./calc` marginal budget.
-9. Tests (incl. two-way for every emitted result), corpus rows, `ai-eval.mjs`
-   category for expression-valued tool arguments, CHANGELOG, README, llms.txt,
-   `wiki/inspiration.md`, `CONTEXT.md`.
+9. Tests (incl. two-way for every emitted result), CHANGELOG, README, llms.txt,
+   `wiki/inspiration.md`, `CONTEXT.md`. Tool-boundary coverage is
+   `quantityField({ calc })` in `calc.test.ts` rather than a new `ai-eval.mjs`
+   category (that recorded corpus's published rates stay intact).
 
 ## Non-goals
 
@@ -269,20 +300,13 @@ gains entries for them in the same change, with the *Avoid* list naming
 
 ## Open questions
 
-- **Go/no-go on phases 2–3.** Is a general calculator inside a form field a
-  feature or a trap? Owner call + a D-entry either way. Phase 1 (percent-of) and
-  the two defect fixes stand on their own and could land first.
-- **Corpus classification for the `2+3 kg` fix.** BREAKING by the script's
-  definition; needs owner acknowledgement, not a reclassification.
-- **Does `q / q` → number earn its bytes?** Useful ("how many 2 L bottles in
-  10 L"), but it's the only rule that changes result *type*, which complicates
-  the `./ai` field contract.
+None remaining. D73 is the go. `q / q` → number shipped (phase 3). `2+3 kg`
+is not an English corpus row; the interpretation change is recorded in D73
+rather than a BREAKING corpus class.
 
 ## Acceptance
 
-Decision D-entry exists. The `2+3 kg` and `AFFINE_DELTA_ASSUMED` fixes ship with
-corpus coverage regardless of that decision. If go: node union and operator
-table locked here, corpus rows added, `./calc` budget assigned in `size.mjs` and
-green, two-way tests for every emitted result, and an `ai-eval.mjs` category
-showing expression-valued arguments beat naive number-valued ones on silent-wrong
-rate.
+D73 exists. The `2+3 kg` and `AFFINE_DELTA_ASSUMED` fixes ship with tests.
+Node union and operator table locked here. `./calc` budget assigned in
+`size.mjs`. Two-way tests cover expression, words, scientific, compact, and
+quantity format. `quantityField({ calc })` accepts `"12 * 0.75 kg"`.

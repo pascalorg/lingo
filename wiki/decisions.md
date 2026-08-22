@@ -679,3 +679,67 @@ untouched.
 Not fixed here, logged in `plans/backlog.md`: `humanizeDateRange` drops seconds
 (pre-existing, verified against the commit before D71), elliptical right sides
 (`Aug 3–9`), and quarters (needs a `fiscalYearStart` option to mean anything).
+
+**D73 · 2026-08-22 · Quantity arithmetic ships as `./calc`, not inside
+`lingo()`.** Plan 032 go. The calculator is a closed node union (`number` /
+`quantity` / `group` / `percent` / `op`) with a parse-then-evaluate split,
+inspired by mathjs expression trees and Pint's explicit affine-delta
+semantics, without scopes, functions, or dimensional algebra (D2). The main
+entry does not import or re-export it.
+
+**Why `lingo()` stays range-first.** `5-10 kg` is a range, `2 ft + 3 in` is a
+compound, and `2+3 kg` was a silent CJK-adjacent-range false positive.
+Arithmetic that mixes a bare operand or uses `*`/`/` lives only in `calc()`.
+Both-units addition stays compound in `lingo()`; `calc()` can add those too,
+and treats `and` as `+` so `half of 56kg and 1700g` works. Spaced `-` in calc
+is subtraction, not a range.
+
+**`trigger`.** `calc()` defaults to `'always'` — a dedicated calculator should
+not require a prefix. Mixed surfaces (`completions()`, `quantityField`) inject
+`calc` with `trigger: '='` (the Excel/Sheets mode switch studied in
+inspiration.md) so bare dashes stay ranges. Completions further gate on a
+leading `=` even if the injector passes `'always'`. `rangeField` does not take
+a calc option.
+
+**Glued `m` is million, only in calc.** The number parser already has `k`/`bn`
+suffixes (`70k`, `1.5bn`) but cannot treat glued `m` as million — `5m` is
+meters. `parseQty({ calcScales: true })` applies glued `m`/`M` as 1e6 and
+`b`/`bn` as 1e9 when the next token is an operator / EOF / `(`/`)`, and the
+expected kind is not `length`/`duration` (for `m`) or `data` (for `b`). Spaced
+`7 m` is meters; `1m80` has a digit after `m` so it stays 1.80 m;
+`calc('7m*2', { kind: 'length' })` is 14 m. The warning is `SCALE_ASSUMED`.
+Compact humanize `"14m"` round-trips through `calc()`, not `lingo()`
+(`lingo('14m')` is 14 meters). Compact trillion uses scientific (`1e12`)
+rather than `t`, which would collide with tonne.
+
+**Always-ship parser fixes** (they land even without the calculator):
+
+1. `tryAdjacentCjkRange` now requires `adjacentRange` from the CJK number
+   walker. `2+3 kg` is `TRAILING_INPUT`; `七八天` stays a range. Not in the
+   English corpus — an interpretation change, not a corpus BREAKING row.
+2. Additive affine compounds emit `AFFINE_DELTA_ASSUMED`. `20°C + 5°C` is still
+   25 °C; the warning names the delta reading. The warning does not escalate
+   under `strictness: 'confirm'` — the math is correct; the issue documents
+   which conversion path ran.
+
+**Format.** `formatCalc(result, { style, unit, best })` with `standard` /
+`grouped` / `words` / `scientific` / `compact`. `formatExpression` is two-way
+infix (`7e6 × 2`). `formatLatex` is display-only.
+
+**Budgets (D19 honored, not silent).** The calculator itself is ~4 kB marginal
+/ ~35 kB standalone. Full and core grow because the CJK gate, affine warning,
+issue codes/messages, and `applyCalcScale` must run inside `parseQty` before
+unit matching (`7m*2` cannot live only in `./calc`):
+
+- lingo (full) 39.4 → 39.9
+- `./core` 26.8 → 27.1
+- `./date` standalone 43.8 → 44.4 (inherits shared parser)
+- `./date` marginal stays 16.2
+- `./calc` standalone 35.2, marginal 4.1 (new)
+- `./react` marginal 1.5 → 1.6 (gzip interaction)
+- `./schema` marginal 3.2 → 3.3 (five new issue codes)
+- `./ai` marginal 19.1 → 19.4; quantityField-only 1.9 → 2.2 (`looksLikeCalc` +
+  schema copy; the engine stays injected)
+
+Revisit if dimensional algebra (D2) is ever reopened — that would not extend
+this node union; it would be a different entry.

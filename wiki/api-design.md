@@ -24,7 +24,8 @@ change. The plan's Acceptance section names the gates that prove it done.
    `issues` always rides along (warnings/infos accompany success). Failed
    results use `type:'failure'` and attach `candidate` where a plausible
    reading exists; successful ambiguous results attach ranked `alternatives`
-   (CONTEXT.md draws the candidate/alternative/suggestion line).
+   (CONTEXT.md draws the candidate/alternative/suggestion line). `calc()`
+   results use `type:'calc'` and are not part of the `lingo()` union.
 3. **Spans are mandatory** on every parse-path issue, indexing the original
    input (hard rule 3). The sole exception is field-level `RANGE_MIN`/`RANGE_MAX`
    from the `/ai` fields: they're built after a successful parse, with no text

@@ -45,6 +45,16 @@ latter two and absent on a slot — test it truthy, never `=== false`.
 (the normalizer keeps an offset map, hard rule 3). *Avoid: range, position,
 location.*
 
+**Expression:** a closed arithmetic tree over numbers and same-kind quantities,
+produced and evaluated by `calc()`. *Avoid: formula.*
+
+**Node:** one element of a calc expression (`CalcNode`). Its `span` is a span
+into the original input, never a range. *Avoid: AST.*
+
+**Calc:** the `@pascal-app/lingo/calc` entry and its `calc()` function.
+`lingo()` never evaluates expressions. Compact `"14m"` (million) round-trips
+through `calc()`, not `lingo()`.
+
 **Conversion:** a parsed conversion *request* ("72 in to cm") — a result type.
 The arithmetic itself is `convert()` / `convertDelta()`.
 
@@ -109,7 +119,10 @@ locale pack objects. *Avoid: profile (ambiguous with fuzzy Profile).*
 Humanize output re-parses within one grain.
 
 **Format vs humanize:** `format()` renders quantities; `humanize*()` renders
-dates and durations. Both are covered by the two-way guarantee (hard rule 4).
+dates and durations; `formatCalc()` / `CalcResult.format()` renders evaluated
+expression results (including words/compact/scientific). All three are covered
+by the two-way guarantee (hard rule 4), with one calc-specific note: compact
+`"14m"` re-parses through `calc()`, not `lingo()`.
 
 **Partial state:** the as-you-type classification — `empty | incomplete | valid
 | invalid`. "2 f" is *incomplete*, never invalid (the DOM layer never yells
@@ -120,7 +133,7 @@ its value. Fields never rewrite text while typing (D6).
 
 ## Infrastructure nouns
 
-**Entry:** a published subpath — `.`, `./core`, `./date`, `./dom`, `./element`,
+**Entry:** a published subpath — `.`, `./core`, `./date`, `./calc`, `./dom`, `./element`,
 `./describe`, `./catalog`, `./schema`, `./ai`, `./mcp`, `./react`,
 `./react-native`, `./complete`, `./locales/*`. *Avoid: subpackage, plugin.*
 
@@ -155,6 +168,9 @@ inline.
 
 - **"range" vs "span"** — the collision that bites. Values: range. Text
   offsets: span. No exceptions.
+- **"m" in calc** — glued `7m*2` is seven million times two; spaced `7 m` is
+  meters; `lingo('14m')` is fourteen meters. Compact `"14m"` round-trips
+  through `calc()` only.
 - **"error"** — fine as a severity or the `ok: false` state; the object is an
   issue.
 - **"unit"** in prose can mean id, symbol, or def — in code, use the precise

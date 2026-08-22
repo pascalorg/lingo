@@ -200,6 +200,16 @@ export interface QtyNode {
 }
 
 export interface QtyFlags {
+  /**
+   * Calculator operands: glued `m`/`b` and scale words (`million`) multiply the
+   * number instead of being read as units, when the next token is an operator.
+   */
+  calcScales?: boolean
+  /**
+   * Stop before `+` / `plus` / `minus` / `and` so `./calc` can own those
+   * operators. Juxtaposition compounds (`5 ft 11 in`) and commas still join.
+   */
+  noAdditiveJoin?: boolean
   /** Inside "between A and B" the A-side must not eat 'and' as a sum joiner. */
   noAnd?: boolean
 }
@@ -340,6 +350,10 @@ export function parseQty(
     }
   }
 
+  if (flags?.calcScales) {
+    applyCalcScale(p, v, expectKind ?? p.opts.kind)
+  }
+
   let pos = v.next
   // "5ish kg" / "5 ish kg" — "ish" between the value and a unit marks the
   // value approximate (the trailing "5 kg ish" form is handled downstream).
@@ -431,6 +445,15 @@ export function parseQty(
     let sign = 1
     const jw = wordAt(p, cursor)
     const js = symAt(p, cursor)
+    if (
+      flags?.noAdditiveJoin &&
+      (js === '+' ||
+        (jw && p.profile.grammar.compoundPlusWords.has(jw)) ||
+        (jw && p.profile.grammar.compoundMinusWords.has(jw)) ||
+        (jw && p.profile.grammar.compoundJoinWords.has(jw)))
+    ) {
+      break
+    }
     if (
       js === '-' &&
       !p.tokens[cursor]!.spaceBefore &&
@@ -570,6 +593,10 @@ export function parseQty(
       }
     }
     break
+  }
+
+  if (parts.length > 1) {
+    warnAffineDelta(p, kind, parts, v.start, normEnd)
   }
 
   return {
@@ -768,4 +795,101 @@ export function ensureUnit(
   const unit = p.reg.unit(implied.kind, implied.unitId)!
   issue(p, 'UNIT_ASSUMED', { unit: unit.plural ?? `${unit.name}s` }, q.normStart, q.normEnd)
   return { kind: implied.kind, base: toBase(unit, q.base), unitId: implied.unitId }
+}
+
+const WORD_SCALES: Record<string, { factor: number; name: string }> = {
+  thousand: { factor: 1e3, name: 'thousand' },
+  million: { factor: 1e6, name: 'million' },
+  billion: { factor: 1e9, name: 'billion' },
+  trillion: { factor: 1e12, name: 'trillion' },
+}
+
+function applyCalcScale(p: ParserState, v: ValueNode, expectKind?: Kind): void {
+  const t = p.tokens[v.next]
+  if (t?.type !== 'word') {
+    return
+  }
+  const lower = t.text.toLowerCase()
+  const word = WORD_SCALES[lower]
+  if (word) {
+    v.value *= word.factor
+    v.next += 1
+    v.end = t.end
+    return
+  }
+  if (t.spaceBefore || !isCalcScaleBoundary(p, v.next + 1)) {
+    return
+  }
+  if ((t.text === 'm' || t.text === 'M') && expectKind !== 'length' && expectKind !== 'duration') {
+    issue(p, 'SCALE_ASSUMED', { symbol: t.text, scale: 'million' }, t.start, t.end)
+    v.value *= 1e6
+    v.next += 1
+    v.end = t.end
+    return
+  }
+  if ((lower === 'b' || lower === 'bn') && expectKind !== 'data') {
+    issue(p, 'SCALE_ASSUMED', { symbol: t.text, scale: 'billion' }, t.start, t.end)
+    v.value *= 1e9
+    v.next += 1
+    v.end = t.end
+  }
+}
+
+function isCalcScaleBoundary(p: ParserState, i: number): boolean {
+  const t = p.tokens[i]
+  if (!t) {
+    return true
+  }
+  if (t.type === 'sym') {
+    return '+-*/×·÷)(='.includes(t.text)
+  }
+  if (t.type === 'word') {
+    const w = t.text.toLowerCase()
+    return (
+      w === 'x' ||
+      w === 'times' ||
+      w === 'plus' ||
+      w === 'minus' ||
+      w === 'divided' ||
+      w === 'over' ||
+      w === 'and' ||
+      w === 'multiplied'
+    )
+  }
+  return false
+}
+
+function warnAffineDelta(
+  p: ParserState,
+  kind: Kind,
+  parts: QuantityPart[],
+  start: number,
+  end: number,
+): void {
+  for (const part of parts.slice(1)) {
+    const unit = p.reg.unit(kind, part.unit)
+    if (unit?.offset) {
+      issue(
+        p,
+        'AFFINE_DELTA_ASSUMED',
+        { unit: unit.symbol, asDelta: `${part.value} ${unit.symbol}` },
+        start,
+        end,
+      )
+      return
+    }
+  }
+  const head = p.reg.unit(kind, parts[0]!.unit)
+  if (head?.offset) {
+    issue(
+      p,
+      'AFFINE_DELTA_ASSUMED',
+      {
+        unit: head.symbol,
+        asDelta: `${parts[1]!.value} ${p.reg.unit(kind, parts[1]!.unit)?.symbol ?? parts[1]!.unit}`,
+      },
+      start,
+      end,
+    )
+  }
 }

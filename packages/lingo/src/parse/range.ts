@@ -198,7 +198,10 @@ function withCjkPostUnitHalf(p: ParserState, q: QtyNode): QtyNode {
 
 function tryAdjacentCjkRange(p: ParserState, a: QtyNode, exprStart: number): Parsed | null {
   const next = p.tokens[a.nextToken]
-  if (!next || next.spaceBefore || a.value.value < 1 || a.value.value >= 9) {
+  if (!next || next.spaceBefore || !a.value.adjacentRange) {
+    return null
+  }
+  if (a.value.value < 1 || a.value.value >= 9) {
     return null
   }
   const b = parseQty(p, a.nextToken, false)

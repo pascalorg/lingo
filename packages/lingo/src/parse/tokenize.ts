@@ -3,6 +3,8 @@ import type { Normalized } from './normalize'
 export type TokenType = 'digits' | 'word' | 'vulgar' | 'sym'
 
 export interface Token {
+  /** CJK adjacent-range lead ("七八") — the next token is the range's other end. */
+  adjacentRange?: boolean
   den?: number
   end: number
   /** Vulgar fraction value (½ → 1/2), pre-split from same-origin expansion. */

@@ -1,3 +1,4 @@
+import type { CalcFail, CalcResult } from '../calc/types'
 import type { DateFail, DateRange, DateRangeFail, DateResult, DurationResult } from '../date'
 import type { ConversionResult, QuantityResult, RangeResult } from '../parse/config'
 
@@ -7,11 +8,13 @@ export type CompletionDateParseResult =
   | DateFail<DateResult | DurationResult>
   | DateRangeFail
 export type CompletionDateParser = (input: string) => CompletionDateParseResult
+export type CompletionCalcParser = (input: string) => CalcResult | CalcFail
 export type CompletionResult =
   | QuantityResult
   | RangeResult
   | ConversionResult
   | CompletionDateResult
+  | CalcResult
 
 /** How a completion was derived — for UI labels and debugging. */
 export type CompletionSource =
@@ -23,6 +26,7 @@ export type CompletionSource =
   | 'range-implied'
   | 'cross-kind'
   | 'date'
+  | 'calc'
 
 /**
  * A ranked, fully-parsed interpretation of a (possibly partial) input.

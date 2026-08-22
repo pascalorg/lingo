@@ -165,6 +165,28 @@ parseDateRange("August", { now })                // Aug 1 → Aug 31, not just t
 parseDuration("1h30").duration.base              // 5400 (seconds)
 humanizeDuration(5400, { style: "natural" })     // "an hour and a half"`
 
+export const calcSnippet = `import { calc } from "@pascal-app/lingo/calc"
+import { quantityField } from "@pascal-app/lingo/ai"
+import { completions } from "@pascal-app/lingo/complete"
+
+const million = calc("7m*2")
+million.ok && million.value                         // 14000000
+million.ok && million.format({ style: "words" })    // "14 million"
+million.ok && million.format({ style: "grouped" })  // "14,000,000"
+million.ok && million.format({ style: "scientific" }) // "14e6"
+million.ok && million.format({ style: "compact" })  // "14m"
+million.ok && million.expression                    // "7e6 × 2"
+million.ok && million.latex                         // "7 \\\\times 10^{6} \\\\times 2"
+
+const duration = calc("9min x 4")
+duration.ok && duration.format()                    // "36 min"
+duration.ok && duration.format({ unit: "h" })       // "0.6 h"
+
+calc("half of 56kg+1700g")                          // 28.85 kg
+
+quantityField({ kind: "mass", unit: "kg", calc }).parse("12 * 0.75 kg") // 9
+completions("=2+3 kg", { calc: (text) => calc(text, { trigger: "=" }) })`
+
 export const localeSnippet = `import { createLingo } from "@pascal-app/lingo"
 import { es } from "@pascal-app/lingo/locales/es"
 import { fr } from "@pascal-app/lingo/locales/fr"

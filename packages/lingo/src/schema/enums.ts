@@ -87,6 +87,11 @@ export const ISSUE_CODES = {
   SLANG_UNIT: 'A slang unit spelling was interpreted.',
   TZ_IGNORED: 'A time zone was detected but not applied (civil time kept; use applyZone).',
   AMBIGUOUS_TIMEZONE: 'A time-zone abbreviation maps to more than one real zone.',
+  AFFINE_DELTA_ASSUMED: 'An affine unit was added as a delta, not an absolute temperature.',
+  EXPRESSION_KIND_MISMATCH: 'Expression operands are different kinds.',
+  SCALAR_EXPECTED: 'Arithmetic needed a plain number, not a second quantity.',
+  DIVISION_BY_ZERO: 'The expression divided by zero.',
+  SCALE_ASSUMED: 'A glued scale letter was read as million/billion, not a unit.',
 } as const satisfies Record<IssueCode, string>
 
 /** Issue codes as a flat list, for enum constraints. */

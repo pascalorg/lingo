@@ -40,6 +40,11 @@ const ISSUE_CODES = [
   'SLANG_UNIT',
   'TZ_IGNORED',
   'AMBIGUOUS_TIMEZONE',
+  'AFFINE_DELTA_ASSUMED',
+  'EXPRESSION_KIND_MISMATCH',
+  'SCALAR_EXPECTED',
+  'DIVISION_BY_ZERO',
+  'SCALE_ASSUMED',
 ] as const satisfies readonly IssueCode[]
 
 describe('english message pack', () => {

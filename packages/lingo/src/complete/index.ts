@@ -14,6 +14,7 @@ export type { CompletionsOptions } from './completions'
 export { completions as completionsCore } from './completions'
 export type {
   Completion,
+  CompletionCalcParser,
   CompletionDateParser,
   CompletionDateResult,
   CompletionResult,

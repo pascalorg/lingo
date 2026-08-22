@@ -21,6 +21,7 @@ import {
 } from './suggest-units'
 import type {
   Completion,
+  CompletionCalcParser,
   CompletionDateParser,
   CompletionDateResult,
   CompletionResult,
@@ -29,6 +30,7 @@ import type {
 
 export type {
   Completion,
+  CompletionCalcParser,
   CompletionDateParser,
   CompletionDateResult,
   CompletionResult,
@@ -36,6 +38,12 @@ export type {
 } from './types'
 
 export interface CompletionsOptions extends LingoOptions {
+  /**
+   * Inject `calc` from `@pascal-app/lingo/calc` with `{ trigger: '=' }` so
+   * `=2+3 kg` completes as an evaluated quantity without bundling `./calc`
+   * into `@pascal-app/lingo/complete`. Bare `5-10 kg` stays a range.
+   */
+  calc?: CompletionCalcParser
   /**
    * Inject `parseDate` / `parseDateRange` / `parseDuration` from
    * `@pascal-app/lingo/date` to add date completions without bundling the date
@@ -78,6 +86,9 @@ function completionText(result: CompletionResult): string {
   }
   if (result.type === 'range') {
     return result.range.format()
+  }
+  if (result.type === 'calc') {
+    return `= ${result.format()}`
   }
   if (result.type === 'date') {
     return formatDate(result)
@@ -168,6 +179,16 @@ function collectDate(drafts: Draft[], input: string, date: CompletionDateParser 
   const result = date(input)
   if (isDateCompletionResult(result)) {
     addDraft(drafts, result, 'date', result.confidence)
+  }
+}
+
+function collectCalc(drafts: Draft[], input: string, calc: CompletionCalcParser | undefined): void {
+  if (!(calc && input.trimStart().startsWith('='))) {
+    return
+  }
+  const result = calc(input)
+  if (result.ok) {
+    addDraft(drafts, result, 'calc', result.confidence)
   }
 }
 
@@ -401,6 +422,7 @@ export function completions(input: string, opts?: CompletionsOptions): Completio
   }
 
   collectDate(drafts, input, opts?.date)
+  collectCalc(drafts, input, opts?.calc)
 
   const tail = detectRangeTail(prepared.tokens, prepared.text)
   const rangeKind = tail

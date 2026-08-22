@@ -81,6 +81,18 @@ describe('single quantities', () => {
     }
   })
 
+  it('does not read 2+3 kg as a CJK-adjacent range', () => {
+    const r = parseExpression('2+3 kg', opts())
+    expect(r.ok).toBe(false)
+    expect(r.issues.some((issue) => issue.code === 'TRAILING_INPUT')).toBe(true)
+  })
+
+  it('warns when additive compounds use affine units as deltas', () => {
+    const r = qty('20°C + 5°C')
+    expect(r.quantity.value).toBeCloseTo(25, 12)
+    expect(r.issues.some((issue) => issue.code === 'AFFINE_DELTA_ASSUMED')).toBe(true)
+  })
+
   it('round-trips mixed-parts formatting', () => {
     const q = qty('20in and 10cm').quantity
     expect(q.format()).toBe('20 in + 10 cm')

@@ -28,6 +28,7 @@ input string
 | `.` (main) | `src/index.ts` | batteries-included: parse, convert, format, `createLingo`, extension points |
 | `./core` | `src/core/` + `src/parse/` + `src/number/` + `src/format/` | engine without bundled unit data — BYO registry, copy-free (D14) |
 | `./date` | `src/date/` | NL dates, time-of-day, zones, ranges/slots, reversible humanize, ISO durations; `suffix.ts`/`numeral.ts` handle suffix-delimited CJK dates and clocks (D70) |
+| `./calc` | `src/calc/` | Closed quantity arithmetic (`calc()`, `formatCalc`, `formatExpression`, `formatLatex`); main entry does not import it (D73) |
 | `./dom` | `src/dom/` | headless input controller |
 | `./element` | `src/element/` | `<lingo-input>` form-associated custom element |
 | `./react` | `src/react/` | `useLingoInput` hook (`'use client'`) over the DOM controller |
@@ -77,7 +78,14 @@ resolver + detector; the packs themselves live in `src/locales/`).
   TYPO_CORRECTED warning; otherwise UNKNOWN_UNIT with ranked suggestions
   (bare-value + single unknown word also routes here, not to TRAILING).
 - **Temperature deltas**: `convertDelta`/`widthIn` use factors only. Range widths
-  in °C↔°F would be silently wrong through the affine path.
+  in °C↔°F would be silently wrong through the affine path. Additive compounds
+  and `calc()` addition still delta-convert, and emit `AFFINE_DELTA_ASSUMED`.
+- **Calc vs lingo**: `lingo()` never evaluates expressions. Both operands with
+  units → compound (unchanged). A bare operand or `*`/`/` → arithmetic, only in
+  `./calc`. Default `calc()` trigger is `'always'`; mixed fields inject
+  `{ trigger: '=' }` so `5-10 kg` stays a range. Glued `m`/`M` at an operator
+  boundary is million unless kind is `length` or `duration` (`SCALE_ASSUMED`);
+  spaced `7 m` is meters; `1m80` stays 1.80 m because the next token is digits.
 - **5K guard**: the k/bn suffix multiplier is disabled under kind 'temperature'
   (5K is kelvin, 70k is 70 000).
 - **Registry refs are liberal**: `.to('L')`, `convert(1,'gal','L')` resolve

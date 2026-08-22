@@ -16,6 +16,8 @@ const SEVERITY: Partial<Record<IssueCode, Severity>> = {
   SLANG_UNIT: 'warning',
   TZ_IGNORED: 'warning',
   AMBIGUOUS_TIMEZONE: 'warning',
+  AFFINE_DELTA_ASSUMED: 'warning',
+  SCALE_ASSUMED: 'warning',
   CIVIL_AVERAGE: 'info',
   UNIT_ASSUMED: 'info',
   WEEKDAY_ASSUMED_NEXT: 'info',

@@ -57,7 +57,14 @@ function evalOp(p: ParserState, node: Extract<CalcNode, { type: 'op' }>): EvalVa
   }
   const from = left.unit
   const to = right.unit
-  if (from && to && from !== to && left.kind === right.kind && p.reg.kind(left.kind)?.rateBased) {
+  if (
+    from &&
+    to &&
+    from !== to &&
+    left.kind &&
+    left.kind === right.kind &&
+    p.reg.kind(left.kind)?.rateBased
+  ) {
     report(p, 'RATE_REQUIRED', { from, to }, node.span)
     return null
   }

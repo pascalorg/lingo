@@ -96,7 +96,12 @@
               "WEEKDAY_ASSUMED_NEXT",
               "SLANG_UNIT",
               "TZ_IGNORED",
-              "AMBIGUOUS_TIMEZONE"
+              "AMBIGUOUS_TIMEZONE",
+              "AFFINE_DELTA_ASSUMED",
+              "EXPRESSION_KIND_MISMATCH",
+              "SCALAR_EXPECTED",
+              "DIVISION_BY_ZERO",
+              "SCALE_ASSUMED"
             ],
             "description": "Stable machine code — switch on this."
           },

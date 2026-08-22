@@ -168,6 +168,12 @@ describe('calc()', () => {
     }
   })
 
+  it('keeps ordinary quantity coefficients in latex, not scientific', () => {
+    const r = ok('half of 56kg+1700g')
+    expect(r.latex).toContain('1700')
+    expect(r.latex).not.toContain('10^{3}')
+  })
+
   it('serializes enumerable toJSON without the node tree', () => {
     const json = JSON.parse(JSON.stringify(ok('7m*2')))
     expect(json.type).toBe('calc')

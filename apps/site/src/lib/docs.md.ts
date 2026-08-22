@@ -1,5 +1,6 @@
 import {
   aiSnippets,
+  calcSnippet,
   completionsSnippet,
   convertSnippet,
   currencySnippet,

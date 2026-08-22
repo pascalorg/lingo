@@ -176,7 +176,7 @@ function emitLatexInner(node: CalcNode): string {
   if (node.type === 'quantity') {
     const labeled = node.value.format({ style: 'symbol' })
     const unit = labeled.replace(/^[^\s]+/, '').trim()
-    const num = latexNumber(node.value.value)
+    const num = latexQuantityNumber(node.value.value)
     return unit ? `${num}\\,\\mathrm{${escapeLatex(unit)}}` : num
   }
   if (node.type === 'group') {
@@ -207,6 +207,14 @@ function latexNumber(value: number): string {
     return `${match[1]} \\times 10^{${match[2]}}`
   }
   return text
+}
+
+function latexQuantityNumber(value: number): string {
+  const abs = Math.abs(value)
+  if (Number.isFinite(value) && abs >= 0.001 && abs < 1e6) {
+    return trimNumber(value)
+  }
+  return latexNumber(value)
 }
 
 function compactScientific(value: number): string {

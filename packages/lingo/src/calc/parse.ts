@@ -33,8 +33,7 @@ export function parseCalc(p: ParserState): CalcNode | null {
   const node = parseExpr()
   if (!node) {
     if (!hasError(p.issues)) {
-      const start = p.tokens[pos]?.start ?? 0
-      issue(p, 'NO_VALUE', { example: exampleFor(p) }, start, p.text.length)
+      issue(p, 'NO_VALUE', { example: exampleFor(p) }, p.tokens[pos]?.start ?? 0, p.text.length)
     }
     return null
   }
@@ -217,9 +216,7 @@ export function parseCalc(p: ParserState): CalcNode | null {
     pos = withHalf.nextToken
     const span = toSourceSpan(p.n, withHalf.normStart, withHalf.normEnd)
     if (!Number.isFinite(withHalf.base)) {
-      if (!p.issues.some((it) => it.code === 'NONFINITE')) {
-        issue(p, 'NONFINITE', {}, withHalf.normStart, withHalf.normEnd)
-      }
+      issue(p, 'NONFINITE', {}, withHalf.normStart, withHalf.normEnd)
       return null
     }
     if (withHalf.kind && withHalf.headUnit) {

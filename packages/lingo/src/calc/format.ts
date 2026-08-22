@@ -1,4 +1,3 @@
-import type { Quantity } from '../core/quantity'
 import { roundSig } from '../core/round'
 import type { CalcFormatOptions, CalcFormatStyle, CalcNode, CalcResult } from './types'
 
@@ -29,16 +28,10 @@ export function formatCalc(result: CalcResult, opts: CalcFormatOptions = {}): st
           : result.quantity
         : result.quantity.to(opts.unit)
     const style = opts.style ?? 'standard'
-    if (style === 'words') {
-      return q.format({ style: 'long' })
+    if (style === 'standard' || style === 'words') {
+      return q.format({ style: style === 'words' ? 'long' : 'symbol' })
     }
-    if (style === 'standard') {
-      return q.format({ style: 'symbol' })
-    }
-    if (style === 'grouped') {
-      return q.format({ style: 'symbol', grouping: true })
-    }
-    return withUnit(q, formatNumber(q.value, 'scientific'))
+    return attachUnit(q, formatNumber(q.value, style === 'compact' ? 'scientific' : style))
   }
   return formatNumber(result.value, opts.style ?? 'standard')
 }
@@ -175,7 +168,7 @@ function emitLatexInner(node: CalcNode): string {
     return latexNumber(node.value)
   }
   if (node.type === 'quantity') {
-    return latexQuantity(node.value)
+    return attachUnit(node.value, latexQuantityNumber(node.value.value), true)
   }
   if (node.type === 'group') {
     return `\\left(${emitLatex(node.node, false)}\\right)`
@@ -215,37 +208,19 @@ function latexQuantityNumber(value: number): string {
   return latexNumber(value)
 }
 
-function latexQuantity(q: Quantity): string {
-  const num = latexQuantityNumber(q.value)
-  const symbol = q.unitInfo().symbol
-  if (!symbol) {
-    return num
-  }
-  if (symbol === '%') {
-    return `${num}\\%`
+function attachUnit(q: NonNullable<CalcResult['quantity']>, n: string, tex?: boolean): string {
+  const s = q.unitInfo().symbol
+  if (!s) {
+    return n
   }
   if (q.kind === 'currency') {
-    return `${escapeLatex(symbol)}${num}`
+    return `${tex ? s.replace('$', '\\$') : s}${n}`
   }
-  const body = `\\mathrm{${escapeLatex(symbol)}}`
-  return tightSymbol(symbol) ? `${num}${body}` : `${num}\\,${body}`
-}
-
-function withUnit(q: Quantity, number: string): string {
-  const symbol = q.unitInfo().symbol
-  if (!symbol) {
-    return number
+  if (s === '%' && tex) {
+    return `${n}\\%`
   }
-  if (q.kind === 'currency') {
-    return `${symbol}${number}`
-  }
-  return tightSymbol(symbol) ? `${number}${symbol}` : `${number} ${symbol}`
-}
-
-function tightSymbol(symbol: string): boolean {
-  return (
-    symbol.startsWith('°') || symbol === '′' || symbol === '″' || symbol === '%' || symbol === '‰'
-  )
+  const u = tex ? `\\mathrm{${escapeLatex(s)}}` : s
+  return '°%‰′″'.includes(s[0]!) ? `${n}${u}` : tex ? `${n}\\,${u}` : `${n} ${u}`
 }
 
 function compactScientific(value: number): string {
@@ -274,5 +249,5 @@ function needsParen(node: CalcNode): boolean {
 }
 
 function escapeLatex(text: string): string {
-  return text.replace(/[%#&_$]/g, '\\$&')
+  return text.replace(/[%#&_]/g, '\\$&')
 }

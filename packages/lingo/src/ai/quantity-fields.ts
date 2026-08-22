@@ -305,24 +305,8 @@ function looksLikeCalc(input: string): boolean {
   if (text.includes('+')) {
     return true
   }
-  // Spaced or unit-adjacent `/` is division. Glued digit/digit (`5/10 kg`) is a fraction.
-  return hasOperatorSlash(text)
-}
-
-function hasOperatorSlash(text: string): boolean {
-  for (let i = 0; i < text.length; i++) {
-    if (text[i] !== '/') {
-      continue
-    }
-    const prev = text[i - 1]
-    const next = text[i + 1]
-    const gluedFraction =
-      prev !== undefined && next !== undefined && /[\d.]/.test(prev) && /[\d.]/.test(next)
-    if (!gluedFraction) {
-      return true
-    }
-  }
-  return false
+  // Glued digit/digit (`5/10 kg`) is a fraction, not division.
+  return /[^\d.\s]\/|\/[^\d.\s]|\/\s|\s\//.test(text)
 }
 
 function quantityInput(value: unknown): string | StandardSchemaV1Failure {

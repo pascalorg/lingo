@@ -29,8 +29,9 @@ export type QuantityFieldOptions = LingoOptions & {
   description?: string
   /**
    * Inject `calc` from `@pascal-app/lingo/calc` so the field accepts
-   * expressions (`12 * 0.75 kg`, `10% of 60 kg`, `=2+3 kg`). `-` is not a
-   * calc trigger — `5-10 kg` stays a range.
+   * expressions (`12 * 0.75 kg`, `10 kg / 2`, `10% of 60 kg`, `=2+3 kg`).
+   * `-` is not a calc trigger — `5-10 kg` stays a range. Glued `5/10 kg`
+   * stays a fraction.
    */
   calc?: (input: string, opts?: CalcOptions) => CalcOutcome
 }
@@ -301,7 +302,27 @@ function looksLikeCalc(input: string): boolean {
   if (/\sx\s/i.test(text)) {
     return true
   }
-  return text.includes('+')
+  if (text.includes('+')) {
+    return true
+  }
+  // Spaced or unit-adjacent `/` is division. Glued digit/digit (`5/10 kg`) is a fraction.
+  return hasOperatorSlash(text)
+}
+
+function hasOperatorSlash(text: string): boolean {
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] !== '/') {
+      continue
+    }
+    const prev = text[i - 1]
+    const next = text[i + 1]
+    const gluedFraction =
+      prev !== undefined && next !== undefined && /[\d.]/.test(prev) && /[\d.]/.test(next)
+    if (!gluedFraction) {
+      return true
+    }
+  }
+  return false
 }
 
 function quantityInput(value: unknown): string | StandardSchemaV1Failure {
@@ -454,7 +475,7 @@ function calcHint(opts: Pick<QuantityFieldOptions, 'calc'>): string {
   if (!opts.calc) {
     return ''
   }
-  return ' Arithmetic expressions are allowed (for example "12 * 0.75 kg", "10% of 60 kg", "half of 56kg+1700g", or "=2+3 kg").'
+  return ' Arithmetic expressions are allowed (for example "12 * 0.75 kg", "10 kg / 2", "10% of 60 kg", "half of 56kg+1700g", or "=2+3 kg").'
 }
 
 function rangeInputDescription(opts: RangeFieldOptions): string {

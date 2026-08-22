@@ -695,11 +695,13 @@ and treats `and` as `+` so `half of 56kg and 1700g` works. Spaced `-` in calc
 is subtraction, not a range.
 
 **`trigger`.** `calc()` defaults to `'always'` — a dedicated calculator should
-not require a prefix. Mixed surfaces (`completions()`, `quantityField`) inject
-`calc` with `trigger: '='` (the Excel/Sheets mode switch studied in
-inspiration.md) so bare dashes stay ranges. Completions further gate on a
-leading `=` even if the injector passes `'always'`. `rangeField` does not take
-a calc option.
+not require a prefix. Completions inject `calc` with `trigger: '='` (the
+Excel/Sheets mode switch studied in inspiration.md) and also gate on a leading
+`=` even if the injector passes `'always'`, so `5-10 kg` stays a range.
+`quantityField({ calc })` does not use the prefix: `looksLikeCalc` decides
+(never `-`; glued digit/digit `/` is a fraction, not division) and then
+evaluates with `trigger: 'always'` so `12 * 0.75 kg` and `10 kg / 2` work
+unprefixed. `rangeField` does not take a calc option.
 
 **Glued `m` is million, only in calc.** The number parser already has `k`/`bn`
 suffixes (`70k`, `1.5bn`) but cannot treat glued `m` as million — `5m` is

@@ -82,10 +82,12 @@ resolver + detector; the packs themselves live in `src/locales/`).
   and `calc()` addition still delta-convert, and emit `AFFINE_DELTA_ASSUMED`.
 - **Calc vs lingo**: `lingo()` never evaluates expressions. Both operands with
   units → compound (unchanged). A bare operand or `*`/`/` → arithmetic, only in
-  `./calc`. Default `calc()` trigger is `'always'`; mixed fields inject
-  `{ trigger: '=' }` so `5-10 kg` stays a range. Glued `m`/`M` at an operator
-  boundary is million unless kind is `length` or `duration` (`SCALE_ASSUMED`);
-  spaced `7 m` is meters; `1m80` stays 1.80 m because the next token is digits.
+  `./calc`. Default `calc()` trigger is `'always'`. Completions still require a
+  leading `=`. `quantityField({ calc })` uses `looksLikeCalc` (never `-`, so
+  `5-10 kg` stays a range; glued `5/10 kg` stays a fraction) and then evaluates
+  with `trigger: 'always'`. Glued `m`/`M` at an operator boundary is million
+  unless kind is `length` or `duration` (`SCALE_ASSUMED`); spaced `7 m` is
+  meters; `1m80` stays 1.80 m because the next token is digits.
 - **5K guard**: the k/bn suffix multiplier is disabled under kind 'temperature'
   (5K is kelvin, 70k is 70 000).
 - **Registry refs are liberal**: `.to('L')`, `convert(1,'gal','L')` resolve

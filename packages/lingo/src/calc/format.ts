@@ -1,3 +1,4 @@
+import type { Quantity } from '../core/quantity'
 import { roundSig } from '../core/round'
 import type { CalcFormatOptions, CalcFormatStyle, CalcNode, CalcResult } from './types'
 
@@ -28,16 +29,16 @@ export function formatCalc(result: CalcResult, opts: CalcFormatOptions = {}): st
           : result.quantity
         : result.quantity.to(opts.unit)
     const style = opts.style ?? 'standard'
-    if (style === 'standard' || style === 'words') {
-      return q.format({ style: style === 'words' ? 'long' : 'symbol' })
+    if (style === 'words') {
+      return q.format({ style: 'long' })
     }
-    const number = formatNumber(q.value, style === 'compact' ? 'scientific' : style)
-    const labeled = q.format({ style: 'symbol' })
-    const unit = labeled.replace(/^[^\s]+/, '').trim()
-    if (!unit) {
-      return number
+    if (style === 'standard') {
+      return q.format({ style: 'symbol' })
     }
-    return `${number} ${unit}`
+    if (style === 'grouped') {
+      return q.format({ style: 'symbol', grouping: true })
+    }
+    return withUnit(q, formatNumber(q.value, 'scientific'))
   }
   return formatNumber(result.value, opts.style ?? 'standard')
 }
@@ -174,10 +175,7 @@ function emitLatexInner(node: CalcNode): string {
     return latexNumber(node.value)
   }
   if (node.type === 'quantity') {
-    const labeled = node.value.format({ style: 'symbol' })
-    const unit = labeled.replace(/^[^\s]+/, '').trim()
-    const num = latexQuantityNumber(node.value.value)
-    return unit ? `${num}\\,\\mathrm{${escapeLatex(unit)}}` : num
+    return latexQuantity(node.value)
   }
   if (node.type === 'group') {
     return `\\left(${emitLatex(node.node, false)}\\right)`
@@ -217,6 +215,39 @@ function latexQuantityNumber(value: number): string {
   return latexNumber(value)
 }
 
+function latexQuantity(q: Quantity): string {
+  const num = latexQuantityNumber(q.value)
+  const symbol = q.unitInfo().symbol
+  if (!symbol) {
+    return num
+  }
+  if (symbol === '%') {
+    return `${num}\\%`
+  }
+  if (q.kind === 'currency') {
+    return `${escapeLatex(symbol)}${num}`
+  }
+  const body = `\\mathrm{${escapeLatex(symbol)}}`
+  return tightSymbol(symbol) ? `${num}${body}` : `${num}\\,${body}`
+}
+
+function withUnit(q: Quantity, number: string): string {
+  const symbol = q.unitInfo().symbol
+  if (!symbol) {
+    return number
+  }
+  if (q.kind === 'currency') {
+    return `${symbol}${number}`
+  }
+  return tightSymbol(symbol) ? `${number}${symbol}` : `${number} ${symbol}`
+}
+
+function tightSymbol(symbol: string): boolean {
+  return (
+    symbol.startsWith('°') || symbol === '′' || symbol === '″' || symbol === '%' || symbol === '‰'
+  )
+}
+
 function compactScientific(value: number): string {
   if (value === 0 || !Number.isFinite(value)) {
     return trimNumber(value)
@@ -243,5 +274,5 @@ function needsParen(node: CalcNode): boolean {
 }
 
 function escapeLatex(text: string): string {
-  return text.replace(/[%#&_]/g, '\\$&')
+  return text.replace(/[%#&_$]/g, '\\$&')
 }

@@ -31,6 +31,15 @@ change**, even if the API is untouched.
 - Additive affine compounds (`20°C + 5°C`) still delta-convert, and now warn
   `AFFINE_DELTA_ASSUMED`.
 
+### Fixed
+
+- `quantityField({ calc })` accepts division (`10 kg / 2`, `10kg/2`) without
+  treating glued fractions (`5/10 kg`) as arithmetic.
+- Compact/scientific/latex calc output keeps tight unit symbols (`25°C`,
+  `10%`, `$5`) instead of dropping them.
+- `calc('1e999')` reports `NONFINITE` instead of masking it as `NO_VALUE`.
+- `SCALAR_EXPECTED` copy no longer claims `10 / 2 kg` is two quantities.
+
 ## [0.4.0] - 2026-08-02
 
 ### Added

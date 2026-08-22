@@ -1,3 +1,4 @@
+import { hasError } from '../core/errors'
 import { Quantity, registryOf } from '../core/quantity'
 import type { Span } from '../core/types'
 import { consumeCjkPostUnitHalf, prepareCjkValueTokens } from '../number/cjk'
@@ -31,8 +32,10 @@ export function parseCalc(p: ParserState): CalcNode | null {
   }
   const node = parseExpr()
   if (!node) {
-    const start = p.tokens[pos]?.start ?? 0
-    issue(p, 'NO_VALUE', { example: exampleFor(p) }, start, p.text.length)
+    if (!hasError(p.issues)) {
+      const start = p.tokens[pos]?.start ?? 0
+      issue(p, 'NO_VALUE', { example: exampleFor(p) }, start, p.text.length)
+    }
     return null
   }
   while (symAt(p, pos) === '=') {
@@ -52,7 +55,7 @@ export function parseCalc(p: ParserState): CalcNode | null {
       if (!inner) {
         return null
       }
-      return binary('*', prefix.node, inner)
+      return binary('*', prefix, inner)
     }
     return parseAdd()
   }
@@ -109,6 +112,9 @@ export function parseCalc(p: ParserState): CalcNode | null {
     if (primary) {
       return maybePercentOf(primary)
     }
+    if (aborted(saved)) {
+      return null
+    }
     restore(saved)
     const sign = unarySign()
     if (!sign) {
@@ -142,7 +148,7 @@ export function parseCalc(p: ParserState): CalcNode | null {
     return tryQty()
   }
 
-  function maybePercentOf(left: CalcNode): CalcNode {
+  function maybePercentOf(left: CalcNode): CalcNode | null {
     if (!isPercentQty(left)) {
       return left
     }
@@ -155,6 +161,9 @@ export function parseCalc(p: ParserState): CalcNode | null {
     pos++
     const of = parseUnary()
     if (!of) {
+      if (aborted(saved)) {
+        return null
+      }
       restore(saved)
       return left
     }
@@ -167,7 +176,7 @@ export function parseCalc(p: ParserState): CalcNode | null {
     }
   }
 
-  function tryPrefix(): { node: CalcNode } | null {
+  function tryPrefix(): CalcNode | null {
     const startPos = pos
     for (const prefix of PREFIXES) {
       const next = eatPhrase(p, pos, prefix.phrase)
@@ -175,8 +184,7 @@ export function parseCalc(p: ParserState): CalcNode | null {
         continue
       }
       pos = next
-      const span = tokenSpan(startPos, pos)
-      return { node: { type: 'number', value: prefix.factor, span } }
+      return { type: 'number', value: prefix.factor, span: tokenSpan(startPos, pos) }
     }
     if (wordAt(p, pos) !== 'half') {
       return null
@@ -194,7 +202,7 @@ export function parseCalc(p: ParserState): CalcNode | null {
       pos++
     }
     const end = p.tokens[pos - 1]!.end
-    return { node: { type: 'number', value: 0.5, span: toSourceSpan(p.n, start, end) } }
+    return { type: 'number', value: 0.5, span: toSourceSpan(p.n, start, end) }
   }
 
   function tryQty(): CalcNode | null {
@@ -208,22 +216,18 @@ export function parseCalc(p: ParserState): CalcNode | null {
     const withHalf = applyCjkHalf(p, q)
     pos = withHalf.nextToken
     const span = toSourceSpan(p.n, withHalf.normStart, withHalf.normEnd)
-    if (withHalf.kind && withHalf.headUnit) {
-      if (!Number.isFinite(withHalf.base)) {
+    if (!Number.isFinite(withHalf.base)) {
+      if (!p.issues.some((it) => it.code === 'NONFINITE')) {
         issue(p, 'NONFINITE', {}, withHalf.normStart, withHalf.normEnd)
-        restore(saved)
-        return null
       }
+      return null
+    }
+    if (withHalf.kind && withHalf.headUnit) {
       const quantity = new Quantity(p.reg, withHalf.kind, withHalf.base, withHalf.headUnit, {
         approximate: withHalf.approximate,
         parts: withHalf.parts.length > 1 ? withHalf.parts : undefined,
       })
       return { type: 'quantity', value: quantity, span }
-    }
-    if (!Number.isFinite(withHalf.base)) {
-      issue(p, 'NONFINITE', {}, withHalf.normStart, withHalf.normEnd)
-      restore(saved)
-      return null
     }
     return { type: 'number', value: withHalf.base, span }
   }
@@ -311,6 +315,10 @@ export function parseCalc(p: ParserState): CalcNode | null {
   function restore(saved: { issues: number; pos: number }): void {
     pos = saved.pos
     p.issues.length = saved.issues
+  }
+
+  function aborted(saved: { issues: number }): boolean {
+    return hasError(p.issues.slice(saved.issues))
   }
 
   function tokenSpan(from: number, to: number): Span {

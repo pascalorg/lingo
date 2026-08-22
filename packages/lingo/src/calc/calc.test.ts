@@ -123,9 +123,11 @@ describe('calc()', () => {
     const mul = calc('5 kg * 2 m')
     expect(mul.ok).toBe(false)
     expect(mul.issues[0]?.code).toBe('SCALAR_EXPECTED')
+    expect(mul.issues[0]?.message).toBe('Cannot multiply: one side must be a plain number.')
     const div = calc('10 / 2 kg')
     expect(div.ok).toBe(false)
     expect(div.issues[0]?.code).toBe('SCALAR_EXPECTED')
+    expect(div.issues[0]?.message).toBe('Cannot divide: one side must be a plain number.')
   })
 
   it('rejects mixed-kind addition and division by zero', () => {
@@ -155,6 +157,31 @@ describe('calc()', () => {
     const qty = ok('9 min x 4')
     const back = ok(qty.format())
     expect(back.quantity?.base).toBeCloseTo(qty.quantity!.base, 12)
+  })
+
+  it('keeps NONFINITE instead of masking it as NO_VALUE', () => {
+    expect(calc('1e999').issues[0]?.code).toBe('NONFINITE')
+    expect(calc('1e999 * 2').issues[0]?.code).toBe('NONFINITE')
+    expect(calc('(1e999)').issues[0]?.code).toBe('NONFINITE')
+  })
+
+  it('keeps tight unit symbols in latex and compact format', () => {
+    const temp = ok('20°C + 5°C')
+    expect(temp.issues.some((issue) => issue.code === 'AFFINE_DELTA_ASSUMED')).toBe(true)
+    expect(temp.format()).toBe('25°C')
+    expect(temp.format({ style: 'compact' })).toBe('25°C')
+    expect(temp.latex).toContain('°C')
+    const pct = ok('10%')
+    expect(pct.format({ style: 'compact' })).toBe('10%')
+    expect(pct.latex).toBe('10\\%')
+    const money = ok('10% of $50')
+    expect(money.format()).toBe('$5.00')
+    expect(money.format({ style: 'compact' })).toBe('$5')
+    expect(money.latex).toContain('\\$')
+  })
+
+  it('subtracts a trailing percent', () => {
+    expect(ok('50 kg - 10%').quantity?.base).toBeCloseTo(45, 12)
   })
 
   it('does not throw or yield NaN on hostile input', () => {
@@ -236,6 +263,13 @@ describe('calc injection', () => {
     expect('value' in range).toBe(false)
     const input = field['~standard'].jsonSchema.input({ target: 'draft-2020-12' })
     expect(String(input.description)).toContain('Arithmetic expressions are allowed')
+  })
+
+  it('lets quantityField divide a quantity without stealing 5/10 kg fractions', () => {
+    const field = quantityField({ kind: 'mass', unit: 'kg', calc })
+    expect(field.parse('10 kg / 2')).toBeCloseTo(5, 12)
+    expect(field.parse('10kg/2')).toBeCloseTo(5, 12)
+    expect(field.parse('5/10 kg')).toBeCloseTo(0.5, 12)
   })
 })
 

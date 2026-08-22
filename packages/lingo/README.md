@@ -417,8 +417,9 @@ calc('half of 56kg+1700g')                          // 28.85 kg
 Glued `m` at an operator boundary is million unless `kind` is `length` or
 `duration`; spaced `7 m` is meters; `1m80` stays 1.80 m. Compact `"14m"`
 round-trips through `calc()`, not `lingo()`. Same-kind `q / q` cancels to a
-ratio; `q * q` is `SCALAR_EXPECTED`. Inject into mixed fields so only a
-leading `=` opts into arithmetic:
+ratio; `q * q` is `SCALAR_EXPECTED`. Completions need a leading `=` so
+`5-10 kg` stays a range. `quantityField({ calc })` evaluates `12 * 0.75 kg`
+and `10 kg / 2` without a prefix (`5/10 kg` stays a fraction):
 
 ```ts
 import { calc } from '@pascal-app/lingo/calc'

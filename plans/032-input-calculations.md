@@ -254,9 +254,11 @@ quantityField({ unit: 'kg', calc })   // accepts "12 * 0.75 kg" -> 9
 
   When `calc` is injected, the emitted JSON Schema `description` tells the
   model it may submit an expression. `looksLikeCalc` does not treat `-` as
-  arithmetic, so `5-10 kg` stays a range. `CalcResult` carries the evaluated
-  tree so a tool can log the work; the field itself still returns a plain
-  number (or `QuantityJSON` under `output: 'quantity'`).
+  arithmetic, so `5-10 kg` stays a range. Spaced or unit-adjacent `/` is
+  division (`10 kg / 2`, `10kg/2`); glued digit/digit (`5/10 kg`) stays a
+  fraction. `CalcResult` carries the evaluated tree so a tool can log the work;
+  the field itself still returns a plain number (or `QuantityJSON` under
+  `output: 'quantity'`).
 
 ### Vocabulary
 

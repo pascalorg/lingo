@@ -50,7 +50,7 @@ export const en: Record<IssueCode, string> = {
   CONVERSION_NOT_ALLOWED: "Conversions aren't accepted here — enter the value directly.",
   AFFINE_DELTA_ASSUMED: 'Added {asDelta} as a {unit} change, not an absolute temperature.',
   EXPRESSION_KIND_MISMATCH: 'Cannot mix {left} and {right} in one expression.',
-  SCALAR_EXPECTED: 'Cannot {op} two quantities — one side must be a plain number.',
+  SCALAR_EXPECTED: 'Cannot {op}: one side must be a plain number.',
   DIVISION_BY_ZERO: 'Cannot divide by zero.',
   SCALE_ASSUMED: 'Read "{symbol}" as {scale}.',
 }

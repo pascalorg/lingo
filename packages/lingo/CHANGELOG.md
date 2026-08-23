@@ -42,6 +42,14 @@ change**, even if the API is untouched.
 - Cross-currency arithmetic in `calc()` reports `RATE_REQUIRED` instead of
   treating every currency factor as 1, or masking the conversion throw as
   `NONFINITE`.
+- Percent arithmetic normalizes basis points and per-mille values through the
+  percent base unit (`100 bps of 50 kg` is 0.5 kg, not 50 kg).
+- Same-kind affine ratios use canonical base values, so equivalent Celsius and
+  Fahrenheit expressions agree and absolute zero alone is a zero divisor.
+- Unclosed groups no longer evaluate successfully, unary group spans include
+  their sign, and serialized calc issue spans include their source text.
+- `quantityField({ calc })` recognizes the calculator's word forms including
+  `over`, `multiplied by`, bare `half`, spelled percent, and basis points.
 
 ## [0.4.0] - 2026-08-02
 

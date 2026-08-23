@@ -22,6 +22,7 @@ import {
   prepare,
 } from '../parse/config'
 import { resolveImplied } from '../parse/quantity'
+import type { SerializedIssue, SerializedSpan } from '../parse/serialize'
 import { allKinds, byteishFallbacks } from '../units/index'
 import { type EvalValue, evaluate } from './eval'
 import { formatCalc, formatExpression, formatLatex } from './format'
@@ -174,14 +175,18 @@ function fail(p: ParserState, issues: LingoIssue[] = applySeverity(p, p.issues))
 
 function attachJson<T extends CalcOutcome>(result: T): T {
   Object.defineProperty(result, 'toJSON', {
-    value(this: CalcOutcome): CalcJSON | Omit<CalcFail, 'candidate'> {
+    value(this: CalcOutcome): ReturnType<NonNullable<CalcOutcome['toJSON']>> {
+      const issues: SerializedIssue[] = this.issues.map((issue) => ({
+        ...issue,
+        span: issue.span && withText(issue.span, this.text),
+      }))
       if (!this.ok) {
         return {
           ok: false,
           schemaVersion: 3,
           type: 'failure',
           text: this.text,
-          issues: this.issues,
+          issues,
         }
       }
       const json: CalcJSON = {
@@ -190,7 +195,7 @@ function attachJson<T extends CalcOutcome>(result: T): T {
         type: 'calc',
         text: this.text,
         span: withText(this.span, this.text),
-        issues: this.issues,
+        issues,
         confidence: this.confidence,
         value: this.value,
         expression: this.expression,
@@ -208,6 +213,6 @@ function attachJson<T extends CalcOutcome>(result: T): T {
   return result
 }
 
-function withText(span: Span, text: string): Span & { text: string } {
-  return { start: span.start, end: span.end, text: text.slice(span.start, span.end) }
+function withText(span: Span, text: string): SerializedSpan {
+  return { ...span, text: text.slice(span.start, span.end) }
 }

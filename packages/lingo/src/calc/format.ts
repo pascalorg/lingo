@@ -235,8 +235,11 @@ function compactScientific(value: number): string {
 }
 
 function percentAmount(node: CalcNode): number {
+  if (node.type === 'group') {
+    return percentAmount(node.node)
+  }
   if (node.type === 'quantity' && node.value.kind === 'percent') {
-    return node.value.value
+    return node.value.base
   }
   if (node.type === 'number') {
     return node.value

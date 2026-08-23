@@ -169,7 +169,7 @@ Operand rules, and the issue code when they're violated:
 | `n + q`, `q + n` | quantity | Bare operand inherits the other side's unit |
 | `q * n`, `n * q` | quantity | Exactly one operand may be a quantity, else `SCALAR_EXPECTED` |
 | `q / n` | quantity | Divisor must be scalar |
-| `q / q` | number | Same-kind division cancels to a dimensionless ratio (phase 3). Rate-based different units → `RATE_REQUIRED` |
+| `q / q` | number | Same-kind division cancels to a dimensionless ratio using canonical base values (phase 3). Rate-based different units → `RATE_REQUIRED` |
 | `q * q` | rejected | `SCALAR_EXPECTED` — this is dimensional algebra (D2) |
 | `x / 0` | rejected | `DIVISION_BY_ZERO` |
 
@@ -197,7 +197,8 @@ not a range. Word operators: `plus` / `minus` / `times` / `x` / `over` /
 
 `"half of"` wraps `parseAdd`, so `half of 56kg+1700g` is `0.5 × (56 kg + 1700 g)`.
 Lone `half` is skipped when the next word is `an`/`a` (`half an hour` stays a
-duration quantity).
+duration quantity). Parenthesized groups must close. Percent operands normalize
+through the percent base unit, so `100 bps` and `10‰` both mean `1%`.
 
 ### Format
 

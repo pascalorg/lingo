@@ -1,6 +1,7 @@
 import type { Quantity } from '../core/quantity'
 import type { LingoIssue, Span } from '../core/types'
 import type { LingoOptions } from '../factory'
+import type { SerializedIssue, SerializedSpan } from '../parse/serialize'
 
 /**
  * Closed expression node union. No symbols, calls, or extension point — the
@@ -97,15 +98,23 @@ export interface CalcResult {
 export interface CalcJSON {
   confidence: number
   expression: string
-  issues: LingoIssue[]
+  issues: SerializedIssue[]
   latex: string
   ok: true
   quantity?: ReturnType<Quantity['toJSON']>
   schemaVersion: 3
-  span: Span
+  span: SerializedSpan
   text: string
   type: 'calc'
   value: number
+}
+
+interface CalcFailJSON {
+  issues: SerializedIssue[]
+  ok: false
+  schemaVersion: 3
+  text: string
+  type: 'failure'
 }
 
 /**
@@ -124,6 +133,7 @@ export interface CalcFail {
   ok: false
   schemaVersion: 3
   text: string
+  toJSON?: () => CalcFailJSON
   type: 'failure'
 }
 

@@ -107,6 +107,19 @@ describe('calc()', () => {
     expect(ok('50 kg + 10%').quantity?.base).toBeCloseTo(55, 12)
   })
 
+  it('normalizes percent units before applying them', () => {
+    const basisPoints = ok('100 bps of 50 kg')
+    expect(basisPoints.quantity?.base).toBeCloseTo(0.5, 12)
+    expect(basisPoints.expression).toBe('1% of 50 kg')
+    expect(ok('10‰ of 50 kg').quantity?.base).toBeCloseTo(0.5, 12)
+    expect(ok('50 kg + 100 bps').quantity?.base).toBeCloseTo(50.5, 12)
+  })
+
+  it('keeps percent semantics through parentheses', () => {
+    expect(ok('(10%) of 50 kg').quantity?.base).toBeCloseTo(5, 12)
+    expect(ok('50 kg + (10%)').quantity?.base).toBeCloseTo(55, 12)
+  })
+
   it('adds and multiplies with parentheses and word operators', () => {
     expect(ok('(2+3)*4').value).toBe(20)
     expect(ok('2 plus 3 times 4').value).toBe(14)
@@ -117,6 +130,16 @@ describe('calc()', () => {
   it('cancels same-kind division to a ratio', () => {
     expect(ok('10 L / 2 L').value).toBeCloseTo(5, 12)
     expect(ok('10 L / 2 L').quantity).toBeUndefined()
+  })
+
+  it('computes affine ratios from canonical base values', () => {
+    const celsius = ok('10°C / 5°C')
+    const fahrenheit = ok('50°F / 41°F')
+    expect(celsius.value).toBeCloseTo(283.15 / 278.15, 12)
+    expect(fahrenheit.value).toBeCloseTo(celsius.value, 12)
+    expect(ok('0°C / 32°F').value).toBeCloseTo(1, 12)
+    expect(ok('10°C / 0°C').value).toBeCloseTo(283.15 / 273.15, 12)
+    expect(calc('10°C / -273.15°C').issues[0]?.code).toBe('DIVISION_BY_ZERO')
   })
 
   it('rejects quantity × quantity and n / q', () => {
@@ -195,6 +218,14 @@ describe('calc()', () => {
     expect(calc('(1e999)').issues[0]?.code).toBe('NONFINITE')
   })
 
+  it('rejects unclosed groups and keeps unary operator spans', () => {
+    expect(calc('(2+3').ok).toBe(false)
+    expect(calc('2*(3+4').ok).toBe(false)
+    const unary = ok('minus (2+3)')
+    expect(unary.span).toEqual({ start: 0, end: 11 })
+    expect(unary.node.span).toEqual(unary.span)
+  })
+
   it('keeps tight unit symbols in latex and compact format', () => {
     const temp = ok('20°C + 5°C')
     expect(temp.issues.some((issue) => issue.code === 'AFFINE_DELTA_ASSUMED')).toBe(true)
@@ -248,6 +279,9 @@ describe('calc()', () => {
     expect(json.value).toBe(14_000_000)
     expect(json.node).toBeUndefined()
     expect(json.expression).toBe('7e6 × 2')
+    expect(json.issues[0].span.text).toBe('m')
+    const failed = JSON.parse(JSON.stringify(calc('10 usd + 5 eur')))
+    expect(failed.issues[0].span.text).toBe('10 usd + 5 eur')
   })
 })
 
@@ -312,6 +346,17 @@ describe('calc injection', () => {
     expect(field.parse('10 kg / 2')).toBeCloseTo(5, 12)
     expect(field.parse('10kg/2')).toBeCloseTo(5, 12)
     expect(field.parse('5/10 kg')).toBeCloseTo(0.5, 12)
+  })
+
+  it('recognizes every supported non-symbol calc marker in quantityField', () => {
+    const field = quantityField({ kind: 'mass', unit: 'kg', calc })
+    expect(field.parse('10 kg over 2')).toBeCloseTo(5, 12)
+    expect(field.parse('10 kg multiplied by 2')).toBeCloseTo(20, 12)
+    expect(field.parse('half 10 kg')).toBeCloseTo(5, 12)
+    expect(field.parse('10 percent of 50 kg')).toBeCloseTo(5, 12)
+    expect(field.parse('100 bps of 50 kg')).toBeCloseTo(0.5, 12)
+    const duration = quantityField({ kind: 'duration', unit: 'h', calc })
+    expect(duration.parse('half an hour')).toBeCloseTo(0.5, 12)
   })
 
   it('surfaces RATE_REQUIRED from quantityField on cross-currency calc', () => {

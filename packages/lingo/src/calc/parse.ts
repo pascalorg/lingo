@@ -1,5 +1,5 @@
 import { hasError } from '../core/errors'
-import { Quantity, registryOf } from '../core/quantity'
+import { Quantity } from '../core/quantity'
 import type { Span } from '../core/types'
 import { consumeCjkPostUnitHalf, prepareCjkValueTokens } from '../number/cjk'
 import {
@@ -119,11 +119,21 @@ export function parseCalc(p: ParserState): CalcNode | null {
     if (!sign) {
       return null
     }
+    const signSpan = tokenSpan(saved.pos, pos)
     const inner = parseUnary()
     if (!inner) {
       return null
     }
-    return sign === '-' ? negate(inner) : inner
+    const span = join(signSpan, inner.span)
+    return sign === '-'
+      ? {
+          type: 'op',
+          op: '*',
+          left: { type: 'number', value: -1, span: signSpan },
+          right: inner,
+          span,
+        }
+      : { ...inner, span }
   }
 
   function parsePrimary(): CalcNode | null {
@@ -134,9 +144,10 @@ export function parseCalc(p: ParserState): CalcNode | null {
       if (!inner) {
         return null
       }
-      if (symAt(p, pos) === ')') {
-        pos++
+      if (symAt(p, pos) !== ')') {
+        return null
       }
+      pos++
       const endTok = p.tokens[pos - 1]
       return {
         type: 'group',
@@ -351,33 +362,11 @@ function applyCjkHalf(p: ParserState, q: QtyNode): QtyNode {
 }
 
 function isPercentQty(node: CalcNode): boolean {
-  return node.type === 'quantity' && node.value.kind === 'percent'
+  return node.type === 'group'
+    ? isPercentQty(node.node)
+    : node.type === 'quantity' && node.value.kind === 'percent'
 }
 
 function join(a: Span, b: Span): Span {
   return { start: a.start, end: b.end }
-}
-
-function negate(node: CalcNode): CalcNode {
-  if (node.type === 'number') {
-    return { ...node, value: -node.value }
-  }
-  if (node.type === 'quantity') {
-    const q = node.value
-    return {
-      type: 'quantity',
-      value: new Quantity(registryOf(q), q.kind, -q.base, q.unit, { approximate: q.approximate }),
-      span: node.span,
-    }
-  }
-  if (node.type === 'group') {
-    return { ...node, node: negate(node.node) }
-  }
-  return {
-    type: 'op',
-    op: '*',
-    left: { type: 'number', value: -1, span: node.span },
-    right: node,
-    span: node.span,
-  }
 }

@@ -285,28 +285,10 @@ export function rangeField(
 }
 
 function looksLikeCalc(input: string): boolean {
-  const text = input.trim()
-  if (text.startsWith('=')) {
-    return true
-  }
-  const lower = text.toLowerCase()
-  if (/\b(times|plus|minus|divided|half of|twice|double|triple|thrice)\b/.test(lower)) {
-    return true
-  }
-  if (/%\s*(of|off|on)\b/.test(lower)) {
-    return true
-  }
-  if (/[×·÷*]/.test(text)) {
-    return true
-  }
-  if (/\sx\s/i.test(text)) {
-    return true
-  }
-  if (text.includes('+')) {
-    return true
-  }
   // Glued digit/digit (`5/10 kg`) is a fraction, not division.
-  return /[^\d.\s]\/|\/[^\d.\s]|\/\s|\s\//.test(text)
+  return /^\s*=|[×·÷*+]|\sx\s|\b(?:times|plus|minus|divided|multiplied|over|half|twice|double|triple|thrice)\b|(?:[%‰]|\b(?:percent|pct|bps?|basis points?|per mille)\b)\s*(?:of|off|on)\b|[^\d.]\/|\/[^\d.]/i.test(
+    input,
+  )
 }
 
 function quantityInput(value: unknown): string | StandardSchemaV1Failure {

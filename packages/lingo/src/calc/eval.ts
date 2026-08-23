@@ -44,7 +44,7 @@ function evalPercent(
   if (!(of && pct)) {
     return null
   }
-  const rate = pct.value / 100
+  const rate = (pct.quantity?.base ?? pct.value) / 100
   const factor = node.mode === 'of' ? rate : node.mode === 'add' ? 1 + rate : 1 - rate
   return scaleValue(p, of, factor, node.span)
 }
@@ -148,7 +148,7 @@ function evalMul(p: ParserState, left: EvalValue, right: EvalValue, span: Span):
 }
 
 function evalDiv(p: ParserState, left: EvalValue, right: EvalValue, span: Span): EvalValue | null {
-  if (right.value === 0) {
+  if (!right.quantity && right.value === 0) {
     report(p, 'DIVISION_BY_ZERO', {}, span)
     return null
   }
@@ -162,13 +162,16 @@ function evalDiv(p: ParserState, left: EvalValue, right: EvalValue, span: Span):
       )
       return null
     }
-    const common = left.quantity.valueIn(left.unit!)
-    const other = right.quantity.valueIn(left.unit!)
+    const other = right.quantity.base
     if (other === 0) {
       report(p, 'DIVISION_BY_ZERO', {}, span)
       return null
     }
-    return finite(p, { kind: null, unit: null, value: common / other, quantity: null, span }, span)
+    return finite(
+      p,
+      { kind: null, unit: null, value: left.quantity.base / other, quantity: null, span },
+      span,
+    )
   }
   if (right.quantity && !left.quantity) {
     report(p, 'SCALAR_EXPECTED', { op: 'divide' }, span)

@@ -41,11 +41,10 @@ surfaces mid-task, add it here and keep going — don't act on it.
   result is a dimensionless ratio; `finishQuantity` re-attaches the field
   unit. A `ratio` flag to skip that (~20 B gzip) busts the 4.1 kB `./calc`
   marginal budget. Cross-currency `RATE_REQUIRED` already lands.
-- **Multiplier and count words** — `twice 3 kg`, `double 3 kg`, `3 boxes of
-  2 kg`, `3 @ 2.5 kg`, `5 kg each`, `a dozen eggs` all fail today. Reuses the
-  existing number-word lexicon; overlaps plan 032 phase 3, but the unit-less
-  count forms (`a dozen eggs`) are a quantity-grammar question, not arithmetic.
-  (Same pass.)
+- **Count words** — `3 boxes of 2 kg`, `3 @ 2.5 kg`, `5 kg each`, and `a dozen
+  eggs` still fail today. Calc multipliers (`twice`, `double`, `triple`,
+  `thrice`, `half`) shipped in plan 032; countable domain nouns remain a
+  quantity-grammar question. (Same pass.)
 - **Range span excludes the frame word** — `from 5 to 10 kg` and
   `between 5 and 10 kg` spans start at the first value, not at `from`/`between`.
   `buildRange` (`range.ts`) could extend the span to cover the leading frame.

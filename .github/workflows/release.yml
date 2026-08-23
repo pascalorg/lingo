@@ -61,10 +61,8 @@ jobs:
               "## [Unreleased]\n\n## [" + process.env.VERSION + "] - " + date))
           '
       - name: Publish (provenance)
-        run: npm publish --provenance --access public
+        run: npx --yes npm@11.12.1 publish --provenance --access public
         working-directory: packages/lingo
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Commit, tag, release
         run: |
           git config user.name "github-actions[bot]"

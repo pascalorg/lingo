@@ -7,6 +7,8 @@ change**, even if the API is untouched.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-23
+
 ### Added
 
 - Quantity arithmetic at `@pascal-app/lingo/calc`. Closed calculator over

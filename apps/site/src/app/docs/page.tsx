@@ -21,10 +21,13 @@ import { FormUxGallery } from '@/components/site/form-ux-gallery'
 import { LatexUnitsDemo } from '@/components/site/latex-units-demo'
 import { ParsePlayground } from '@/components/site/parse-playground'
 import { PerformanceSection } from '@/components/site/performance-section'
+import { RemindMePopoverBlock } from '@/components/site/remind-me-popover'
+import { SemanticTokenHighlighter } from '@/components/site/semantic-token-highlighter'
 import {
   StrictnessVariantWall,
   SystemNumberFormatVariantWall,
 } from '@/components/site/variant-walls'
+import { WorkflowTriggerBlock } from '@/components/site/workflow-trigger-block'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -864,6 +867,16 @@ export default async function Home() {
             </div>
             <CodeBlock code={gridColumnSnippet} filename="columns.ts" lang="ts" />
             <DataGridDemo />
+
+            <div className="flex min-w-0 flex-col gap-3 pt-6">
+              <SubHeading id="one-schema-workflow">Workflow automation triggers</SubHeading>
+              <p className="text-muted-foreground text-sm">
+                In agent workflows, prompts frequently combine target entities, action verbs, and
+                numerical thresholds. Lingo powers live extraction of bounds (
+                <Code>below $10k</Code>) and quantities from natural language commands.
+              </p>
+            </div>
+            <WorkflowTriggerBlock />
           </Section>
 
           <Section
@@ -943,6 +956,26 @@ export default async function Home() {
               </p>
             </div>
             <CalendarFieldDemo />
+
+            <div className="flex min-w-0 flex-col gap-3 pt-6">
+              <SubHeading id="dates-semantic-tokens">Semantic token highlighting</SubHeading>
+              <p className="text-muted-foreground text-sm">
+                Lingo&apos;s precise original-input spans make it straightforward to build
+                multi-category colorized tokenizers (day or date, clock time, repeats, and duration)
+                running at zero latency in the browser.
+              </p>
+            </div>
+            <SemanticTokenHighlighter />
+
+            <div className="flex min-w-0 flex-col gap-3 pt-6">
+              <SubHeading id="dates-remind-me">Interactive reminder block</SubHeading>
+              <p className="text-muted-foreground text-sm">
+                A production-ready scheduling popover block (inspired by modern productivity apps
+                like Superhuman and Linear). Quick presets, custom relative time input, and
+                conditional triggers in one compact control.
+              </p>
+            </div>
+            <RemindMePopoverBlock />
           </Section>
 
           <Section

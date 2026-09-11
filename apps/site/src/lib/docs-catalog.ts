@@ -247,6 +247,13 @@ export const docsNavGroups: DocsNavGroup[] = [
         ['data grid', 'table', 'tanstack', 'react-table', 'spreadsheet', 'cell', 'column', 'bulk'],
         { depth: 3, markdownSectionId: 'one-schema' },
       ),
+      page(
+        'one-schema-workflow',
+        'Workflow triggers',
+        'Extract numerical bounds and targets from natural language agent prompts.',
+        ['workflow', 'trigger', 'agent', 'automation', 'claude', 'aws', 'credits', 'prompt'],
+        { depth: 3, markdownSectionId: 'one-schema' },
+      ),
     ],
   },
   {
@@ -319,6 +326,20 @@ export const docsNavGroups: DocsNavGroup[] = [
           'next month',
           'two month',
         ],
+        { depth: 3, markdownSectionId: 'dates' },
+      ),
+      page(
+        'dates-semantic-tokens',
+        'Semantic tokens',
+        'Live span categorization into dates, times, repeats, and durations.',
+        ['semantic', 'tokens', 'highlighter', 'gpu-time', 'category', 'legend', 'overlay'],
+        { depth: 3, markdownSectionId: 'dates' },
+      ),
+      page(
+        'dates-remind-me',
+        'Remind me block',
+        'Linear-style scheduling popover with quick presets and relative dates.',
+        ['remind me', 'popover', 'scheduling', 'linear', 'superhuman', 'tomorrow', 'weekend'],
         { depth: 3, markdownSectionId: 'dates' },
       ),
       page(

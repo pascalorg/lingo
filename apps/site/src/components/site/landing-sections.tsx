@@ -3,6 +3,9 @@ import { ChevronDownIcon } from 'lucide-react'
 import Link from 'next/link'
 
 import { CodeBlock } from '@/components/site/code-block'
+import { RemindMePopoverBlock } from '@/components/site/remind-me-popover'
+import { SemanticTokenHighlighter } from '@/components/site/semantic-token-highlighter'
+import { WorkflowTriggerBlock } from '@/components/site/workflow-trigger-block'
 import { Badge } from '@/components/ui/badge'
 import {
   Table,
@@ -257,6 +260,27 @@ export function LandingSections() {
             </Link>
             .
           </p>
+        </SectionShell>
+
+        <SectionShell
+          explainer="Lingo extracts exact character spans into the original input text, powering zero-latency browser highlighting across semantic token categories."
+          title="Live semantic syntax highlighting"
+        >
+          <SemanticTokenHighlighter />
+        </SectionShell>
+
+        <SectionShell
+          explainer="Linear and Superhuman style scheduling popover: immediate quick presets, custom relative date evaluation, and conditions in one compact control."
+          title="Productivity scheduling block"
+        >
+          <RemindMePopoverBlock />
+        </SectionShell>
+
+        <SectionShell
+          explainer="Compose natural language automation prompts with entity chips and let Lingo extract numerical bounds, currencies, and event triggers."
+          title="Human prompts to machine rules"
+        >
+          <WorkflowTriggerBlock />
         </SectionShell>
 
         <SectionShell

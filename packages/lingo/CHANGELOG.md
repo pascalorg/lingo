@@ -7,6 +7,13 @@ change**, even if the API is untouched.
 
 ## [Unreleased]
 
+### Added
+
+- Rich visual UI blocks in documentation site (`apps/site`):
+  - `SemanticTokenHighlighter`: Live multi-category span classification and colorized syntax tokens (Day/Date, Clock Time, Repeats, How Long) running client-side with zero dependencies and deterministic outputs.
+  - `RemindMePopoverBlock`: Production-grade productivity scheduling popover with quick presets (`tomorrow`, `next week`, `this weekend`, `someday`) and live custom date parsing.
+  - `WorkflowTriggerBlock`: Natural-language automation rules parser with brand/agent entity chips and live numerical bound extraction.
+
 ## [0.5.0] - 2026-08-23
 
 ### Added

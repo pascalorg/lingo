@@ -17,7 +17,7 @@ import { useHydrated } from '@/components/site/use-hydrated'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { formatDate, formatDateResult, formatRange } from '@/lib/date-display'
+import { formatDate, formatDateResult, formatRange, formatZone } from '@/lib/date-display'
 import { classifyTextSpans, type TokenCategory } from '@/lib/semantic-spans'
 
 /** SSR reference time. After hydration the field switches to the real clock. */
@@ -108,9 +108,7 @@ export function SemanticTokenHighlighter() {
   const reading = useMemo(() => read(value, now), [value, now])
   // The zone label depends on the visitor's clock, so it waits for hydration
   // — the server's zone would not match and React would flag the text.
-  const zone = hydrated
-    ? now.toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ').pop()
-    : null
+  const zone = hydrated ? formatZone(now) : null
   // Same constraint for the JSON: it prints UTC instants, and a local SSR_NOW
   // is a different instant in every zone.
   const output = hydrated ? JSON.stringify(reading.result, null, 2) : ''

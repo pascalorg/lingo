@@ -20,6 +20,11 @@ export function formatDate(date: Date): string {
   })
 }
 
+/** "PDT" — the short zone name, which only exists on the visitor's clock. */
+export function formatZone(date: Date): string | undefined {
+  return date.toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ').pop()
+}
+
 /** "9:00 AM" */
 export function formatClock(date: Date): string {
   return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })

@@ -100,7 +100,7 @@ export function parseRangeOrQty(p: ParserState, i: number, atStart: boolean): Pa
       approximate: quals.approximate || a.approximate,
     })
     return {
-      result: okRange(p, range, i, end),
+      result: okRange(p, range, p.tokens[i]!.start, end),
       nextToken: trailing?.next ?? a.nextToken,
     }
   }
@@ -136,7 +136,7 @@ export function parseRangeOrQty(p: ParserState, i: number, atStart: boolean): Pa
       max: { base: toBase(unit, a.spread[1]), unit: a.headUnit },
       approximate: true,
     })
-    return { result: okRange(p, range, i, a.normEnd), nextToken: a.nextToken }
+    return { result: okRange(p, range, p.tokens[i]!.start, a.normEnd), nextToken: a.nextToken }
   }
 
   // Single quantity / bare number.

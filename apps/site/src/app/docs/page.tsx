@@ -21,10 +21,13 @@ import { FormUxGallery } from '@/components/site/form-ux-gallery'
 import { LatexUnitsDemo } from '@/components/site/latex-units-demo'
 import { ParsePlayground } from '@/components/site/parse-playground'
 import { PerformanceSection } from '@/components/site/performance-section'
+import { RemindMePopoverBlock } from '@/components/site/remind-me-popover'
+import { SemanticTokenHighlighter } from '@/components/site/semantic-token-highlighter'
 import {
   StrictnessVariantWall,
   SystemNumberFormatVariantWall,
 } from '@/components/site/variant-walls'
+import { WorkflowTriggerBlock } from '@/components/site/workflow-trigger-block'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -864,6 +867,17 @@ export default async function Home() {
             </div>
             <CodeBlock code={gridColumnSnippet} filename="columns.ts" lang="ts" />
             <DataGridDemo />
+
+            <div className="flex min-w-0 flex-col gap-3 pt-6">
+              <SubHeading id="one-schema-workflow">Thresholds out of prose</SubHeading>
+              <p className="text-muted-foreground text-sm">
+                Automation prompts mix nouns a rules engine already knows with thresholds it does
+                not. <Code>findQuantities</Code> pulls the bounds (<Code>below $10k</Code>,{' '}
+                <Code>over 15 minutes</Code>) out of the sentence with spans into the original
+                string and the same issues a form field would see.
+              </p>
+            </div>
+            <WorkflowTriggerBlock />
           </Section>
 
           <Section
@@ -943,6 +957,27 @@ export default async function Home() {
               </p>
             </div>
             <CalendarFieldDemo />
+
+            <div className="flex min-w-0 flex-col gap-3 pt-6">
+              <SubHeading id="dates-semantic-tokens">Color only where it read</SubHeading>
+              <p className="text-muted-foreground text-sm">
+                Lingo reads one expression at a time and reports one span per result, so a sentence
+                has to be pre-segmented before it can be colored. The demo proposes slices with
+                regexes and lets <Code>parseDate</Code>, <Code>parseDateRange</Code>, and{' '}
+                <Code>parseDuration</Code> confirm each one — a slice lingo declines stays plain.
+              </p>
+            </div>
+            <SemanticTokenHighlighter />
+
+            <div className="flex min-w-0 flex-col gap-3 pt-6">
+              <SubHeading id="dates-remind-me">Presets and prose, one reader</SubHeading>
+              <p className="text-muted-foreground text-sm">
+                Quick presets and a free-text field share one reader, so the row a preset shows is
+                the same reading typing its phrase would give. A phrase lingo cannot read shows
+                lingo&apos;s own message instead of a made-up time.
+              </p>
+            </div>
+            <RemindMePopoverBlock />
           </Section>
 
           <Section

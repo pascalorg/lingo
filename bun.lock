@@ -51,7 +51,7 @@
     },
     "packages/lingo": {
       "name": "@pascal-app/lingo",
-      "version": "0.3.0",
+      "version": "0.5.0",
       "devDependencies": {
         "@standard-schema/spec": "^1.1.0",
         "@types/react": "^19.2.17",

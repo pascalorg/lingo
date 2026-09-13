@@ -604,6 +604,20 @@ describe('free-text extraction', () => {
     expect(hits.map((hit) => hit.result.type)).toEqual(['quantity', 'quantity', 'conversion'])
     expect(hits[2]!.result.text.slice(hits[2]!.span.start, hits[2]!.span.end)).toBe('72 in to cm')
   })
+
+  it('anchors open-bound and fuzzy-spread spans at the qualifier, not mid-word', () => {
+    const text = 'Page me when AWS credits fall below $10k or the build takes over 15 minutes'
+    const hits = findQuantities(text)
+    expect(hits.map((hit) => text.slice(hit.span.start, hit.span.end))).toEqual([
+      'below $10k',
+      'over 15 minutes',
+    ])
+    expect(hits.map((hit) => hit.result.type)).toEqual(['range', 'range'])
+
+    const fuzzy = 'wait a few minutes first'
+    const [spread] = findQuantities(fuzzy)
+    expect(fuzzy.slice(spread!.span.start, spread!.span.end)).toBe('a few minutes')
+  })
 })
 
 describe('errors', () => {

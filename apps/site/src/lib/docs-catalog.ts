@@ -247,6 +247,13 @@ export const docsNavGroups: DocsNavGroup[] = [
         ['data grid', 'table', 'tanstack', 'react-table', 'spreadsheet', 'cell', 'column', 'bulk'],
         { depth: 3, markdownSectionId: 'one-schema' },
       ),
+      page(
+        'one-schema-workflow',
+        'Thresholds out of prose',
+        'Pull numeric thresholds out of automation prompts with findQuantities.',
+        ['workflow', 'rule', 'trigger', 'automation', 'threshold', 'findQuantities', 'bound'],
+        { depth: 3, markdownSectionId: 'one-schema' },
+      ),
     ],
   },
   {
@@ -319,6 +326,20 @@ export const docsNavGroups: DocsNavGroup[] = [
           'next month',
           'two month',
         ],
+        { depth: 3, markdownSectionId: 'dates' },
+      ),
+      page(
+        'dates-semantic-tokens',
+        'Color only where it read',
+        'Pre-segment a sentence, then let lingo confirm each date, time, and duration slice.',
+        ['token', 'highlighter', 'span', 'slice', 'category', 'legend', 'confirm'],
+        { depth: 3, markdownSectionId: 'dates' },
+      ),
+      page(
+        'dates-remind-me',
+        'Presets and prose, one reader',
+        'Scheduling popover whose presets and free text share one date reader.',
+        ['remind me', 'popover', 'scheduling', 'preset', 'tomorrow', 'weekend', 'someday'],
         { depth: 3, markdownSectionId: 'dates' },
       ),
       page(

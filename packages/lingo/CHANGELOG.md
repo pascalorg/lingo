@@ -7,6 +7,21 @@ change**, even if the API is untouched.
 
 ## [Unreleased]
 
+### Added
+
+- Docs site: three demos built on spans — a token highlighter that
+  pre-segments a sentence with regexes and lets `parseDate`/`parseDateRange`/
+  `parseDuration` decide what each piece is; a "Remind me" popover whose
+  presets and free-text field read through `./date`; and a workflow-rule
+  list that extracts numeric bounds with `findQuantities`.
+
+### Fixed
+
+- `findQuantities` returned mid-word spans for open-bound ranges and fuzzy
+  spreads that did not start the input (`call mom over 5 min` → `[2, 19)`).
+  The qualifier branch passed a token index where `okRange` expects a
+  normalized offset; spans now start at the qualifier (`over 5 min`).
+
 ## [0.5.0] - 2026-08-23
 
 ### Added

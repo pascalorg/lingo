@@ -3,6 +3,9 @@ import { ChevronDownIcon } from 'lucide-react'
 import Link from 'next/link'
 
 import { CodeBlock } from '@/components/site/code-block'
+import { RemindMePopoverBlock } from '@/components/site/remind-me-popover'
+import { SemanticTokenHighlighter } from '@/components/site/semantic-token-highlighter'
+import { WorkflowTriggerBlock } from '@/components/site/workflow-trigger-block'
 import { Badge } from '@/components/ui/badge'
 import {
   Table,
@@ -257,6 +260,27 @@ export function LandingSections() {
             </Link>
             .
           </p>
+        </SectionShell>
+
+        <SectionShell
+          explainer="Regexes propose slices of a sentence; parseDate, parseDateRange, and parseDuration confirm each one. A color only appears where lingo actually read something."
+          title="Tokens you can trust"
+        >
+          <SemanticTokenHighlighter />
+        </SectionShell>
+
+        <SectionShell
+          explainer="A scheduling popover where the presets and the free-text field go through the same reader — so 'tomorrow' and 'in 3 days at 8am' resolve the same way."
+          title="Remind me, in plain words"
+        >
+          <RemindMePopoverBlock />
+        </SectionShell>
+
+        <SectionShell
+          explainer="Automation rules mix nouns a rules engine knows with thresholds it does not. findQuantities pulls the bounds out of the sentence with spans and issues attached."
+          title="Thresholds out of prose"
+        >
+          <WorkflowTriggerBlock />
         </SectionShell>
 
         <SectionShell

@@ -176,6 +176,10 @@ export function CalendarFieldDemo() {
   const reading = useMemo(() => read(value, now), [value, now])
   const { mode, start, end } = reading
   const twoUp = mode === 'range'
+  // The JSON prints UTC instants, and SSR_NOW is a local wall-clock time: the
+  // same wall clock is a different instant on the server and in the visitor's
+  // zone, so the panel waits for hydration instead of tripping React #418.
+  const output = hydrated ? JSON.stringify(reading.result, null, 2) : ''
 
   // The calendar follows the parse unless the reader has paged away from it.
   const anchor = useMemo(
@@ -287,7 +291,7 @@ export function CalendarFieldDemo() {
   return (
     <DemoFrame
       caption="One field. The reading picks the widget — a day, a span, or a slot."
-      details={<JsonView label="Output" value={JSON.stringify(reading.result, null, 2)} />}
+      details={<JsonView label="Output" value={output} />}
       detailsLabel="Output"
       stageClassName="min-h-[34rem] justify-start"
       title="Adaptive date field"

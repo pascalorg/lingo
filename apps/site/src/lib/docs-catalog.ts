@@ -249,7 +249,7 @@ export const docsNavGroups: DocsNavGroup[] = [
       ),
       page(
         'one-schema-workflow',
-        'Workflow rules',
+        'Thresholds out of prose',
         'Pull numeric thresholds out of automation prompts with findQuantities.',
         ['workflow', 'rule', 'trigger', 'automation', 'threshold', 'findQuantities', 'bound'],
         { depth: 3, markdownSectionId: 'one-schema' },
@@ -330,14 +330,14 @@ export const docsNavGroups: DocsNavGroup[] = [
       ),
       page(
         'dates-semantic-tokens',
-        'Token highlighter',
+        'Color only where it read',
         'Pre-segment a sentence, then let lingo confirm each date, time, and duration slice.',
         ['token', 'highlighter', 'span', 'slice', 'category', 'legend', 'confirm'],
         { depth: 3, markdownSectionId: 'dates' },
       ),
       page(
         'dates-remind-me',
-        'Remind me popover',
+        'Presets and prose, one reader',
         'Scheduling popover whose presets and free text share one date reader.',
         ['remind me', 'popover', 'scheduling', 'preset', 'tomorrow', 'weekend', 'someday'],
         { depth: 3, markdownSectionId: 'dates' },

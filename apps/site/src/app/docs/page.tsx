@@ -869,7 +869,7 @@ export default async function Home() {
             <DataGridDemo />
 
             <div className="flex min-w-0 flex-col gap-3 pt-6">
-              <SubHeading id="one-schema-workflow">Workflow rules</SubHeading>
+              <SubHeading id="one-schema-workflow">Thresholds out of prose</SubHeading>
               <p className="text-muted-foreground text-sm">
                 Automation prompts mix nouns a rules engine already knows with thresholds it does
                 not. <Code>findQuantities</Code> pulls the bounds (<Code>below $10k</Code>,{' '}
@@ -959,7 +959,7 @@ export default async function Home() {
             <CalendarFieldDemo />
 
             <div className="flex min-w-0 flex-col gap-3 pt-6">
-              <SubHeading id="dates-semantic-tokens">Token highlighter</SubHeading>
+              <SubHeading id="dates-semantic-tokens">Color only where it read</SubHeading>
               <p className="text-muted-foreground text-sm">
                 Lingo reads one expression at a time and reports one span per result, so a sentence
                 has to be pre-segmented before it can be colored. The demo proposes slices with
@@ -970,7 +970,7 @@ export default async function Home() {
             <SemanticTokenHighlighter />
 
             <div className="flex min-w-0 flex-col gap-3 pt-6">
-              <SubHeading id="dates-remind-me">Remind me popover</SubHeading>
+              <SubHeading id="dates-remind-me">Presets and prose, one reader</SubHeading>
               <p className="text-muted-foreground text-sm">
                 Quick presets and a free-text field share one reader, so the row a preset shows is
                 the same reading typing its phrase would give. A phrase lingo cannot read shows

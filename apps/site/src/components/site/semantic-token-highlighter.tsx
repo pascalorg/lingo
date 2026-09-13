@@ -111,11 +111,14 @@ export function SemanticTokenHighlighter() {
   const zone = hydrated
     ? now.toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ').pop()
     : null
+  // Same constraint for the JSON: it prints UTC instants, and a local SSR_NOW
+  // is a different instant in every zone.
+  const output = hydrated ? JSON.stringify(reading.result, null, 2) : ''
 
   return (
     <DemoFrame
       caption="Regexes propose slices; lingo confirms each one. Anything it declines stays plain."
-      details={<JsonView label="Output" value={JSON.stringify(reading.result, null, 2)} />}
+      details={<JsonView label="Output" value={output} />}
       detailsLabel="Output"
       stageClassName="min-h-[30rem] justify-start"
       title="Token highlighter"

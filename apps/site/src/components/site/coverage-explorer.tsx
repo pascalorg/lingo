@@ -8,6 +8,7 @@ import { DemoFrame } from '@/components/site/demo-frame'
 import { DocsPane, DocsSplitPane } from '@/components/site/docs-split-pane'
 import { JsonView } from '@/components/site/json-view'
 import { Readout } from '@/components/site/readout'
+import { useHydrated } from '@/components/site/use-hydrated'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -65,11 +66,15 @@ function clockLabel(date: Date): string {
 }
 
 export function CoverageExplorer() {
+  const hydrated = useHydrated()
   const [index, setIndex] = useState(0)
   const current = aliasExamples[index] ?? aliasExamples[0]
   const result = useMemo(() => lingo(current.text, { kind: current.kind }), [current])
   const aliasCopyText = useMemo(() => JSON.stringify(resultToPlain(result), null, 2), [result])
   const fuzzyCopyText = useMemo(() => JSON.stringify(temperatureVocabs, null, 2), [])
+  // Day words resolve in the visitor's zone ("today" at 12:00Z is already
+  // tomorrow in Auckland), so the instants cannot match between the server
+  // and the browser; the column fills in after hydration.
   const dateRows = useMemo(
     () =>
       dateExamples.map((example) => {
@@ -77,12 +82,15 @@ export function CoverageExplorer() {
           now: referenceNow,
           dayFirst: true,
         })
-        const value = parsed.ok
-          ? parsed.date.toISOString().replace('.000Z', 'Z')
-          : (parsed.issues[0]?.code ?? 'UNSUPPORTED_DATE')
+        let value = ''
+        if (!parsed.ok) {
+          value = parsed.issues[0]?.code ?? 'UNSUPPORTED_DATE'
+        } else if (hydrated) {
+          value = parsed.date.toISOString().replace('.000Z', 'Z')
+        }
         return { example, parsed, value }
       }),
-    [],
+    [hydrated],
   )
   const dateCopyText = useMemo(
     () =>

@@ -73,6 +73,9 @@ export function RemindMePopoverBlock() {
     () => PRESETS.map((preset) => (preset.phrase ? read(preset.phrase, now) : null)),
     [now],
   )
+  // The JSON prints UTC instants, and a local SSR_NOW is a different instant in
+  // every zone, so the panel waits for hydration.
+  const output = hydrated ? JSON.stringify(reminderReading.result, null, 2) : ''
 
   const commit = (phrase: string | null) => {
     setReminder({ condition, phrase })
@@ -83,7 +86,7 @@ export function RemindMePopoverBlock() {
   return (
     <DemoFrame
       caption="One popover, one field. Presets and free text go through the same reader."
-      details={<JsonView label="Output" value={JSON.stringify(reminderReading.result, null, 2)} />}
+      details={<JsonView label="Output" value={output} />}
       detailsLabel="Output"
       stageClassName="min-h-[16rem] justify-start"
       title="Remind me"

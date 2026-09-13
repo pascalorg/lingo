@@ -869,11 +869,12 @@ export default async function Home() {
             <DataGridDemo />
 
             <div className="flex min-w-0 flex-col gap-3 pt-6">
-              <SubHeading id="one-schema-workflow">Workflow automation triggers</SubHeading>
+              <SubHeading id="one-schema-workflow">Workflow rules</SubHeading>
               <p className="text-muted-foreground text-sm">
-                In agent workflows, prompts frequently combine target entities, action verbs, and
-                numerical thresholds. Lingo powers live extraction of bounds (
-                <Code>below $10k</Code>) and quantities from natural language commands.
+                Automation prompts mix nouns a rules engine already knows with thresholds it does
+                not. <Code>findQuantities</Code> pulls the bounds (<Code>below $10k</Code>,{' '}
+                <Code>over 15 minutes</Code>) out of the sentence with spans into the original
+                string and the same issues a form field would see.
               </p>
             </div>
             <WorkflowTriggerBlock />
@@ -958,21 +959,22 @@ export default async function Home() {
             <CalendarFieldDemo />
 
             <div className="flex min-w-0 flex-col gap-3 pt-6">
-              <SubHeading id="dates-semantic-tokens">Semantic token highlighting</SubHeading>
+              <SubHeading id="dates-semantic-tokens">Token highlighter</SubHeading>
               <p className="text-muted-foreground text-sm">
-                Lingo&apos;s precise original-input spans make it straightforward to build
-                multi-category colorized tokenizers (day or date, clock time, repeats, and duration)
-                running at zero latency in the browser.
+                Lingo reads one expression at a time and reports one span per result, so a sentence
+                has to be pre-segmented before it can be colored. The demo proposes slices with
+                regexes and lets <Code>parseDate</Code>, <Code>parseDateRange</Code>, and{' '}
+                <Code>parseDuration</Code> confirm each one — a slice lingo declines stays plain.
               </p>
             </div>
             <SemanticTokenHighlighter />
 
             <div className="flex min-w-0 flex-col gap-3 pt-6">
-              <SubHeading id="dates-remind-me">Interactive reminder block</SubHeading>
+              <SubHeading id="dates-remind-me">Remind me popover</SubHeading>
               <p className="text-muted-foreground text-sm">
-                A production-ready scheduling popover block (inspired by modern productivity apps
-                like Superhuman and Linear). Quick presets, custom relative time input, and
-                conditional triggers in one compact control.
+                Quick presets and a free-text field share one reader, so the row a preset shows is
+                the same reading typing its phrase would give. A phrase lingo cannot read shows
+                lingo&apos;s own message instead of a made-up time.
               </p>
             </div>
             <RemindMePopoverBlock />

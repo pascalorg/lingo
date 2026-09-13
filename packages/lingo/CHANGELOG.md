@@ -9,10 +9,18 @@ change**, even if the API is untouched.
 
 ### Added
 
-- Rich visual UI blocks in documentation site (`apps/site`):
-  - `SemanticTokenHighlighter`: Live multi-category span classification and colorized syntax tokens (Day/Date, Clock Time, Repeats, How Long) running client-side with zero dependencies and deterministic outputs.
-  - `RemindMePopoverBlock`: Production-grade productivity scheduling popover with quick presets (`tomorrow`, `next week`, `this weekend`, `someday`) and live custom date parsing.
-  - `WorkflowTriggerBlock`: Natural-language automation rules parser with brand/agent entity chips and live numerical bound extraction.
+- Docs site: three demos built on spans — a token highlighter that
+  pre-segments a sentence with regexes and lets `parseDate`/`parseDateRange`/
+  `parseDuration` decide what each piece is; a "Remind me" popover whose
+  presets and free-text field read through `./date`; and a workflow-rule
+  list that extracts numeric bounds with `findQuantities`.
+
+### Fixed
+
+- `findQuantities` returned mid-word spans for open-bound ranges and fuzzy
+  spreads that did not start the input (`call mom over 5 min` → `[2, 19)`).
+  The qualifier branch passed a token index where `okRange` expects a
+  normalized offset; spans now start at the qualifier (`over 5 min`).
 
 ## [0.5.0] - 2026-08-23
 

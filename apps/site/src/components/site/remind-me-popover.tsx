@@ -1,220 +1,198 @@
 'use client'
 
-import { parseDate, parseDateRange } from '@pascal-app/lingo/date'
-import { CheckIcon, ChevronDownIcon, ClockIcon } from 'lucide-react'
+import { type DateRange, type DateResult, parseDate, parseDateRange } from '@pascal-app/lingo/date'
+import { ClockIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
+import { DemoFrame } from '@/components/site/demo-frame'
+import { JsonView } from '@/components/site/json-view'
 import { useHydrated } from '@/components/site/use-hydrated'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '@/components/ui/popover'
+import { Select } from '@/components/ui/select'
+import { formatDateResult, formatDay, formatRange } from '@/lib/date-display'
 import { cn } from '@/lib/utils'
 
-const SSR_NOW = new Date(2026, 8, 11, 19, 49, 0) // Friday Sep 11, 2026
+/** SSR reference time. After hydration the popover switches to the real clock. */
+const SSR_NOW = new Date(2026, 8, 11, 19, 49, 0)
 
-interface PresetItem {
-  compute: (now: Date) => string
-  id: string
-  label: string
+/** Each preset is a phrase lingo reads, not a hard-coded clock. "someday"
+ *  deliberately has none: it parks the item without a date. */
+const PRESETS = [
+  { label: 'tomorrow', phrase: 'tomorrow at 8am' },
+  { label: 'next week', phrase: 'next monday at 8am' },
+  { label: 'this weekend', phrase: 'saturday at 10am' },
+  { label: 'someday', phrase: null },
+] as const
+
+const CONDITIONS = ['if no reply', 'regardless', 'if unresolved'] as const
+type Condition = (typeof CONDITIONS)[number]
+
+type Reading =
+  | { ok: true; label: string; result: DateResult | DateRange }
+  | { ok: false; message: string | null; result: null }
+
+function read(phrase: string, now: Date): Reading {
+  if (phrase.trim() === '') {
+    return { ok: false, message: null, result: null }
+  }
+  const range = parseDateRange(phrase, { now })
+  if (range.ok) {
+    return { ok: true, label: formatRange(range), result: range }
+  }
+  const single = parseDate(phrase, { now })
+  if (single.ok) {
+    return { ok: true, label: formatDateResult(single), result: single }
+  }
+  return { ok: false, message: single.issues[0]?.message ?? null, result: null }
 }
 
-const PRESET_ITEMS: PresetItem[] = [
-  {
-    id: 'tomorrow',
-    label: 'tomorrow',
-    compute: (now: Date) => {
-      const res = parseDate('tomorrow at 8am', { now })
-      if (res.ok) {
-        const d = res.date
-        const weekday = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()
-        return `${weekday}, 8:00 AM`
-      }
-      return 'SAT, 8:00 AM'
-    },
-  },
-  {
-    id: 'next-week',
-    label: 'next week',
-    compute: (now: Date) => {
-      const res = parseDate('next monday at 8am', { now })
-      if (res.ok) {
-        const d = res.date
-        const weekday = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()
-        return `${weekday}, 8:00 AM`
-      }
-      return 'MON, 8:00 AM'
-    },
-  },
-  {
-    id: 'this-weekend',
-    label: 'this weekend',
-    compute: (now: Date) => {
-      const res = parseDateRange('this weekend', { now })
-      if (res.ok && res.start) {
-        const d = res.start.date
-        const weekday = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()
-        return `${weekday}, 8:00 AM`
-      }
-      return 'SAT, 8:00 AM'
-    },
-  },
-  {
-    id: 'someday',
-    label: 'someday',
-    compute: () => '¯\\_(ツ)_/¯',
-  },
-]
+interface Reminder {
+  condition: Condition
+  phrase: string | null
+}
 
 export function RemindMePopoverBlock() {
-  const [query, setQuery] = useState('')
-  const [selectedId, setSelectedId] = useState<string>('tomorrow')
-  const [condition, setCondition] = useState('if no reply')
-  const [conditionOpen, setConditionOpen] = useState(false)
   const hydrated = useHydrated()
-  const now = hydrated ? new Date() : SSR_NOW
+  const now = useMemo(() => (hydrated ? new Date() : SSR_NOW), [hydrated])
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [condition, setCondition] = useState<Condition>('if no reply')
+  // Only the phrase is stored; the date is re-read from `now`, so a reminder
+  // set before hydration is never a stale SSR instant.
+  const [reminder, setReminder] = useState<Reminder>({
+    condition: 'if no reply',
+    phrase: PRESETS[0].phrase,
+  })
 
-  // Evaluate query with Lingo
-  const activeCustomReading = useMemo(() => {
-    if (!query.trim()) {
-      return null
-    }
-    const range = parseDateRange(query, { now })
-    if (range.ok) {
-      if (range.start && range.end) {
-        const s = range.start.date.toLocaleDateString('en-US', {
-          weekday: 'short',
-          month: 'numeric',
-          day: 'numeric',
-        })
-        const e = range.end.date.toLocaleDateString('en-US', {
-          weekday: 'short',
-          month: 'numeric',
-          day: 'numeric',
-        })
-        return `${s} → ${e}`
-      }
-      if (range.start) {
-        return `From ${range.start.date.toLocaleDateString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}`
-      }
-    }
-    const single = parseDate(query, { now })
-    if (single.ok) {
-      const weekday = single.date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()
-      const time = single.date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-      return `${weekday}, ${time}`
-    }
-    return null
-  }, [query, now])
+  const queryReading = useMemo(() => read(query, now), [query, now])
+  const reminderReading = useMemo(() => read(reminder.phrase ?? '', now), [reminder.phrase, now])
+  const presetReadings = useMemo(
+    () => PRESETS.map((preset) => (preset.phrase ? read(preset.phrase, now) : null)),
+    [now],
+  )
+
+  const commit = (phrase: string | null) => {
+    setReminder({ condition, phrase })
+    setQuery('')
+    setOpen(false)
+  }
 
   return (
-    <div className="flex w-full flex-col items-center justify-center p-2 sm:p-6">
-      {/* Popover Card modeled after Reference Image 1 */}
-      <div className="flex w-full max-w-[28rem] flex-col overflow-hidden rounded-2xl border border-border/80 bg-[#161618] font-sans text-[#eaeaea] shadow-raise-lg transition-all duration-200">
-        {/* Header */}
-        <div className="flex items-center gap-2.5 border-white/5 border-b px-4 pt-3.5 pb-2.5">
-          <ClockIcon className="size-4 text-white/50" />
-          <span className="font-medium text-white/80 text-xs tracking-wide">Remind me</span>
-        </div>
-
-        {/* Input Bar & Condition Selector */}
-        <div className="relative flex items-center justify-between bg-[#161618] px-4 py-3">
-          <div className="flex flex-1 items-center gap-2">
-            <span className="shrink-0 select-none font-mono text-sm text-white/35">Try:</span>
-            <input
-              className="w-full bg-transparent font-normal text-sm text-white outline-none placeholder:text-white/25"
-              onChange={(e) => {
-                setQuery(e.target.value)
-                if (e.target.value) {
-                  setSelectedId('')
-                }
-              }}
-              placeholder="8 am, 3 days, aug 7"
-              type="text"
-              value={query}
-            />
+    <DemoFrame
+      caption="One popover, one field. Presets and free text go through the same reader."
+      details={<JsonView label="Output" value={JSON.stringify(reminderReading.result, null, 2)} />}
+      detailsLabel="Output"
+      stageClassName="min-h-[16rem] justify-start"
+      title="Remind me"
+    >
+      <div className="mx-auto flex w-full max-w-[30rem] flex-col gap-4">
+        <div className="corner-smooth flex items-center justify-between gap-4 rounded-[10px] border border-border/60 bg-card px-4 py-3 shadow-raise-sm">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className="font-[525] text-[13px] text-foreground">Review Q3 forecast</span>
+            <span className="text-muted-foreground text-xs">Thread from Dana · 3 messages</span>
           </div>
-
-          <div className="relative shrink-0">
-            <button
-              className="flex items-center gap-1.5 rounded px-1.5 py-1 text-white/50 text-xs transition-colors hover:text-white/80"
-              onClick={() => setConditionOpen(!conditionOpen)}
-              type="button"
-            >
-              <span>{condition}</span>
-              <ChevronDownIcon className="size-3 opacity-60" />
-            </button>
-
-            {conditionOpen && (
-              <div className="absolute top-full right-0 z-20 mt-1 w-36 rounded-lg border border-white/10 bg-[#222225] py-1 shadow-lg">
-                {['if no reply', 'regardless', 'if unresolved'].map((item) => (
-                  <button
-                    className="flex w-full items-center justify-between px-3 py-1.5 text-left text-white/70 text-xs hover:bg-white/10"
-                    key={item}
-                    onClick={() => {
-                      setCondition(item)
-                      setConditionOpen(false)
-                    }}
-                    type="button"
-                  >
-                    <span>{item}</span>
-                    {condition === item && <CheckIcon className="size-3 text-purple-400" />}
-                  </button>
-                ))}
+          <Popover onOpenChange={setOpen} open={open}>
+            <PopoverTrigger render={<Button size="sm" type="button" variant="outline" />}>
+              <ClockIcon aria-hidden data-slot="button-icon" />
+              Remind me
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-[22rem]">
+              <div className="flex items-center gap-2 border-border/60 border-b px-3 py-2.5">
+                <ClockIcon aria-hidden className="size-3.5 text-muted-foreground" />
+                <PopoverTitle>Remind me</PopoverTitle>
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* Custom Parsed Row when user types */}
-        {query.trim() && (
-          <div className="flex items-center justify-between border-white/10 border-y bg-[#252528] px-4 py-2.5 text-xs">
-            <span className="max-w-[12rem] truncate font-medium text-purple-300">{query}</span>
-            <span className="font-mono text-purple-200">
-              {activeCustomReading ?? 'Typing valid time...'}
-            </span>
-          </div>
-        )}
-
-        {/* Preset Options List */}
-        <div className="flex flex-col py-1">
-          {PRESET_ITEMS.map((item) => {
-            const isSelected = selectedId === item.id && !query
-            const output = item.compute(now)
-            return (
-              <button
-                className={cn(
-                  'group relative flex cursor-pointer items-center justify-between px-4 py-2.5 text-left text-xs transition-colors',
-                  isSelected
-                    ? 'bg-[#29292d] text-white'
-                    : 'text-white/70 hover:bg-white/5 hover:text-white',
-                )}
-                key={item.id}
-                onClick={() => {
-                  setSelectedId(item.id)
-                  setQuery('')
-                }}
-                type="button"
-              >
-                {/* Active indicator bar on left */}
-                {isSelected && (
-                  <span className="absolute inset-y-0 left-0 w-1 rounded-r bg-purple-500" />
-                )}
-                <span className="font-normal text-white/90">{item.label}</span>
-                <span className="font-mono text-[11px] text-white/45 transition-colors group-hover:text-white/70">
-                  {output}
+              <div className="flex items-center gap-2 border-border/60 border-b px-3 py-2">
+                <Input
+                  aria-label="When to remind"
+                  autoFocus
+                  className="h-8 flex-1 rounded-[6px] font-mono text-sm md:text-sm"
+                  onChange={(event) => setQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && queryReading.ok) {
+                      event.preventDefault()
+                      commit(query.trim())
+                    }
+                  }}
+                  placeholder="8 am, in 3 days, aug 7"
+                  spellCheck={false}
+                  value={query}
+                />
+                <Select
+                  aria-label="Condition"
+                  className="w-[8.5rem]"
+                  onValueChange={(value) => setCondition(value as Condition)}
+                  options={CONDITIONS.map((item) => ({ label: item, value: item }))}
+                  value={condition}
+                />
+              </div>
+              {query.trim() === '' ? null : (
+                <div className="flex items-center justify-between gap-3 border-border/60 border-b bg-muted/40 px-3 py-2 text-xs">
+                  {queryReading.ok ? (
+                    <>
+                      <span className="numeric-mono text-foreground">{queryReading.label}</span>
+                      <span className="shrink-0 text-muted-foreground">Enter to set</span>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">
+                      {queryReading.message ?? 'Not a date yet'}
+                    </span>
+                  )}
+                </div>
+              )}
+              <ul aria-label="Quick presets" className="flex flex-col py-1">
+                {PRESETS.map((preset, index) => {
+                  const presetReading = presetReadings[index]
+                  const selected = query === '' && reminder.phrase === preset.phrase
+                  return (
+                    <li key={preset.label}>
+                      <button
+                        aria-pressed={selected}
+                        className={cn(
+                          'flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] hover:bg-muted focus-visible:bg-muted focus-visible:outline-none',
+                          selected && 'bg-muted/70',
+                        )}
+                        onClick={() => commit(preset.phrase)}
+                        type="button"
+                      >
+                        <span className="text-foreground">{preset.label}</span>
+                        <span className="numeric-mono text-muted-foreground text-xs">
+                          {presetReading?.ok ? presetReading.label : '—'}
+                        </span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+              <div className="flex items-center justify-between gap-3 border-border/60 border-t px-3 py-2 text-[11px] text-muted-foreground">
+                <span>
+                  Reads through <code className="font-mono">@pascal-app/lingo/date</code>
                 </span>
-              </button>
-            )
-          })}
+                <span className="numeric-mono">{formatDay(now)}</span>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
 
-        {/* Bottom confirmation readout */}
-        <div className="flex items-center justify-between border-white/5 border-t bg-[#121214] px-4 py-2.5 text-[11px] text-white/40">
-          <span>
-            Scheduled via <strong className="font-medium text-white/60">Lingo Date Engine</strong>
+        <div className="flex min-h-[1.75rem] flex-wrap items-center gap-2">
+          <Badge
+            className="font-mono text-[10px] uppercase tracking-wide"
+            variant={reminderReading.ok ? 'secondary' : 'outline'}
+          >
+            {reminderReading.ok ? 'reminder set' : 'parked'}
+          </Badge>
+          <span className="numeric-mono text-muted-foreground text-sm">
+            {reminderReading.ok
+              ? `${reminderReading.label} · ${reminder.condition}`
+              : 'no date — resurfaces when you ask'}
           </span>
-          <span className="font-mono text-[10px]">
-            {now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-          </span>
+          {reminder.phrase ? (
+            <span className="font-mono text-muted-foreground/70 text-xs">“{reminder.phrase}”</span>
+          ) : null}
         </div>
       </div>
-    </div>
+    </DemoFrame>
   )
 }

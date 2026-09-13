@@ -236,6 +236,12 @@
   --motion-moderate: 280ms;
   --motion-slow: 380ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Token-category tints: the one place the demos leave the achromatic scale.
+     Four hues, one per category the highlighter can confirm through lingo. */
+  --token-date: oklch(0.55 0.16 255);
+  --token-time: oklch(0.6 0.15 65);
+  --token-duration: oklch(0.55 0.14 155);
+  --token-quantity: oklch(0.55 0.17 305);
   color-scheme: light;
 }
 
@@ -452,6 +458,10 @@
   --command-surface-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.035), var(--surface-ring),
     0 16px 36px rgb(0 0 0 / 0.22);
+  --token-date: oklch(0.76 0.12 255);
+  --token-time: oklch(0.8 0.13 75);
+  --token-duration: oklch(0.78 0.12 155);
+  --token-quantity: oklch(0.78 0.13 305);
   color-scheme: dark;
 }
 
@@ -647,6 +657,41 @@ p {
 .numeric-mono {
   font-family: var(--font-mono-stack);
   font-variant-numeric: tabular-nums slashed-zero;
+}
+
+.token-chip,
+.token-dot {
+  --token: var(--muted-foreground);
+}
+
+.token-chip {
+  color: color-mix(in oklch, var(--token), var(--foreground) 40%);
+  background: color-mix(in oklch, var(--token), transparent 88%);
+  border-color: color-mix(in oklch, var(--token), transparent 64%);
+}
+
+.token-dot {
+  background: var(--token);
+}
+
+.token-chip[data-token="date"],
+.token-dot[data-token="date"] {
+  --token: var(--token-date);
+}
+
+.token-chip[data-token="time"],
+.token-dot[data-token="time"] {
+  --token: var(--token-time);
+}
+
+.token-chip[data-token="duration"],
+.token-dot[data-token="duration"] {
+  --token: var(--token-duration);
+}
+
+.token-chip[data-token="quantity"],
+.token-dot[data-token="quantity"] {
+  --token: var(--token-quantity);
 }
 
 .code-surface {

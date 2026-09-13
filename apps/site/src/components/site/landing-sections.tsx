@@ -263,22 +263,22 @@ export function LandingSections() {
         </SectionShell>
 
         <SectionShell
-          explainer="Lingo extracts exact character spans into the original input text, powering zero-latency browser highlighting across semantic token categories."
-          title="Live semantic syntax highlighting"
+          explainer="Regexes propose slices of a sentence; parseDate, parseDateRange, and parseDuration confirm each one. A color only appears where lingo actually read something."
+          title="Tokens you can trust"
         >
           <SemanticTokenHighlighter />
         </SectionShell>
 
         <SectionShell
-          explainer="Linear and Superhuman style scheduling popover: immediate quick presets, custom relative date evaluation, and conditions in one compact control."
-          title="Productivity scheduling block"
+          explainer="A scheduling popover where the presets and the free-text field go through the same reader — so 'tomorrow' and 'in 3 days at 8am' resolve the same way."
+          title="Remind me, in plain words"
         >
           <RemindMePopoverBlock />
         </SectionShell>
 
         <SectionShell
-          explainer="Compose natural language automation prompts with entity chips and let Lingo extract numerical bounds, currencies, and event triggers."
-          title="Human prompts to machine rules"
+          explainer="Automation rules mix nouns a rules engine knows with thresholds it does not. findQuantities pulls the bounds out of the sentence with spans and issues attached."
+          title="Thresholds out of prose"
         >
           <WorkflowTriggerBlock />
         </SectionShell>

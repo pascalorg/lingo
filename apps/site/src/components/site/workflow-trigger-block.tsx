@@ -1,296 +1,283 @@
 'use client'
 
-import { findQuantities, parseRange } from '@pascal-app/lingo'
-import { CheckCircle2Icon, FilterIcon, SparklesIcon } from 'lucide-react'
+import { type FoundQuantity, findQuantities } from '@pascal-app/lingo'
+import {
+  ActivityIcon,
+  BotIcon,
+  CloudIcon,
+  FolderGit2Icon,
+  HammerIcon,
+  type LucideIcon,
+  PackageIcon,
+  TicketIcon,
+} from 'lucide-react'
 import { useMemo, useState } from 'react'
 
+import { DemoFrame } from '@/components/site/demo-frame'
+import { JsonView } from '@/components/site/json-view'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { issueClass } from '@/lib/lingo-display'
 import { cn } from '@/lib/utils'
 
-interface WorkflowRule {
-  id: string
-  prompt: string
-  title: string
-  tokens: Array<{
-    text: string
-    type: 'entity' | 'agent' | 'condition' | 'target' | 'plain'
-    brand?: 'nextjs' | 'claude' | 'github' | 'aws' | 'x' | 'gmail' | 'gdrive'
-    iconText?: string
-  }>
+interface Entity {
+  icon: LucideIcon
+  role: 'entity' | 'agent' | 'target'
+  text: string
 }
 
-const SAMPLE_RULES: WorkflowRule[] = [
+interface Rule {
+  /** Hand-labelled nouns — the part a rules engine supplies. Lingo only owns
+   *  the numbers, so these are shown as plain chips, never as parse output. */
+  entities: readonly Entity[]
+  id: string
+  prompt: string
+}
+
+/** The last rule has no threshold on purpose: an event-only trigger is a
+ *  legitimate reading, and the readout should say so rather than invent one. */
+const RULES: readonly Rule[] = [
   {
-    id: 'nextjs-claude',
-    title: 'Framework Auto-Upgrade',
-    prompt: 'When nextjs comes up with a new release, ask claude to upgrade my repos',
-    tokens: [
-      { text: 'When', type: 'plain' },
-      { text: 'nextjs', type: 'entity', brand: 'nextjs' },
-      { text: 'comes up with a new release, ask', type: 'plain' },
-      { text: 'claude', type: 'agent', brand: 'claude' },
-      { text: 'to upgrade my', type: 'plain' },
-      { text: 'repos', type: 'target', brand: 'github' },
-    ],
+    id: 'credits',
+    prompt: 'Let me know when cloud credits fall below $10k',
+    entities: [{ icon: CloudIcon, role: 'entity', text: 'cloud credits' }],
   },
   {
-    id: 'aws-credits',
-    title: 'Spend & Cloud Credits Guardrail',
-    prompt: 'Let me know when AWS credits fall below $10k',
-    tokens: [
-      { text: 'Let me know when', type: 'plain' },
-      { text: 'AWS credits', type: 'entity', brand: 'aws' },
-      { text: 'fall', type: 'plain' },
-      { text: 'below $10k', type: 'condition' },
-    ],
+    id: 'build',
+    prompt: 'Alert me if the build takes over 15 minutes',
+    entities: [{ icon: HammerIcon, role: 'entity', text: 'the build' }],
   },
   {
-    id: 'bug-triage',
-    title: 'Omnichannel Bug Routing',
-    prompt: 'Catch when someone reports a bug on X or by email and have Anton fix it',
-    tokens: [
-      { text: 'Catch when someone', type: 'plain' },
-      { text: 'reports a bug', type: 'condition' },
-      { text: 'on', type: 'plain' },
-      { text: 'X', type: 'entity', brand: 'x' },
-      { text: 'or by', type: 'plain' },
-      { text: 'email', type: 'entity', brand: 'gmail' },
-      { text: 'and have', type: 'plain' },
-      { text: 'Anton', type: 'agent', iconText: '🐞' },
-      { text: 'fix it', type: 'plain' },
-    ],
+    id: 'tickets',
+    prompt: 'Escalate tickets that stay open for more than 3 days',
+    entities: [{ icon: TicketIcon, role: 'entity', text: 'tickets' }],
   },
   {
-    id: 'gdrive-archive',
-    title: 'Document Filing & Vault',
-    prompt: 'Can you save administrative emails I receive to this Google drive folder',
-    tokens: [
-      { text: 'Can you save administrative', type: 'plain' },
-      { text: 'emails', type: 'entity', brand: 'gmail' },
-      { text: 'I receive to this', type: 'plain' },
-      { text: 'Google drive folder', type: 'target', brand: 'gdrive' },
+    id: 'errors',
+    prompt: 'Page me when the error rate is above 2% for 10 minutes',
+    entities: [{ icon: ActivityIcon, role: 'entity', text: 'error rate' }],
+  },
+  {
+    id: 'release',
+    prompt: 'When the framework ships a new release, ask the assistant to upgrade my repos',
+    entities: [
+      { icon: PackageIcon, role: 'entity', text: 'framework' },
+      { icon: BotIcon, role: 'agent', text: 'assistant' },
+      { icon: FolderGit2Icon, role: 'target', text: 'repos' },
     ],
   },
 ]
 
+type Segment =
+  | { end: number; kind: 'plain'; start: number }
+  | { end: number; entity: Entity; kind: 'entity'; start: number }
+  | { end: number; hit: FoundQuantity; kind: 'bound'; start: number }
+
+/** Bare numbers ("25" in "under 25 units") are not thresholds. */
+function bounds(text: string): FoundQuantity[] {
+  return findQuantities(text).filter((hit) => hit.result.type !== 'number')
+}
+
+function segment(text: string, rule: Rule | undefined, hits: FoundQuantity[]): Segment[] {
+  const marks: Segment[] = hits.map((hit) => ({
+    end: hit.span.end,
+    hit,
+    kind: 'bound',
+    start: hit.span.start,
+  }))
+  for (const entity of rule?.entities ?? []) {
+    const start = text.indexOf(entity.text)
+    if (start >= 0) {
+      const end = start + entity.text.length
+      if (marks.every((m) => end <= m.start || start >= m.end)) {
+        marks.push({ end, entity, kind: 'entity', start })
+      }
+    }
+  }
+  marks.sort((a, b) => a.start - b.start)
+  const out: Segment[] = []
+  let cursor = 0
+  for (const mark of marks) {
+    if (mark.start > cursor) {
+      out.push({ end: mark.start, kind: 'plain', start: cursor })
+    }
+    out.push(mark)
+    cursor = mark.end
+  }
+  if (cursor < text.length) {
+    out.push({ end: text.length, kind: 'plain', start: cursor })
+  }
+  return out
+}
+
+function describe(hit: FoundQuantity): { kind: string; value: string } {
+  const { result } = hit
+  switch (result.type) {
+    case 'range':
+      return { kind: result.range.kind, value: result.range.format({ grouping: true }) }
+    case 'quantity':
+      return { kind: result.quantity.kind, value: result.quantity.format({ grouping: true }) }
+    case 'conversion':
+      return { kind: result.converted.kind, value: result.converted.format({ grouping: true }) }
+    default:
+      return { kind: result.type, value: hit.result.text.slice(hit.span.start, hit.span.end) }
+  }
+}
+
 export function WorkflowTriggerBlock() {
-  const [selectedRuleId, setSelectedRuleId] = useState<string>('aws-credits')
-  const [customText, setCustomText] = useState('Let me know when AWS credits fall below $10k')
-
-  // Parse any condition / quantities inside the rule text with Lingo
-  const parsedCondition = useMemo(() => {
-    // 1. Try finding range/bounds ("below $10k", "over 50 kg")
-    const rangeRes = parseRange(customText, { kind: 'currency' })
-    if (rangeRes.ok) {
-      const minQty = rangeRes.range.min()
-      const maxQty = rangeRes.range.max()
-      return {
-        type: 'range' as const,
-        min: minQty ? minQty.format() : null,
-        max: maxQty ? maxQty.format() : null,
-        canonicalMax: maxQty ? maxQty.base : null,
-      }
-    }
-    // 2. Scan free text for quantities
-    const found = findQuantities(customText)
-    if (found.length > 0) {
-      return {
-        type: 'quantities' as const,
-        items: found.map((f) => ({
-          text: f.result.text,
-          canonical:
-            f.result.type === 'quantity'
-              ? `${f.result.quantity.base} ${f.result.quantity.unit}`
-              : f.result.text,
-        })),
-      }
-    }
-    return null
-  }, [customText])
-
-  const currentRule = SAMPLE_RULES.find((r) => r.id === selectedRuleId) ?? SAMPLE_RULES[1]!
+  const [text, setText] = useState(RULES[0]!.prompt)
+  const rule = useMemo(() => RULES.find((r) => r.prompt === text), [text])
+  const hits = useMemo(() => bounds(text), [text])
+  const segments = useMemo(() => segment(text, rule, hits), [text, rule, hits])
 
   return (
-    <div className="flex w-full flex-col gap-6">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <h3 className="font-semibold text-2xl text-foreground tracking-tight sm:text-3xl">
-          Natural Language Workflow Triggers
-        </h3>
-        <p className="max-w-xl text-muted-foreground text-sm sm:text-base">
-          Parse human automation rules into typed entity targets and numerical triggers with
-          Lingo&apos;s free-text quantity and range extractor.
+    <DemoFrame
+      caption="A rules engine names the nouns; findQuantities pulls the thresholds, with spans and issues."
+      details={
+        <JsonView
+          label="Output"
+          value={JSON.stringify(
+            hits.map((hit) => ({ span: hit.span, result: hit.result })),
+            null,
+            2,
+          )}
+        />
+      }
+      detailsLabel="Output"
+      stageClassName="min-h-[26rem] justify-start"
+      title="Workflow rule"
+    >
+      <div className="mx-auto flex w-full max-w-[44rem] flex-col gap-4">
+        <div className="flex flex-col gap-2">
+          <Input
+            aria-label="Automation rule in plain words"
+            className="h-11 rounded-[6px] font-mono text-base"
+            onChange={(event) => setText(event.target.value)}
+            placeholder="Let me know when cloud credits fall below $10k"
+            spellCheck={false}
+            value={text}
+          />
+          <div aria-label="Sample rules" className="flex flex-wrap gap-1.5" role="group">
+            {RULES.map((sample) => (
+              <Button
+                aria-pressed={sample.id === rule?.id}
+                className="h-6 rounded-[5px] px-2 font-mono text-[11px]"
+                key={sample.id}
+                onClick={() => setText(sample.prompt)}
+                size="xs"
+                type="button"
+                variant={sample.id === rule?.id ? 'secondary' : 'ghost'}
+              >
+                {sample.id}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        <div
+          aria-hidden
+          className="corner-smooth flex min-h-[3.25rem] flex-wrap items-center gap-y-1.5 rounded-[10px] bg-muted/40 px-3 py-2.5 text-[15px] leading-7"
+        >
+          {segments.length === 0 ? (
+            <span className="text-muted-foreground/60">Type a rule</span>
+          ) : (
+            segments.map((seg) => {
+              const slice = text.slice(seg.start, seg.end)
+              if (seg.kind === 'plain') {
+                return (
+                  <span className="whitespace-pre-wrap text-foreground/70" key={`${seg.start}-p`}>
+                    {slice}
+                  </span>
+                )
+              }
+              if (seg.kind === 'entity') {
+                const Icon = seg.entity.icon
+                return (
+                  <span
+                    className="inline-flex items-center gap-1 rounded-[5px] border border-border-strong bg-card px-1.5 py-px font-medium text-foreground shadow-raise-sm"
+                    key={`${seg.start}-e`}
+                  >
+                    <Icon aria-hidden className="size-3 text-muted-foreground" />
+                    {slice}
+                  </span>
+                )
+              }
+              return (
+                <span
+                  className="token-chip rounded-[5px] border px-1.5 py-px font-mono"
+                  data-token="quantity"
+                  key={`${seg.start}-b`}
+                >
+                  {slice}
+                </span>
+              )
+            })
+          )}
+        </div>
+
+        <ul
+          aria-label="Extracted thresholds"
+          className="corner-smooth divide-y divide-border/60 rounded-[10px] border border-border/60"
+        >
+          {hits.length === 0 ? (
+            <li className="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
+              <Badge className="font-mono text-[10px] uppercase tracking-wide" variant="outline">
+                event only
+              </Badge>
+              <span className="text-muted-foreground">
+                No numeric bound in this rule — it fires on an event, not a threshold.
+              </span>
+            </li>
+          ) : (
+            hits.map((hit) => {
+              const { kind, value } = describe(hit)
+              return (
+                <li
+                  className="flex flex-col gap-1.5 px-3 py-2 text-sm"
+                  key={`${hit.span.start}-${hit.span.end}`}
+                >
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span
+                      aria-hidden
+                      className="token-dot size-2 shrink-0 rounded-full"
+                      data-token="quantity"
+                    />
+                    <span className="font-mono text-foreground">
+                      {text.slice(hit.span.start, hit.span.end)}
+                    </span>
+                    <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wide">
+                      {kind} · [{hit.span.start}, {hit.span.end})
+                    </span>
+                    <span className="numeric-mono ml-auto text-foreground">{value}</span>
+                  </div>
+                  {hit.result.issues.length > 0 ? (
+                    <ul className="flex flex-wrap gap-1.5 pl-5">
+                      {hit.result.issues.map((issue) => (
+                        <li
+                          className={cn(
+                            'inline-flex items-center gap-1 rounded-[5px] border px-1.5 py-px text-xs',
+                            issueClass(issue.severity),
+                          )}
+                          key={`${issue.code}-${issue.span?.start ?? 0}`}
+                        >
+                          <span className="font-mono text-[10px] uppercase">{issue.code}</span>
+                          <span>{issue.message}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </li>
+              )
+            })
+          )}
+        </ul>
+
+        <p className="text-muted-foreground text-xs">
+          Spans index the original string, so the chips above are sliced from it — no re-tokenizing
+          on the way to the UI. Edit the rule to see the bound move or disappear.
         </p>
       </div>
-
-      {/* Visual Canvas containing Interactive Rules modeled after Reference 3 */}
-      <div className="flex flex-col gap-8 rounded-2xl border border-border/80 bg-card p-6 shadow-raise-sm sm:p-8">
-        <div className="flex flex-col gap-6">
-          {SAMPLE_RULES.map((rule) => {
-            const isSelected = selectedRuleId === rule.id
-            return (
-              <button
-                className={cn(
-                  'w-full cursor-pointer rounded-xl border p-4 text-left text-base leading-loose transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-5 sm:text-lg',
-                  isSelected
-                    ? 'border-primary/50 bg-primary/5 shadow-sm'
-                    : 'border-border/60 bg-muted/20 hover:border-border hover:bg-muted/40',
-                )}
-                key={rule.id}
-                onClick={() => {
-                  setSelectedRuleId(rule.id)
-                  setCustomText(rule.prompt)
-                }}
-                type="button"
-              >
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-3 font-normal">
-                  {rule.tokens.map((token, tIdx) => {
-                    if (token.type === 'plain') {
-                      return (
-                        <span className="text-foreground" key={tIdx}>
-                          {token.text}
-                        </span>
-                      )
-                    }
-
-                    // Entity / Action / Agent styling matching reference 3
-                    if (token.type === 'entity') {
-                      return (
-                        <span
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-orange-200/80 bg-orange-50 px-2 py-0.5 font-semibold text-orange-900 text-sm dark:border-orange-800/60 dark:bg-orange-950/40 dark:text-orange-200"
-                          key={tIdx}
-                        >
-                          {token.brand === 'nextjs' && (
-                            <span className="flex size-4 items-center justify-center rounded-full bg-black font-bold text-[10px] text-white">
-                              N
-                            </span>
-                          )}
-                          {token.brand === 'aws' && (
-                            <span className="rounded bg-amber-400 px-1 font-bold font-mono text-[10px] text-black">
-                              aws
-                            </span>
-                          )}
-                          {token.brand === 'x' && (
-                            <span className="flex size-4 items-center justify-center rounded bg-black font-bold text-[10px] text-white">
-                              𝕏
-                            </span>
-                          )}
-                          {token.brand === 'gmail' && (
-                            <span className="font-bold text-red-500 text-xs">M</span>
-                          )}
-                          <span>{token.text}</span>
-                        </span>
-                      )
-                    }
-
-                    if (token.type === 'agent') {
-                      return (
-                        <span
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200/80 bg-rose-50 px-2 py-0.5 font-semibold text-rose-900 text-sm dark:border-rose-800/60 dark:bg-rose-950/40 dark:text-rose-200"
-                          key={tIdx}
-                        >
-                          {token.brand === 'claude' && <span>✳️</span>}
-                          {token.iconText && <span>{token.iconText}</span>}
-                          <span>{token.text}</span>
-                        </span>
-                      )
-                    }
-
-                    if (token.type === 'condition') {
-                      return (
-                        <span
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200/80 bg-blue-50 px-2 py-0.5 font-semibold text-blue-900 text-sm dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-200"
-                          key={tIdx}
-                        >
-                          {token.text.includes('below') ? (
-                            <FilterIcon className="size-3 text-blue-600 dark:text-blue-400" />
-                          ) : (
-                            <SparklesIcon className="size-3 text-blue-600 dark:text-blue-400" />
-                          )}
-                          <span>{token.text}</span>
-                        </span>
-                      )
-                    }
-
-                    if (token.type === 'target') {
-                      return (
-                        <span
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-stone-100 px-2 py-0.5 font-semibold text-sm text-stone-900 dark:border-stone-700 dark:bg-stone-900/60 dark:text-stone-200"
-                          key={tIdx}
-                        >
-                          {token.brand === 'github' && (
-                            <span className="flex size-3.5 items-center justify-center">🐙</span>
-                          )}
-                          {token.brand === 'gdrive' && (
-                            <span className="flex size-3.5 items-center justify-center">📁</span>
-                          )}
-                          <span>{token.text}</span>
-                        </span>
-                      )
-                    }
-
-                    return <span key={tIdx}>{token.text}</span>
-                  })}
-                </div>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Lingo Canonicalization Inspector */}
-        <div className="flex flex-col gap-3 rounded-xl border border-border/80 bg-muted/40 p-4 sm:p-5">
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-2 font-mono font-semibold text-muted-foreground text-xs uppercase tracking-wider">
-              <CheckCircle2Icon className="size-4 text-emerald-500" />
-              Lingo Automated Extraction Readout
-            </span>
-            <span className="font-mono text-muted-foreground text-xs">
-              Active Rule: {currentRule.title}
-            </span>
-          </div>
-
-          <div className="mt-1 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
-            <div className="flex flex-col gap-1 rounded-lg border border-border/60 bg-background p-3">
-              <span className="font-medium text-muted-foreground text-xs">Original Prompt</span>
-              <span className="break-words font-mono text-foreground text-xs sm:text-sm">
-                &ldquo;{customText}&rdquo;
-              </span>
-            </div>
-
-            <div className="flex flex-col gap-1 rounded-lg border border-border/60 bg-background p-3">
-              <span className="font-medium text-muted-foreground text-xs">
-                Extracted Threshold / Condition
-              </span>
-              <div className="font-mono text-foreground text-xs sm:text-sm">
-                {parsedCondition?.type === 'range' && (
-                  <div>
-                    <span className="font-semibold text-blue-600 dark:text-blue-400">
-                      Upper Bound:
-                    </span>{' '}
-                    {parsedCondition.max ?? '—'} (Canonical: $
-                    {parsedCondition.canonicalMax?.toLocaleString()})
-                  </div>
-                )}
-                {parsedCondition?.type === 'quantities' && (
-                  <div>
-                    {parsedCondition.items.map((it, i) => (
-                      <span className="mr-2 inline-block" key={i}>
-                        {it.text} →{' '}
-                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                          {it.canonical}
-                        </span>
-                      </span>
-                    ))}
-                  </div>
-                )}
-                {!parsedCondition && (
-                  <span className="text-muted-foreground italic">
-                    Event-driven trigger (Zero threshold)
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    </DemoFrame>
   )
 }

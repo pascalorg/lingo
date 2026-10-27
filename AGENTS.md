@@ -61,7 +61,7 @@ wiki/             as-built docs: architecture, decisions, conventions, credits, 
 scripts/          cross-workspace tooling (sync-site.mjs)
 ```
 
-One `bun install` at the root covers everything (bun 1.3.14 + turbo).
+One `bun install` at the root covers everything (bun 1.4.4 + turbo).
 
 ## Knowledge layer: plans/ and wiki/
 

@@ -1,0 +1,5 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "cd ../.. && npx -y bun@1.4.4 install --frozen-lockfile",
+  "buildCommand": "cd ../.. && npx -y bun@1.4.4 run build --filter=lingo-site"
+}

@@ -7,7 +7,7 @@ binds humans too).
 ## Setup
 
 ```sh
-# Bun 1.3.14 (Node >= 18 is the library's runtime target)
+# Bun 1.4.4 (Node >= 18 is the library's runtime target)
 bun install
 bun run check
 ```

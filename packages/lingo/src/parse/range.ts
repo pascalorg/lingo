@@ -385,13 +385,13 @@ function buildRange(
     aUnit = bUnit = implied.unitId
   } else if (!a.kind) {
     // "5-10 kg": distribute B's head unit to A. Use the unit the number sits
-    // next to (b head), honoring compound heads.
+    // next to (b head), honoring compound heads and minor-currency scales.
     const unit = p.reg.unit(kind, (bUnit ?? b.parts[0]?.unit)!)!
-    aBase = toBase(unit, aBase)
+    aBase = toBase(unit, b.minorScale ? aBase / b.minorScale : aBase)
     aUnit = unit.id
   } else if (!b.kind) {
     const unit = p.reg.unit(kind, (aUnit ?? a.parts[0]?.unit)!)!
-    bBase = toBase(unit, bBase)
+    bBase = toBase(unit, a.minorScale ? bBase / a.minorScale : bBase)
     bUnit = unit.id
   }
 
@@ -464,50 +464,30 @@ function singleResult(p: ParserState, a: QtyNode, approxQual: boolean): Parsed {
   // No unit in the text: implied unit / kind, else plain number.
   const implied = resolveImplied(p)
   if (implied) {
-    if (!p.config.bareNumbers) {
-      if (p.tokens[a.nextToken]) {
-        return numberish(p, a, approximate)
-      }
-      const unit = p.reg.unit(implied.kind, implied.unitId)!
-      issue(p, 'UNIT_ASSUMED', { unit: unit.plural ?? `${unit.name}s` }, a.normStart, a.normEnd)
-      const span = toSourceSpan(p.n, a.normStart, a.normEnd)
-      const candidate: QuantityResult = {
-        ok: true,
-        schemaVersion: 3,
-        type: 'quantity',
-        quantity: new Quantity(p.reg, implied.kind, toBase(unit, a.base), implied.unitId, {
-          approximate,
-        }),
-        text: p.src,
-        span,
-        issues: p.issues,
-        confidence: confidence(p, approximate),
-      }
-      const it = makeIssue('UNIT_REQUIRED', { example: exampleFor(p) }, span, p.opts.messages)
-      return {
-        result: fail(p, candidate, [it]),
-        nextToken: a.nextToken,
-      }
-    }
-    if (p.tokens[a.nextToken] && p.config.typos !== 'fix') {
+    if (p.tokens[a.nextToken] && (!p.config.bareNumbers || p.config.typos !== 'fix')) {
       return numberish(p, a, approximate)
     }
     const unit = p.reg.unit(implied.kind, implied.unitId)!
     issue(p, 'UNIT_ASSUMED', { unit: unit.plural ?? `${unit.name}s` }, a.normStart, a.normEnd)
-    const quantity = new Quantity(p.reg, implied.kind, toBase(unit, a.base), implied.unitId, {
-      approximate,
-    })
+    const span = toSourceSpan(p.n, a.normStart, a.normEnd)
+    const result: QuantityResult = {
+      ok: true,
+      schemaVersion: 3,
+      type: 'quantity',
+      quantity: new Quantity(p.reg, implied.kind, toBase(unit, a.base), implied.unitId, {
+        approximate,
+      }),
+      text: p.src,
+      span,
+      issues: p.issues,
+      confidence: confidence(p, approximate),
+    }
     return {
-      result: {
-        ok: true,
-        schemaVersion: 3,
-        type: 'quantity',
-        quantity,
-        text: p.src,
-        span: toSourceSpan(p.n, a.normStart, a.normEnd),
-        issues: p.issues,
-        confidence: confidence(p, approximate),
-      },
+      result: p.config.bareNumbers
+        ? result
+        : fail(p, result, [
+            makeIssue('UNIT_REQUIRED', { example: exampleFor(p) }, span, p.opts.messages),
+          ]),
       nextToken: a.nextToken,
     }
   }

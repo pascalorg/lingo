@@ -69,10 +69,6 @@ surfaces mid-task, add it here and keep going — don't act on it.
 - **Currency bundle placement** — currency ships in the default bundle (D28).
   If the default entry must shrink, trim the curated set or move it to an
   opt-in entry.
-- **Minor-currency range distribution bug** — `5 or 6 cents` (also
-  `5 to 6 cents`, `5-6 cents`, `between 5 and 6 cents`) yields `$0.06–$5.00`:
-  the bare side inherits the major unit while the other is minor. Fix in
-  `buildRange`, independent of the range separator.
 
 ## Dates & times
 

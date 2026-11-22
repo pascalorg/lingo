@@ -7,6 +7,10 @@ change**, even if the API is untouched.
 
 ## [Unreleased]
 
+### Fixed
+
+- Minor-currency ranges with a bare endpoint (`5 to 6 cents`, `5 or 6 cents`, `5-6 cents`, `between 5 and 6 cents`, `5 to 6 pence`) distribute the minor-currency scale to the bare side (`0.05–$0.06`) instead of inheriting the major currency unit (`0.06–$5.00` + `RANGE_REVERSED`).
+
 ## [0.5.0] - 2026-08-23
 
 ### Added

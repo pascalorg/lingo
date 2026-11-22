@@ -139,6 +139,28 @@ describe('currency kind', () => {
     expectCurrencyRange('5 to 10 USD', 'USD', 5, 10)
     expectCurrencyRange('50p-£1', 'GBP', 0.5, 1)
     expectCurrencyRange('between 50p and £1', 'GBP', 0.5, 1)
+    for (const input of ['5 to 6 cents', '5 or 6 cents', '5-6 cents', 'between 5 and 6 cents']) {
+      const r = lingo(input)
+      expect(r.ok && r.type === 'range', input).toBe(true)
+      if (r.ok && r.type === 'range') {
+        expect(r.range.min()?.value, input).toBeCloseTo(0.05, 12)
+        expect(r.range.max()?.value, input).toBeCloseTo(0.06, 12)
+        expect(
+          r.issues.some((i) => i.code === 'RANGE_REVERSED'),
+          input,
+        ).toBe(false)
+      }
+    }
+    expectCurrencyRange('10-20 ¢', 'USD', 0.1, 0.2)
+    expectCurrencyRange('5 to 6 pence', 'GBP', 0.05, 0.06)
+    expectCurrencyRange('5p to 10', 'GBP', 0.05, 0.1)
+    const reversedMinor = lingo('6 to 5 pence')
+    expect(reversedMinor.ok && reversedMinor.type === 'range').toBe(true)
+    if (reversedMinor.ok && reversedMinor.type === 'range') {
+      expect(reversedMinor.range.min()?.value).toBeCloseTo(0.05, 12)
+      expect(reversedMinor.range.max()?.value).toBeCloseTo(0.06, 12)
+      expect(reversedMinor.issues.some((i) => i.code === 'RANGE_REVERSED')).toBe(true)
+    }
     const eur = expectCurrencyRange('€5-€10', 'EUR', 5, 10)
     expect(eur.toJSON().baseUnit).toBe('EUR')
     expect(fromJSON(eur.toJSON()).toJSON()).toEqual(eur.toJSON())

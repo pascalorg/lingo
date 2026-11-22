@@ -329,7 +329,7 @@ export function humanizeDateRange(
   opts?: HumanizeDateRangeOptions,
 ): string {
   if (range.anchored && range.start && range.end) {
-    const a = anchoredPhrase(range.start.date, range.end.date, opts)
+    const a = anchoredPhrase(range.start, range.end, opts)
     if (a) {
       return a
     }
@@ -338,12 +338,13 @@ export function humanizeDateRange(
   // A calendar range must carry its dates, or "July 1 to July 5" renders as
   // "12:00 AM to 12:00 AM" and re-parses to today. Clock slots stay bare.
   const render = (ep: { date: Date; grain?: DateGrain }): string => {
-    if (!range.dated) {
-      return formatClock(ep.date, hour12)
+    const clock = formatClock(ep.date, hour12, ep.grain === 'second')
+    if (!(range.dated || range.anchored)) {
+      return clock
     }
     const day = formatMonthDayYear(ep.date)
     return ep.grain === 'hour' || ep.grain === 'minute' || ep.grain === 'second'
-      ? `${day} ${formatClock(ep.date, hour12)}`
+      ? `${day} ${clock}`
       : day
   }
   const start = range.start ? render(range.start) : undefined
@@ -360,31 +361,33 @@ export function humanizeDateRange(
   throw new Error('humanizeDateRange: range has neither start nor end.')
 }
 
-function anchoredPhrase(s: Date, e: Date, opts?: HumanizeDateRangeOptions): string | null {
-  const m =
-    (e.getTime() - s.getTime() - (e.getTimezoneOffset() - s.getTimezoneOffset()) * 6e4) / 6e4
-  if (m <= 0) {
+function anchoredPhrase(
+  startEp: { date: Date; grain?: DateGrain },
+  endEp: { date: Date; grain?: DateGrain },
+  opts?: HumanizeDateRangeOptions,
+): string | null {
+  const s = startEp.date
+  const e = endEp.date
+  const sec =
+    (e.getTime() - s.getTime() - (e.getTimezoneOffset() - s.getTimezoneOffset()) * 6e4) / 1e3
+  if (sec <= 0 || !Number.isInteger(sec)) {
     return null
   }
-  const day = !(s.getHours() | s.getMinutes() | s.getSeconds()) && m % 1440 === 0
-  const n = day ? m / 1440 : m % 60 === 0 ? m / 60 : m
-  if (!Number.isInteger(n)) {
-    return null
-  }
-  const u = day
-    ? n === 1
-      ? 'day'
-      : 'days'
-    : m % 60 === 0
-      ? n === 1
-        ? 'hour'
-        : 'hours'
-      : n === 1
-        ? 'minute'
-        : 'minutes'
+  const day =
+    !(s.getHours() | s.getMinutes() | s.getSeconds()) &&
+    startEp.grain !== 'second' &&
+    sec % 86_400 === 0
+  const [n, singular] = day
+    ? [sec / 86_400, 'day']
+    : sec % 3600 === 0
+      ? [sec / 3600, 'hour']
+      : sec % 60 === 0
+        ? [sec / 60, 'minute']
+        : [sec, 'second']
+  const u = n === 1 ? singular : `${singular}s`
   const anchor = day
     ? formatMonthDayYear(s)
-    : `${formatMonthDayYear(s)} ${formatClock(s, opts?.hour12 ?? true)}`
+    : `${formatMonthDayYear(s)} ${formatClock(s, opts?.hour12 ?? true, startEp.grain === 'second')}`
   return `${n} ${u} starting ${anchor}`
 }
 
@@ -392,11 +395,13 @@ function formatMonthDayYear(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-function formatClock(d: Date, hour12: boolean): string {
+function formatClock(d: Date, hour12: boolean, withSeconds = false): string {
   const h = d.getHours()
   const mm = String(d.getMinutes()).padStart(2, '0')
+  const sec =
+    withSeconds || d.getSeconds() !== 0 ? `:${String(d.getSeconds()).padStart(2, '0')}` : ''
   if (!hour12) {
-    return `${String(h).padStart(2, '0')}:${mm}`
+    return `${String(h).padStart(2, '0')}:${mm}${sec}`
   }
-  return `${h % 12 || 12}:${mm} ${h < 12 ? 'AM' : 'PM'}`
+  return `${h % 12 || 12}:${mm}${sec} ${h < 12 ? 'AM' : 'PM'}`
 }

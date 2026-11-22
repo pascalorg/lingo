@@ -180,7 +180,7 @@ describe('parseDateRange', () => {
 })
 
 describe('humanizeDateRange round-trips', () => {
-  const clock = (d: Date) => [d.getHours(), d.getMinutes()] as const
+  const clock = (d: Date) => [d.getHours(), d.getMinutes(), d.getSeconds()] as const
 
   for (const [text, hour12] of [
     ['2pm to 4pm', true],
@@ -192,6 +192,11 @@ describe('humanizeDateRange round-trips', () => {
     ['noon to midnight', false],
     ['between 9am and 5pm', false],
     ['13:15 to 14:45', false],
+    ['9:00:30am to 5:00:45pm', true],
+    ['9:00:30am to 5:00:45pm', false],
+    ['9:00:00am to 5:00:00pm', true],
+    ['from 9:00:15am', true],
+    ['until 17:00:45', false],
   ] as const) {
     it(`re-parses "${text}" (hour12=${hour12})`, () => {
       const first = parseDateRange(text, { now: NOW })
@@ -356,6 +361,31 @@ describe('humanizeDateRange round-trips for time-grain anchored ranges', () => {
     }
     const phrase = humanizeDateRange(r)
     expect(phrase).toBe('3 days starting 2026-03-01')
+  })
+
+  it('preserves seconds on second-grain anchors and sub-minute durations', () => {
+    for (const [input, expected] of [
+      ['10 minutes starting 2026-07-03T09:00:30', '10 minutes starting 2026-07-03 9:00:30 AM'],
+      ['30 seconds starting 2026-07-03T09:00:15', '30 seconds starting 2026-07-03 9:00:15 AM'],
+      ['1 second starting 2026-07-03T09:00:00', '1 second starting 2026-07-03 9:00:00 AM'],
+    ] as const) {
+      const r = parseDateRange(input)
+      expect(r.ok).toBe(true)
+      if (!r.ok) {
+        return
+      }
+      const phrase = humanizeDateRange(r)
+      expect(phrase).toBe(expected)
+      const reparsed = parseDateRange(phrase)
+      expect(reparsed.ok).toBe(true)
+      if (!reparsed.ok) {
+        return
+      }
+      expect(reparsed.start?.date).toEqual(r.start?.date)
+      expect(reparsed.end?.date).toEqual(r.end?.date)
+      expect(reparsed.start?.grain).toBe('second')
+      expect(reparsed.end?.grain).toBe('second')
+    }
   })
 })
 
@@ -553,6 +583,7 @@ describe('humanizeDateRange round-trips calendar ranges', () => {
     ['until august 9', NOW],
     ['2026-08-01 to 2026-08-05', NOW],
     ['July 1 3pm to July 2 5pm', NOW],
+    ['2026-07-03T09:00:30 to 2026-07-03T17:00:45', NOW],
     ['this weekend', SUNDAY],
     ['next weekend', SUNDAY],
     ['last weekend', SUNDAY],

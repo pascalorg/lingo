@@ -94,14 +94,6 @@ surfaces mid-task, add it here and keep going — don't act on it.
   drift in the autocomplete display string, not in `format`/`humanize`). Slicing
   to 13 (`…T15`) fixes it only if the date parser accepts a bare `THH` — verify
   that round-trips before changing. Surfaced by the 0.2.0 completions review.
-- **`humanizeDateRange` drops seconds** — `formatClock` (`date/humanize.ts`)
-  never emits a seconds field, so `9:00:30am to 5:00:45pm` humanizes to
-  `9:00 AM to 5:00 PM` and re-parses a minute off. This predates the D71
-  calendar-range work (verified against the commit before it) and breaks the
-  two-way guarantee for second-grain endpoints. Render seconds whenever an
-  endpoint carries `second` grain; check the anchored-duration phrase at the
-  same time, since it shares the clock formatter. Surfaced by the plan-032
-  adversarial review pass.
 - **Elliptical range right sides** — `Aug 3–9`, `July 1-5`, `July 1 through 5`
   all fail: `parseDateToDateRange` parses each endpoint independently, so a bare
   day number on the right has no month to attach to. The right side should

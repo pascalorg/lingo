@@ -1,9 +1,23 @@
 import type { LocalePack } from '../locale'
 
+const COMPACT_UNITS = {
+  秒: 'second',
+  分: 'minute',
+  時間: 'hour',
+  日: 'day',
+  週間: 'week',
+  週: 'week',
+  ヶ月: 'month',
+  か月: 'month',
+  月: 'month',
+  年: 'year',
+} as const
+
 export const ja: LocalePack = {
   locale: 'ja',
   aliases: ['ja-JP'],
   extends: 'en',
+  detectionWords: Object.keys(COMPACT_UNITS).flatMap((u) => ['前', '後'].map((s) => u + s)),
   defaults: {
     // `¥` is shared with the yuan, so the Japanese reading has to be declared.
     currency: 'JPY',
@@ -133,18 +147,7 @@ export const ja: LocalePack = {
     compactOffset: {
       futureSuffixes: ['後'],
       pastSuffixes: ['前'],
-      unitWords: {
-        秒: 'second',
-        分: 'minute',
-        時間: 'hour',
-        日: 'day',
-        週間: 'week',
-        週: 'week',
-        ヶ月: 'month',
-        か月: 'month',
-        月: 'month',
-        年: 'year',
-      },
+      unitWords: COMPACT_UNITS,
     },
     dayOffsets: {
       今日: 0,

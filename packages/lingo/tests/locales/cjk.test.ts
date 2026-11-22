@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseDate } from '../../src/date/index'
+import { parseDate, parseDateRange } from '../../src/date/index'
 import { createLingo } from '../../src/index'
 import { ja } from '../../src/locales/ja'
 import { zh } from '../../src/locales/zh'
@@ -11,6 +11,29 @@ describe('CJK locale packs', () => {
     const lingo = createLingo()
     const result = lingo.parse('暑い', { kind: 'temperature' })
     expect(result.ok).toBe(false)
+  })
+
+  it('auto-detects CJK compact date offsets and date ranges without an explicit locale', () => {
+    const zhOffset = parseDate('3天后', { now: NOW, localePacks: [ja, zh] })
+    expect(zhOffset.ok, JSON.stringify(zhOffset.issues)).toBe(true)
+    if (zhOffset.ok) {
+      expect(zhOffset.date.getDate()).toBe(11)
+    }
+
+    const jaOffset = parseDate('3日後', { now: NOW, localePacks: [zh, ja] })
+    expect(jaOffset.ok, JSON.stringify(jaOffset.issues)).toBe(true)
+    if (jaOffset.ok) {
+      expect(jaOffset.date.getDate()).toBe(11)
+    }
+
+    const jaWeeks = parseDate('2週間前', { now: NOW, localePacks: [zh, ja] })
+    expect(jaWeeks.ok, JSON.stringify(jaWeeks.issues)).toBe(true)
+    if (jaWeeks.ok) {
+      expect(jaWeeks.date).toEqual(new Date(2026, 5, 24, 12))
+    }
+
+    const jaRange = parseDateRange('来週', { now: NOW, localePacks: [zh, ja] })
+    expect(jaRange.ok, JSON.stringify(jaRange.issues)).toBe(true)
   })
 
   it('parses Chinese compact quantities, dates, and fuzzy temperature', () => {

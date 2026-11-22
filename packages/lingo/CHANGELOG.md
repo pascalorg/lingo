@@ -7,6 +7,10 @@ change**, even if the API is untouched.
 
 ## [Unreleased]
 
+### Fixed
+
+- CJK compact date offsets (`3天后`, `3日後`, `2週間前`, `5分钟后`) now auto-detect their locale via tree-shaken pack `detectionWords`, and `parseDate` / `parseDateRange` automatically detect from `localePacks` when `locale` is omitted.
+
 ## [0.5.0] - 2026-08-23
 
 ### Added

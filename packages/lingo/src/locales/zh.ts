@@ -1,9 +1,25 @@
 import type { LocalePack } from '../locale'
 
+const COMPACT_UNITS = {
+  秒: 'second',
+  分钟: 'minute',
+  分: 'minute',
+  个小时: 'hour',
+  小时: 'hour',
+  天: 'day',
+  日: 'day',
+  周: 'week',
+  星期: 'week',
+  个月: 'month',
+  月: 'month',
+  年: 'year',
+} as const
+
 export const zh: LocalePack = {
   locale: 'zh',
   aliases: ['zh-CN', 'zh-TW', 'zh-HK', 'zh-SG'],
   extends: 'en',
+  detectionWords: Object.keys(COMPACT_UNITS).flatMap((u) => ['前', '后', '以后'].map((s) => u + s)),
   defaults: {
     // `¥` is shared with the yen, so the Chinese reading has to be declared.
     currency: 'CNY',
@@ -137,20 +153,7 @@ export const zh: LocalePack = {
     compactOffset: {
       futureSuffixes: ['后', '以后'],
       pastSuffixes: ['前'],
-      unitWords: {
-        秒: 'second',
-        分钟: 'minute',
-        分: 'minute',
-        个小时: 'hour',
-        小时: 'hour',
-        天: 'day',
-        日: 'day',
-        周: 'week',
-        星期: 'week',
-        个月: 'month',
-        月: 'month',
-        年: 'year',
-      },
+      unitWords: COMPACT_UNITS,
     },
     dayOffsets: {
       今天: 0,

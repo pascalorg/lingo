@@ -191,6 +191,7 @@ export interface QtyNode {
   base: number
   headUnit: string | null
   kind: Kind | null
+  minorScale?: number
   nextToken: number
   normEnd: number
   normStart: number
@@ -372,6 +373,7 @@ export function parseQty(
       kind: 'currency',
       base: toBase(minor.unit, value),
       headUnit: minor.unit.id,
+      minorScale: scale,
       parts: [{ unit: minor.unit.id, value }],
       value: v,
       normStart: v.start,

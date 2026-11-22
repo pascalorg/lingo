@@ -7,6 +7,10 @@ change**, even if the API is untouched.
 
 ## [Unreleased]
 
+### Fixed
+
+- `humanizeDateRange` preserves seconds on `second`-grain endpoints, second-grain anchors, and sub-minute anchored durations (`9:00:30am to 5:00:45pm`, `30 seconds starting 2026-07-03T09:00:15`), restoring the two-way round-trip guarantee.
+
 ## [0.5.0] - 2026-08-23
 
 ### Added

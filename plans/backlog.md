@@ -81,13 +81,6 @@ surfaces mid-task, add it here and keep going — don't act on it.
   endpoints), which touches the whole date result shape and its serialization.
   Fold in with a broader "approximate/uncertain date" pass; `humanizeDate`
   would need to emit the marker back for two-way.
-- **CJK compact date offsets aren't auto-detected** — `detectLocale([zh], '3天后')`
-  falls back to English because `compactOffset.unitWords`/suffixes (天, 后) feed
-  neither `aliasWords` nor `detectionWords` (`locale/detect.ts`), whereas
-  unit-alias inputs like `5公里` detect fine. Seed detection from `compactOffset`
-  vocab, or document that CJK date offsets need an explicit `locale`. Every
-  locale test passes an explicit `locale`, so today this only bites auto-detect
-  callers. Surfaced by the 0.2.0 locale pre-release review.
 - **`/complete` hour-grain date text carries `:00` minutes** — `formatDate`
   (`complete/completions.ts`) slices `localIso` to 16 chars for `hour` grain,
   emitting `2026-07-08T15:00`, which re-parses at `minute` grain (a one-grain

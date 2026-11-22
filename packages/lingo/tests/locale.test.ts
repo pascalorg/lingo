@@ -4,6 +4,7 @@ import { detectLocale, resolveLanguageProfile } from '../src/locale'
 import { enGb } from '../src/locales/en-gb'
 import { es } from '../src/locales/es'
 import { fr } from '../src/locales/fr'
+import { ja } from '../src/locales/ja'
 import { zh } from '../src/locales/zh'
 import { normalizeInput } from '../src/parse/normalize'
 import { tokenize } from '../src/parse/tokenize'
@@ -30,6 +31,12 @@ describe('locale profiles', () => {
     expect(detectLocale([es], 'two kg')).toBe('en')
     expect(detectLocale([es, fr], '72 in to cm')).toBe('en')
     expect(detectLocale([zh], '三kg')).toBe('zh')
+    expect(detectLocale([zh], '3天后')).toBe('zh')
+    expect(detectLocale([ja], '3日後')).toBe('ja')
+    expect(detectLocale([ja, zh], '3天后')).toBe('zh')
+    expect(detectLocale([zh, ja], '3日後')).toBe('ja')
+    expect(detectLocale([zh, ja], '2週間前')).toBe('ja')
+    expect(detectLocale([ja, zh], '5分钟后')).toBe('zh')
   })
 
   it('keeps inherited English grammar in English during auto-detection', () => {

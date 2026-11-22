@@ -1,6 +1,7 @@
 import { makeIssue } from '../core/errors'
 import type { Quantity } from '../core/quantity'
 import type { IssueCode, IssueInputData, LingoIssue, Messages, Severity, Span } from '../core/types'
+import { detectLanguageProfile } from '../locale/detect'
 import { resolveLanguageProfile } from '../locale/profile'
 import type { LocalePack } from '../locale/types'
 import { normalizeInput, toSourceSpan } from '../parse/normalize'
@@ -156,21 +157,33 @@ export function parseDate(text: string, opts?: DateOptions): DateResult | DateFa
   return attachDateSerialization(parseDateImpl(text, opts))
 }
 
-function parseDateImpl(text: string, opts?: DateOptions): DateResult | DateFail<DateResult> {
-  const now = opts?.now === undefined ? anchorNow() : new Date(opts.now.getTime())
+function makeP(text: string, opts?: DateOptions): P {
   const n = normalizeInput(text)
-  const p: P = {
+  const tokens = tokenize(n)
+  return {
     src: text,
     n,
     text: n.text,
-    tokens: tokenize(n),
-    now,
+    tokens,
+    now: opts?.now === undefined ? anchorNow() : new Date(opts.now.getTime()),
     opts: opts ?? {},
-    profile: resolveLanguageProfile(opts?.localePacks, opts?.locale),
+    profile:
+      opts?.locale || !opts?.localePacks
+        ? resolveLanguageProfile(opts?.localePacks, opts?.locale)
+        : detectLanguageProfile(opts.localePacks, text, {
+            lower: n.text.toLowerCase(),
+            raw: text,
+            tokens,
+          }),
     weekStart: normalizeWeekStart(opts?.weekStart),
     forwardDates: opts?.forwardDates ?? true,
     escalate: dateEscalate(opts),
   }
+}
+
+function parseDateImpl(text: string, opts?: DateOptions): DateResult | DateFail<DateResult> {
+  const p = makeP(text, opts)
+  const { n } = p
   const { start, end } = trimRange(n.text, 0, n.text.length)
   if (start === end) {
     return fail(p, 'NO_VALUE', { example: '"tomorrow"' }, start, end)
@@ -447,20 +460,8 @@ export function parseDateRange(text: string, opts?: DateOptions): DateRange | Da
 }
 
 function parseDateRangeImpl(text: string, opts?: DateOptions): DateRange | DateRangeFail {
-  const now = opts?.now === undefined ? anchorNow() : new Date(opts.now.getTime())
-  const n = normalizeInput(text)
-  const p: P = {
-    src: text,
-    n,
-    text: n.text,
-    tokens: tokenize(n),
-    now,
-    opts: opts ?? {},
-    profile: resolveLanguageProfile(opts?.localePacks, opts?.locale),
-    weekStart: normalizeWeekStart(opts?.weekStart),
-    forwardDates: opts?.forwardDates ?? true,
-    escalate: dateEscalate(opts),
-  }
+  const p = makeP(text, opts)
+  const { n } = p
   let source = n.text.trim()
   const issues: LingoIssue[] = []
   // Point the span at the trimmed content, not the padded input.
